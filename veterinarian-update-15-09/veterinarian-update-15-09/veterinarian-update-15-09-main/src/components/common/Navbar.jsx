@@ -10,6 +10,7 @@ import { PAGE_META } from "../../constants/pageMeta";
 
 import { getPatients } from "../../services/patientService";
 import { getDoctorProfile } from "../../services/doctorProfileService";
+import { getAppointments, getAppointmentsByDate } from "../../services/appointmentService";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -38,6 +39,9 @@ export default function Navbar() {
     useState(false);
 
   const [patientCount, setPatientCount] =
+    useState(0);
+
+  const [appointmentCount, setAppointmentCount] =
     useState(0);
 
   const [doctor, setDoctor] =
@@ -169,6 +173,60 @@ export default function Navbar() {
   }, [pathname]);
 
   // =====================================================
+  // LOAD APPOINTMENTS COUNT
+  // =====================================================
+
+  useEffect(() => {
+    if (pathname !== "/appointments") {
+      return;
+    }
+
+    const loadAppointments = async () => {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let data = [];
+        try {
+          data = await getAppointmentsByDate(todayStr);
+        } catch {
+          const all = await getAppointments().catch(() => []);
+          data = (all || []).filter((a) => a.appointmentDate === todayStr);
+        }
+
+        setAppointmentCount(
+          Array.isArray(data)
+            ? data.length
+            : 0
+        );
+      } catch (error) {
+        console.error(
+          "Navbar - failed to load appointments:",
+          error
+        );
+
+        setAppointmentCount(0);
+      }
+    };
+
+    loadAppointments();
+
+    const refreshAppointments = () => {
+      loadAppointments();
+    };
+
+    window.addEventListener(
+      "appointmentsUpdated",
+      refreshAppointments
+    );
+
+    return () => {
+      window.removeEventListener(
+        "appointmentsUpdated",
+        refreshAppointments
+      );
+    };
+  }, [pathname]);
+
+  // =====================================================
   // DOCTOR NAME
   // =====================================================
 
@@ -207,7 +265,13 @@ export default function Navbar() {
             ? "pet"
             : "pets"
         } across species`
-      : meta?.subtitle || "";
+      : pathname === "/appointments"
+        ? `Today · ${appointmentCount} ${
+            appointmentCount === 1
+              ? "visit"
+              : "visits"
+          } across clinic, video and field`
+        : meta?.subtitle || "";
 
   // =====================================================
   // RENDER

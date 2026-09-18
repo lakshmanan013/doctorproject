@@ -115,7 +115,7 @@ export default function Dashboard() {
   }
 
   // Format dynamic notifications from database
-  const activityList = notifications.slice(0, 6).map((n) => {
+  const activityList = notifications.map((n) => {
     let badge = 'Update'
     let badgeTone = 'bg-slate-50 text-slate-600 border-slate-200'
     let Icon = Activity
@@ -298,9 +298,9 @@ export default function Dashboard() {
           </div>
 
           {/* Pending Doctors List or Empty State */}
-          <div className="flex-1 flex flex-col justify-center py-2 relative z-10">
+          <div className="flex-1 min-h-0 flex flex-col justify-start py-2 relative z-10 overflow-hidden">
             {pendingDoctors.length > 0 ? (
-              <div className="divide-y divide-slate-100 space-y-1 overflow-y-auto max-h-56">
+              <div className="divide-y divide-slate-100 space-y-1 overflow-y-auto flex-1 min-h-0 pr-1">
                 {pendingDoctors.map((d) => (
                   <div
                     key={d.id}
@@ -312,7 +312,7 @@ export default function Dashboard() {
                         {d.email} {d.clinicName && `· ${d.clinicName}`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => handleApprove(d.id)}
                         disabled={busyId === d.id}
@@ -333,7 +333,7 @@ export default function Dashboard() {
               </div>
             ) : (
               /* Exact Vector Empty State matching screenshot */
-              <div className="flex flex-col items-center justify-center text-center px-4">
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                 <PendingEmptyStateIllustration />
                 <h3 className="font-display text-[15px] font-bold text-[#1E293B] mt-1 mb-0.5">
                   No pending registrations right now.
@@ -347,107 +347,69 @@ export default function Dashboard() {
         </div>
 
         {/* Right Column: Recent Activity */}
-        <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-xs p-4 sm:p-5 flex flex-col justify-between h-full overflow-hidden">
-          <div className="h-full flex flex-col justify-between">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="text-[#434EE8]">
-                  <Activity className="h-4.5 w-4.5" strokeWidth={2.4} />
-                </div>
-                <h2 className="font-display text-[16px] font-bold text-[#1E293B] tracking-tight">
-                  Recent activity
-                </h2>
+        <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-xs p-4 sm:p-5 flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="text-[#434EE8]">
+                <Activity className="h-4.5 w-4.5" strokeWidth={2.4} />
               </div>
-              <Link
-                to="/notifications"
-                className="flex items-center gap-1 text-[11px] font-semibold text-[#434EE8] hover:text-[#363EC4] bg-[#EEF2FF] hover:bg-[#E0E7FF] px-3 py-1.5 rounded-full transition-colors"
-              >
-                All notifications <ArrowRight className="h-3 w-3" />
-              </Link>
+              <h2 className="font-display text-[16px] font-bold text-[#1E293B] tracking-tight">
+                Recent activity
+              </h2>
             </div>
+            <Link
+              to="/notifications"
+              className="flex items-center gap-1 text-[11px] font-semibold text-[#434EE8] hover:text-[#363EC4] bg-[#EEF2FF] hover:bg-[#E0E7FF] px-3 py-1.5 rounded-full transition-colors shrink-0"
+            >
+              All notifications <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
 
-            {/* Vertical Timeline or Empty State */}
-            {activityList.length > 0 ? (
-              <div className="relative flex-1 flex flex-col justify-around py-1.5 pl-1">
-                {/* Continuous vertical connecting line */}
-                <div className="absolute left-[15px] top-2 bottom-2 w-[1.5px] bg-slate-200/80 -z-0" />
+          {/* Scrollable Vertical Timeline or Empty State */}
+          {activityList.length > 0 ? (
+            <div className="relative flex-1 min-h-0 overflow-y-auto py-2.5 pl-1 pr-1.5 space-y-3">
+              {/* Continuous vertical connecting line */}
+              <div className="absolute left-[15px] top-3.5 bottom-3.5 w-[1.5px] bg-slate-200/80 -z-0 pointer-events-none" />
 
-                {activityList.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <div key={item.id} className="relative z-10 flex items-center justify-between gap-2.5 py-0.5">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-white shadow-xs">
-                          <Icon className={`h-3.5 w-3.5 ${item.iconTone}`} strokeWidth={2.2} />
-                        </div>
-                        <div className="min-w-0 leading-tight">
-                          <p className="text-[11.5px] font-medium text-[#1E293B] truncate">
-                            {item.text}
-                          </p>
-                          <p className="text-[10px] text-[#94A3B8]">{item.time}</p>
-                        </div>
+              {activityList.map((item) => {
+                const Icon = item.icon
+                return (
+                  <div key={item.id} className="relative z-10 flex items-center justify-between gap-2.5 py-0.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-white shadow-xs">
+                        <Icon className={`h-3.5 w-3.5 ${item.iconTone}`} strokeWidth={2.2} />
                       </div>
-                      <span
-                        className={`shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full border ${item.badgeTone}`}
-                      >
-                        {item.badge}
-                      </span>
+                      <div className="min-w-0 leading-tight">
+                        <p className="text-[11.5px] font-medium text-[#1E293B] truncate">
+                          {item.text}
+                        </p>
+                        <p className="text-[10px] text-[#94A3B8]">{item.time}</p>
+                      </div>
                     </div>
-                  )
-                })}
+                    <span
+                      className={`shrink-0 text-[9.5px] font-semibold px-2 py-0.5 rounded-full border ${item.badgeTone}`}
+                    >
+                      {item.badge}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">
+                <Activity className="h-5 w-5" strokeWidth={1.8} />
               </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">
-                  <Activity className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <p className="text-xs font-semibold text-slate-700">No activity yet</p>
-                <p className="text-[11px] text-slate-400 mt-0.5 max-w-[200px]">
-                  Doctor registrations and status updates will appear here.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Pet Care Banner Card */}
-      <div className="bg-white/95 backdrop-blur rounded-2xl border border-slate-100 shadow-xs px-5 py-2.5 sm:py-3 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-        {/* Soft background pastel blob */}
-        <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-[#E0F2FE]/40 via-[#F3E8FF]/30 to-transparent pointer-events-none" />
-
-        {/* Left Text */}
-        <div className="relative z-10 max-w-sm">
-          <h3 className="font-display text-[15px] sm:text-[16px] font-bold text-[#1E293B] leading-tight">
-            Thank you for keeping Zenve Doctors growing!
-          </h3>
-          <p className="text-[11px] sm:text-[11.5px] text-[#64748B] mt-0.5 font-medium">
-            Manage doctor registrations, approvals and platform activity with ease.
-          </p>
-        </div>
-
-        {/* Right Illustration: Golden Retriever Puppy & Kitten with Cursive Script */}
-        <div className="relative z-10 flex items-center gap-4 sm:gap-6">
-          {/* Pet Photo */}
-          <div className="relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden shadow-xs flex items-center justify-center bg-gradient-to-b from-white to-slate-50">
-            <img
-              src="/assets/pets-banner.jpg"
-              alt="Golden Retriever puppy and cute kitten"
-              className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-
-          {/* Cursive script text: Care Connect Grow ♡ */}
-          <div className="font-script text-[20px] sm:text-[22px] text-[#4F5B93] leading-none tracking-wide text-right select-none pr-1">
-            <p>Care</p>
-            <p>Connect</p>
-            <p className="flex items-center justify-end gap-1">
-              Grow <span className="text-base">♡</span>
-            </p>
-          </div>
+              <p className="text-xs font-semibold text-slate-700">No activity yet</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 max-w-[200px]">
+                Doctor registrations and status updates will appear here.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
+

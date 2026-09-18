@@ -839,8 +839,8 @@ export default function Dashboard() {
                     activeTrendPoint.x > 420
                       ? "translateX(-82%)"
                       : activeTrendPoint.x < 120
-                      ? "translateX(-18%)"
-                      : "translateX(-50%)",
+                        ? "translateX(-18%)"
+                        : "translateX(-50%)",
                 }}
               >
                 <div className="tooltip-date">{activeTrendPoint.label}</div>
@@ -883,10 +883,7 @@ export default function Dashboard() {
               </span>
               <h2 className="collected-amount">₹{selectedCollectedNum.toLocaleString("en-IN")}</h2>
               <p className="collected-sub">
-                ₹{selectedDueNum.toLocaleString("en-IN")} due ·{" "}
-                <span className="view-billing-link" onClick={() => navigate("/billing")}>
-                  view billing
-                </span>
+                ₹{selectedDueNum.toLocaleString("en-IN")} due{" "}
               </p>
 
               <div className="wallet-illustration-box">
@@ -1296,8 +1293,8 @@ export default function Dashboard() {
                   String(appt.appointmentType).toLowerCase() === "emergency"
                     ? "red"
                     : String(appt.appointmentType).toLowerCase() === "vaccination"
-                    ? "green"
-                    : "blue";
+                      ? "green"
+                      : "blue";
 
                 return (
                   <div key={appt.id} className="upcoming-item">
@@ -1380,11 +1377,9 @@ export default function Dashboard() {
                   <button
                     key={`${cd.iso}-${index}`}
                     type="button"
-                    className={`cal-day-cell ${
-                      cd.isOtherMonth ? "day-muted" : ""
-                    } ${isSelected ? "day-selected" : ""} ${
-                      isToday && !isSelected ? "day-today" : ""
-                    }`}
+                    className={`cal-day-cell ${cd.isOtherMonth ? "day-muted" : ""
+                      } ${isSelected ? "day-selected" : ""} ${isToday && !isSelected ? "day-today" : ""
+                      }`}
                     onClick={() => {
                       setSelectedDate(cd.iso);
                     }}

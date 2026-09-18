@@ -48,16 +48,16 @@ spring:
     activate:
       on-profile: mysql
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:admin_crm}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
-    username: ${DB_USER:admin_crm_app}
-    password: ${DB_PASSWORD:admin-23}
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:vetcare}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:NewPassword@123}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 app:
   database:
     driver: mysql
     host: ${DB_HOST:localhost}:${DB_PORT:3306}
-    name: ${DB_NAME:admin_crm}
+    name: ${DB_NAME:vetcare}
     file-path: ""
 
 ---
@@ -74,7 +74,7 @@ spring:
     activate:
       on-profile: h2
   datasource:
-    url: jdbc:h2:file:${DB_FILE_PATH:./data/admin_crm};AUTO_SERVER=TRUE
+    url: jdbc:h2:file:${DB_FILE_PATH:./data/vetcare};AUTO_SERVER=TRUE
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -82,6 +82,6 @@ spring:
 app:
   database:
     driver: h2
-    host: ${DB_FILE_PATH:./data/admin_crm}
-    name: admin_crm
-    file-path: ${DB_FILE_PATH:./data/admin_crm}
+    host: ${DB_FILE_PATH:./data/vetcare}
+    name: vetcare
+    file-path: ${DB_FILE_PATH:./data/vetcare}

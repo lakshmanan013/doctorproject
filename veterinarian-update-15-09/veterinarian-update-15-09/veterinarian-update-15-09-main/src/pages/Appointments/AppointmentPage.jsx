@@ -25,7 +25,7 @@ export default function AppointmentPage() {
   useEffect(() => { load(); }, [date]);
   const list = useMemo(() => filter === "All" ? appointments : appointments.filter((a) => a.appointmentType === filter), [appointments, filter]);
   const move = (days) => setDate((d) => { const x = new Date(d); x.setDate(x.getDate() + days); return x; });
-  const remove = async (a) => { if (!window.confirm(`Delete visit for ${a.patientName}?`)) return; try { await deleteAppointment(a.id); toast.success("Appointment deleted"); load(); } catch (e) { toast.error(e?.response?.data?.message || "Could not delete appointment"); } };
+  const remove = async (a) => { if (!window.confirm(`Delete visit for ${a.patientName}?`)) return; try { await deleteAppointment(a.id); toast.success("Appointment deleted"); window.dispatchEvent(new CustomEvent("appointmentsUpdated")); load(); } catch (e) { toast.error(e?.response?.data?.message || "Could not delete appointment"); } };
   return <div className="stack-6">
     <div className="appt-toolbar"><div className="appt-date-nav"><button className="appt-date-btn" onClick={() => move(-1)}><FiChevronLeft size={18} /></button><span className="appt-date-label">{labelDate(date)}</span><button className="appt-date-btn" onClick={() => move(1)}><FiChevronRight size={18} /></button></div><Button icon={FiPlus} onClick={() => setOpen(true)}>New visit</Button></div>
     <div className="appt-filters">{FILTERS.map((f) => <button key={f} onClick={() => setFilter(f)} className={`appt-filter-btn ${filter === f ? "active" : ""}`}>{f}</button>)}</div>

@@ -144,26 +144,26 @@ export default function Login() {
         </div>
 
         {/* Pet Hero Image with Stethoscope on Clinic Table */}
-        <div className="absolute right-0 bottom-0 top-0 w-[52%] lg:w-[54%] hidden md:block pointer-events-none z-0">
+        <div className="absolute right-0 bottom-0 top-0 w-[50%] lg:w-[52%] hidden md:block pointer-events-none z-0">
           <div className="relative w-full h-full">
-            {/* The real high-resolution photo */}
+            {/* High-resolution veterinary photo */}
             <img
               src="/assets/login-pets.jpg"
               alt="Golden Retriever dog and Tabby cat with stethoscope on examination table"
-              className="w-full h-full object-cover object-[55%_35%] lg:object-[50%_35%]"
+              className="w-full h-full object-cover object-[62%_35%] lg:object-[58%_35%]"
             />
-            {/* Smooth organic wave cutting into the image from left to match screenshot */}
+            {/* Elegant, clean organic wave dividing panel and photo */}
             <svg
-              className="absolute inset-y-0 -left-[1px] h-full w-28 lg:w-40 text-[#EFF4FA] dark:text-[#0B0F19] preserve-3d"
+              className="absolute inset-y-0 -left-[1px] h-full w-20 sm:w-24 lg:w-28 text-[#EFF4FA] dark:text-[#0B0F19] preserve-3d"
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
               fill="currentColor"
             >
-              <path d="M0,0 C35,20 75,10 65,35 C55,60 15,65 25,85 C32,95 10,98 0,100 Z" />
+              <path d="M0,0 C32,22 48,36 32,58 C16,76 28,90 0,100 Z" />
             </svg>
             {/* Soft subtle gradient blend at edges */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#EFF4FA]/90 via-transparent to-transparent lg:from-transparent" />
-            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#EFF4FA]/60 dark:from-[#0B0F19]/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#EFF4FA]/80 via-transparent to-transparent lg:from-transparent" />
+            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#EFF4FA]/50 dark:from-[#0B0F19]/60 to-transparent" />
           </div>
         </div>
 
@@ -194,16 +194,18 @@ export default function Login() {
           </motion.div>
 
           {/* Headline & Badges Section */}
-          <div className="my-8 lg:my-10 space-y-7 max-w-[430px]">
-            {/* Tagline */}
+          <div className="my-6 lg:my-8 space-y-5 max-w-[440px]">
+            {/* Tagline Badge */}
             <motion.div
-              initial={{ opacity: 0, x: -16 }}
+              initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="flex items-center gap-2 text-xs sm:text-[13px] font-medium text-slate-500 dark:text-slate-400"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#E0E7FF] dark:border-indigo-800/60 shadow-xs w-fit"
             >
-              <span className="w-5 h-[2px] bg-[#3B49DF] rounded-full inline-block" />
-              <span>Together for a Healthier Tomorrow</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#3B49DF] dark:bg-[#818CF8]" />
+              <span className="text-xs font-semibold text-[#3B49DF] dark:text-[#818CF8]">
+                Together for a Healthier Tomorrow
+              </span>
             </motion.div>
 
             {/* Main Catchy Heading */}
@@ -211,15 +213,11 @@ export default function Login() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.45 }}
-              className="font-extrabold text-3xl sm:text-4xl lg:text-[43px] leading-[1.14] tracking-tight text-slate-900 dark:text-white"
+              className="font-display font-bold text-xl sm:text-[26px] lg:text-[28px] xl:text-[30px] leading-[1.22] tracking-tight text-slate-900 dark:text-white"
             >
-              Empowering
-              <br />
-              Veterinary Care
-              <br />
-              <span className="text-[#3B49DF] dark:text-[#6366F1]">
-                Through Technology
-              </span>
+              Empowering<br />
+              <span className="text-[#3B49DF] dark:text-[#818CF8]">Veterinary Care</span><br />
+              Through Technology
             </motion.h1>
 
             {/* Sub-paragraph */}
@@ -227,7 +225,7 @@ export default function Login() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}
-              className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[390px]"
+              className="text-sm sm:text-[14.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[390px]"
             >
               Manage doctor registrations, approvals and platform activity with a seamless and secure experience.
             </motion.p>
@@ -237,14 +235,14 @@ export default function Login() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.45 }}
-              className="space-y-4 pt-1"
+              className="space-y-3.5 pt-2"
             >
               {HERO_FEATURES.map(({ title, subtitle, icon: Icon, bg, color }) => (
                 <div key={title} className="flex items-center gap-3.5 group">
                   <div
-                    className={`w-11 h-11 rounded-full ${bg} dark:bg-slate-800/90 flex items-center justify-center shrink-0 shadow-xs transition-transform group-hover:scale-105`}
+                    className={`w-10 h-10 rounded-full ${bg} dark:bg-slate-800/90 flex items-center justify-center shrink-0 shadow-xs transition-transform group-hover:scale-105`}
                   >
-                    <Icon className={`w-5 h-5 ${color}`} strokeWidth={2.2} />
+                    <Icon className={`w-4.5 h-4.5 ${color}`} strokeWidth={2.2} />
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
@@ -383,22 +381,11 @@ export default function Login() {
                   </div>
                   {idx < CARD_BADGES.length - 1 && (
                     <span className="text-slate-300 dark:text-slate-700 select-none pl-1 sm:pl-2">
-                      |
                     </span>
                   )}
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Footer Below Card */}
-          <div className="mt-6 text-center space-y-1">
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              © 2024 Zenve Doctors. All rights reserved.
-            </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              Care Today. Healthier Tomorrows.
-            </p>
           </div>
         </motion.div>
       </div>

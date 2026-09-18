@@ -1,5 +1,19 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, CheckCircle2, XCircle, Phone, Mail, Building2, ShieldCheck, UserPlus, X, User, GraduationCap, Calendar } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  Search,
+  CheckCircle2,
+  XCircle,
+  Phone,
+  Mail,
+  Building2,
+  ShieldCheck,
+  UserPlus,
+  X,
+  User,
+  GraduationCap,
+  Calendar,
+} from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../context/AuthContext'
 import api from '../lib/api'
@@ -31,7 +45,7 @@ function statusLabel(status) {
   if (status === 'pending') return 'Pending'
   if (status === 'approved') return 'Approved'
   if (status === 'rejected') return 'Rejected'
-  return status
+  return status || 'Pending'
 }
 
 const RAIL = {
@@ -42,8 +56,13 @@ const RAIL = {
 
 export default function Doctors() {
   const { token } = useAuth()
-  const [tab, setTab] = useState('pending')
-  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const initialQuery = searchParams.get('q') || searchParams.get('search') || ''
+  const initialTab = searchParams.get('tab') || (initialQuery ? 'all' : 'pending')
+
+  const [tab, setTab] = useState(initialTab)
+  const [query, setQuery] = useState(initialQuery)
   const [doctors, setDoctors] = useState([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, all: 0 })
   const [busyId, setBusyId] = useState(null)
@@ -70,11 +89,60 @@ export default function Doctors() {
     load()
   }, [load])
 
+  // Sync URL search params
+  useEffect(() => {
+    const qParam = searchParams.get('q') || searchParams.get('search') || ''
+    const tabParam = searchParams.get('tab')
+    const selectParam = searchParams.get('select') || searchParams.get('doctor')
+
+    if (qParam !== query) {
+      setQuery(qParam)
+    }
+    if (tabParam && tabParam !== tab) {
+      setTab(tabParam)
+    }
+    if (selectParam && doctors.length > 0) {
+      const match = doctors.find((d) => d.id === selectParam)
+      if (match) {
+        setSelectedDoctor(match)
+      }
+    }
+  }, [searchParams, doctors])
+
   useEffect(() => {
     if (!selectedDoctor) return
     const updated = doctors.find((d) => d.id === selectedDoctor.id)
     if (updated) setSelectedDoctor(updated)
   }, [doctors])
+
+  const handleQueryChange = (val) => {
+    setQuery(val)
+    setSearchParams(
+      (prev) => {
+        const updated = new URLSearchParams(prev)
+        if (val.trim()) {
+          updated.set('q', val)
+        } else {
+          updated.delete('q')
+          updated.delete('search')
+        }
+        return updated
+      },
+      { replace: true }
+    )
+  }
+
+  const handleTabChange = (newTab) => {
+    setTab(newTab)
+    setSearchParams(
+      (prev) => {
+        const updated = new URLSearchParams(prev)
+        updated.set('tab', newTab)
+        return updated
+      },
+      { replace: true }
+    )
+  }
 
   const handleApprove = async (id) => {
     setBusyId(id)
@@ -115,7 +183,7 @@ export default function Doctors() {
       await api.createDoctor(token, newDoctor)
       setShowCreate(false)
       setNewDoctor(EMPTY_NEW_DOCTOR)
-      if (tab !== 'approved' && tab !== 'all') setTab('approved')
+      if (tab !== 'approved' && tab !== 'all') handleTabChange('approved')
       else await load()
     } catch (err) {
       setCreateError(err.message || 'Failed to create doctor account')
@@ -125,36 +193,54 @@ export default function Doctors() {
   }
 
   const filtered = doctors.filter((d) => {
-    const q = query.toLowerCase()
+    if (!query.trim()) return true
+    const q = query.toLowerCase().trim()
     return (
-      d.fullName.toLowerCase().includes(q) ||
-      d.email.toLowerCase().includes(q) ||
-      (d.clinicName || '').toLowerCase().includes(q)
+      (d.fullName || '').toLowerCase().includes(q) ||
+      (d.email || '').toLowerCase().includes(q) ||
+      (d.clinicName || '').toLowerCase().includes(q) ||
+      (d.phone || '').toLowerCase().includes(q) ||
+      (d.qualification || '').toLowerCase().includes(q) ||
+      (d.status || '').toLowerCase().includes(q)
     )
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="space-y-4 flex-1 min-h-0 flex flex-col pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint" />
           <input
-            className="input pl-9"
-            placeholder="Search name, email or clinic"
+            className="input pl-9 pr-8 w-full"
+            placeholder="Search name, email, clinic, phone..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
           />
+          {query && (
+            <button
+              onClick={() => handleQueryChange('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+        {query.trim() && (
+          <div className="text-xs text-slate-500 font-medium">
+            Found <span className="font-bold text-slate-800">{filtered.length}</span> {filtered.length === 1 ? 'doctor' : 'doctors'}
+          </div>
+        )}
         <button onClick={() => setShowCreate(true)} className="btn-primary text-sm sm:ml-auto">
           <UserPlus className="h-4 w-4" /> Create doctor
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 shrink-0">
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => handleTabChange(t.key)}
             className={`rounded-full px-3.5 py-1.5 text-sm font-medium border transition-colors ${
               tab === t.key ? 'bg-admin text-white border-admin' : 'bg-surface text-ink-soft border-line hover:bg-surface2'
             }`}
@@ -164,7 +250,7 @@ export default function Doctors() {
         ))}
       </div>
 
-      <div className="card divide-y divide-line overflow-hidden">
+      <div className="card divide-y divide-line overflow-y-auto flex-1 min-h-0 shadow-xs">
         {filtered.map((d) => (
           <div
             key={d.id}
@@ -253,7 +339,35 @@ export default function Doctors() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-ink-faint">No doctors match this view.</div>
+          <div className="px-5 py-12 text-center text-sm text-ink-faint flex flex-col items-center justify-center">
+            {query.trim() ? (
+              <>
+                <Search className="h-8 w-8 text-slate-300 mb-2" />
+                <p className="font-semibold text-slate-700">No doctors found matching &ldquo;{query}&rdquo;</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                  Try adjusting your search keywords or switching tabs.
+                </p>
+                <div className="flex items-center gap-2 mt-3.5">
+                  <button
+                    onClick={() => handleQueryChange('')}
+                    className="text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Clear search
+                  </button>
+                  {tab !== 'all' && (
+                    <button
+                      onClick={() => handleTabChange('all')}
+                      className="text-xs font-semibold text-[#434EE8] bg-[#EEF2FF] hover:bg-[#E0E7FF] px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Search across all doctors ({counts.all})
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p>No doctors in this view.</p>
+            )}
+          </div>
         )}
       </div>
 

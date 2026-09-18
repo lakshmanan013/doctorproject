@@ -48,10 +48,12 @@ export default function NewVisitModal({ open, onClose, onCreated, onUpdated, app
       if (isEdit) {
         const updated = await updateAppointment(appointment.id, payload);
         toast.success("Visit updated");
+        window.dispatchEvent(new CustomEvent("appointmentsUpdated"));
         onUpdated?.(updated);
       } else {
         const created = await createAppointment(payload);
         toast.success("Visit created");
+        window.dispatchEvent(new CustomEvent("appointmentsUpdated"));
         onCreated?.(created);
       }
       setForm(EMPTY);

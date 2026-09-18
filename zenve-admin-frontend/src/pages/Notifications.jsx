@@ -30,8 +30,8 @@ export default function Notifications() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 flex-1 min-h-0 flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
         <p className="text-sm text-ink-faint">
           {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'You are all caught up.'}
         </p>
@@ -42,7 +42,7 @@ export default function Notifications() {
         )}
       </div>
 
-      <div className="card divide-y divide-line overflow-hidden">
+      <div className="card divide-y divide-line overflow-y-auto flex-1 min-h-0">
         {notifications.map((n) => {
           const Icon = ICONS[n.type] || UserPlus
           return (

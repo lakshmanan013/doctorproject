@@ -1,5 +1,5 @@
 export const PAGE_META = {
-  "/appointments": { title: "Appointments", subtitle: "Today · 7 visits across clinic, video and field" },
+  "/appointments": { title: "Appointments", subtitle: "Today · Visits across clinic, video and field" },
   "/patients": { title: "Patients", subtitle: "" },
   "/prescriptions": { title: "Digital prescription", subtitle: "Weight-based dosing · Auto-generated PDF · WhatsApp share" },
   "/followups": { title: "Follow-up reminders", subtitle: "Scheduled check-ins · One-tap WhatsApp send · Auto-tracked from prescriptions" },

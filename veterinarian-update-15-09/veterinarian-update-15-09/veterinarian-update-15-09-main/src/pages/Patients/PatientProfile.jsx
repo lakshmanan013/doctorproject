@@ -206,7 +206,9 @@ export default function PatientProfile() {
         <div
           className="rx-preview-grid"
           style={{
-            marginTop: 20,
+            marginTop: 24,
+            paddingTop: 20,
+            borderTop: "1px solid var(--border)",
           }}
         >
 
@@ -310,7 +312,13 @@ export default function PatientProfile() {
           MEDICAL HISTORY + VACCINATIONS
       ================================================= */}
 
-      <div className="dashboard-grid">
+      <div
+        className="dashboard-grid"
+        style={{
+          marginTop: 28,
+          gap: 24,
+        }}
+      >
 
         {/* =================================================
             MEDICAL HISTORY
@@ -318,9 +326,16 @@ export default function PatientProfile() {
 
         <div className="panel">
 
-          <h3 className="panel-title">
-            Medical history
-          </h3>
+          <div className="panel-header" style={{ marginBottom: 16 }}>
+            <h3 className="panel-title">
+              Medical history
+            </h3>
+            {records.length > 0 && (
+              <Badge variant="navy">
+                {records.length} {records.length === 1 ? "record" : "records"}
+              </Badge>
+            )}
+          </div>
 
           <div className="row-list">
 
@@ -328,6 +343,7 @@ export default function PatientProfile() {
               <div
                 className="row-item"
                 key={record.id}
+                style={{ marginBottom: 10 }}
               >
                 <div className="row-body">
 
@@ -363,9 +379,16 @@ export default function PatientProfile() {
 
         <div className="panel">
 
-          <h3 className="panel-title">
-            Vaccinations
-          </h3>
+          <div className="panel-header" style={{ marginBottom: 16 }}>
+            <h3 className="panel-title">
+              Vaccinations
+            </h3>
+            {vaccinations.length > 0 && (
+              <Badge variant="navy">
+                {vaccinations.length} {vaccinations.length === 1 ? "vaccine" : "vaccines"}
+              </Badge>
+            )}
+          </div>
 
           <div className="row-list">
 
@@ -373,6 +396,7 @@ export default function PatientProfile() {
               <div
                 className="row-item"
                 key={vaccination.id}
+                style={{ marginBottom: 10 }}
               >
 
                 <div className="row-body">
