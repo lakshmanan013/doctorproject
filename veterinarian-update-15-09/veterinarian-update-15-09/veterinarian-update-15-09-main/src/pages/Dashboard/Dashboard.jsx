@@ -27,6 +27,7 @@ import { getPatients } from "../../services/patientService";
 import { getPrescriptions } from "../../services/prescriptionService";
 import { getInvoices } from "../../services/billingService";
 import { getVaccinations } from "../../services/vaccinationService";
+import BillingHologramCoin from "../../components/common/BillingHologramCoin";
 import "./Dashboard.css";
 
 const SPECIES_ICONS = {
@@ -887,12 +888,7 @@ export default function Dashboard() {
               </p>
 
               <div className="wallet-illustration-box">
-                <img
-                  src="/icons/collected-rupee-hologram.png"
-                  alt="3D Gold Indian Rupee Hologram Pedestal"
-                  className="wallet-image"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
+                <BillingHologramCoin amount={selectedCollectedNum} />
               </div>
 
               <button

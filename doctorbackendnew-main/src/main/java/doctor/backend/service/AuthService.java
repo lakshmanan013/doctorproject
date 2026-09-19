@@ -6,9 +6,11 @@ import doctor.backend.dto.auth.LoginRequest;
 import doctor.backend.dto.auth.MessageResponse;
 import doctor.backend.dto.auth.RegisterRequest;
 import doctor.backend.dto.auth.VerifyOtpResponse;
+import doctor.backend.entity.DoctorProfile;
 import doctor.backend.entity.User;
 import doctor.backend.exception.BadRequestException;
 import doctor.backend.exception.ForbiddenException;
+import doctor.backend.repository.DoctorProfileRepository;
 import doctor.backend.repository.UserRepository;
 import doctor.backend.security.CustomUserDetailsService;
 import doctor.backend.security.JwtService;
@@ -29,6 +31,7 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -39,6 +42,7 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
+            DoctorProfileRepository doctorProfileRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
@@ -47,6 +51,7 @@ public class AuthService {
             PasswordResetMailer passwordResetMailer,
             ZippyCrmSyncService zippyCrmSyncService) {
         this.userRepository = userRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -83,6 +88,10 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("DOCTOR");
         user.setActive(true);
+        user.setProfileImage(request.getProfileImage());
+        user.setClinicInsideImage(request.getClinicInsideImage());
+        user.setClinicOutsideImage(request.getClinicOutsideImage());
+        user.setDigitalSignatureImage(request.getDigitalSignatureImage());
 
         // Doctor registrations start PENDING. An admin must approve the
         // registration (via the Zenve admin portal) before the doctor
@@ -91,12 +100,26 @@ public class AuthService {
 
         User saved = userRepository.save(user);
 
+        // Also initialize and persist the DoctorProfile entity with uploaded images
+        DoctorProfile profile = doctorProfileRepository.findByUserId(saved.getId())
+                .orElseGet(DoctorProfile::new);
+        profile.setUserId(saved.getId());
+        profile.setFullName(saved.getFullName());
+        profile.setEmail(saved.getEmail());
+        profile.setPhone(saved.getPhone());
+        profile.setClinicHospital(request.getClinicHospital());
+        profile.setProfileImage(request.getProfileImage());
+        profile.setClinicInsideImage(request.getClinicInsideImage());
+        profile.setClinicOutsideImage(request.getClinicOutsideImage());
+        profile.setDigitalSignatureImage(request.getDigitalSignatureImage());
+        doctorProfileRepository.save(profile);
+
         // Let the admin backend know a new doctor is waiting for approval.
         // The account cannot log in until an admin approves it there.
         adminApprovalClient.notifyDoctorRegistered(saved);
 
         // Sync pending doctor to Zippy CRM
-        zippyCrmSyncService.syncDoctor(saved);
+        zippyCrmSyncService.syncDoctor(saved, profile);
 
         // No token on purpose: registering does not log the doctor in.
         return new AuthResponse(
@@ -142,7 +165,30 @@ public class AuthService {
         user.setApprovalStatus("APPROVED");
 
         User saved = userRepository.save(user);
-        zippyCrmSyncService.syncDoctor(saved);
+
+        DoctorProfile profile = doctorProfileRepository.findByUserId(saved.getId())
+                .orElseGet(DoctorProfile::new);
+        profile.setUserId(saved.getId());
+        profile.setFullName(saved.getFullName());
+        profile.setEmail(saved.getEmail());
+        profile.setPhone(saved.getPhone());
+        doctorProfileRepository.save(profile);
+
+        zippyCrmSyncService.syncDoctor(saved, profile);
+    }
+
+    // =====================================================
+    // UPDATE APPROVAL STATUS (Admin Action)
+    // =====================================================
+
+    public void updateApprovalStatus(String email, String status, String reason) {
+        String normalized = email.trim().toLowerCase();
+        User user = userRepository.findByEmail(normalized)
+                .orElseThrow(() -> new BadRequestException("No account found for email: " + email));
+
+        user.setApprovalStatus(status);
+        user.setRejectionReason(reason);
+        userRepository.save(user);
     }
 
     // =====================================================
@@ -163,26 +209,31 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-        if ("DOCTOR".equals(user.getRole())) {
-            String status = user.getApprovalStatus();
-
-            if ("PENDING".equals(status) || status == null) {
-                throw new ForbiddenException(
-                        "Your account is pending admin approval. Please try again once an admin has approved it.");
-            }
-
-            if ("REJECTED".equals(status)) {
-                String reason = user.getRejectionReason();
-                throw new ForbiddenException(
-                        "Your registration was rejected" + (reason != null && !reason.isBlank() ? ": " + reason : "."));
-            }
+        if (!user.isActive()) {
+            throw new ForbiddenException("Your account is deactivated. Please contact support.");
         }
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("doctorId", user.getId());
-        claims.put("userId", user.getId());
-        String token = jwtService.generateToken(claims, userDetails);
+        String approval = user.getApprovalStatus();
+        if ("PENDING".equalsIgnoreCase(approval)) {
+            throw new ForbiddenException(
+                    "Your registration is pending admin approval. " +
+                            "You'll receive access once an administrator reviews your account.");
+        }
+        if ("REJECTED".equalsIgnoreCase(approval)) {
+            String reason = user.getRejectionReason();
+            String message = (reason != null && !reason.isBlank())
+                    ? "Your registration was not approved: " + reason
+                    : "Your registration was not approved by the administrator. Please contact support.";
+            throw new ForbiddenException(message);
+        }
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("role", user.getRole());
+        extraClaims.put("userId", user.getId());
+        extraClaims.put("fullName", user.getFullName());
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        String token = jwtService.generateToken(extraClaims, userDetails);
 
         return new AuthResponse(
                 user.getId(),
@@ -190,31 +241,19 @@ public class AuthService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole(),
-                token);
-    }
-
-    // =====================================================
-    // ADMIN CALLBACK — update approval status
-    // Called by the Zenve admin backend when an admin approves/rejects
-    // this doctor's registration.
-    // =====================================================
-
-    public void updateApprovalStatus(String email, String status, String reason) {
-        User user = userRepository.findByEmail(email.trim().toLowerCase())
-                .orElseThrow(() -> new BadRequestException("No account found for this email"));
-
-        user.setApprovalStatus(status);
-        user.setRejectionReason("REJECTED".equals(status) ? reason : null);
-        User saved = userRepository.save(user);
-        zippyCrmSyncService.syncDoctor(saved);
+                token,
+                user.getApprovalStatus(),
+                null);
     }
 
     // =====================================================
     // FORGOT PASSWORD — step 1: email a 6-digit OTP
     //
-    // Returns a "session" resetToken that just ties the following
+    // Generates a cryptographically-random 6-digit numeric OTP, saves
+    // it with a 10-minute expiry, and emails it to the user. Also returns
+    // a single-use sessionToken so the frontend can bind the subsequent
     // verify-otp call to this request; on its own it can't be used to
-    // change the password (see resetPassword below).
+    // reset anything.
     // =====================================================
 
     public ForgotPasswordResponse forgotPassword(String email) {
@@ -241,7 +280,9 @@ public class AuthService {
     // =====================================================
     // FORGOT PASSWORD — step 2: verify the OTP
     //
-    // On success, issues a NEW resetToken that resetPassword() will
+    // Checks that the submitted OTP matches what we emailed and hasn't
+    // expired. On success, marks otpVerified=true and issues a FRESH
+    // resetToken that the final step (POST /api/auth/reset-password) will
     // accept. The OTP is cleared so it can't be reused.
     // =====================================================
 

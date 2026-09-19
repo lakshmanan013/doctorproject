@@ -407,9 +407,10 @@
 }
 
 .wallet-illustration-box {
-  margin: 12px 0 14px 24px;
+  margin: 10px 0 14px 10px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .wallet-image {

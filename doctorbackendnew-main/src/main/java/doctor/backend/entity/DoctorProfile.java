@@ -31,8 +31,6 @@ public class DoctorProfile {
 
     private Integer experience;
 
-
-
     private String councilRegistration;
 
     private String clinicHospital;
@@ -48,6 +46,26 @@ public class DoctorProfile {
     private Double followUpFee;
 
     private Integer slotLength;
+
+    // =========================
+    // Image & Upload fields
+    // =========================
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String profileImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String clinicInsideImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String clinicOutsideImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String digitalSignatureImage;
 
     // =========================
     // Verification flags
@@ -187,14 +205,44 @@ public class DoctorProfile {
         this.pincode = pincode;
     }
 
-
-
     public Integer getExperience() {
         return experience;
     }
 
     public void setExperience(Integer experience) {
         this.experience = experience;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getClinicInsideImage() {
+        return clinicInsideImage;
+    }
+
+    public void setClinicInsideImage(String clinicInsideImage) {
+        this.clinicInsideImage = clinicInsideImage;
+    }
+
+    public String getClinicOutsideImage() {
+        return clinicOutsideImage;
+    }
+
+    public void setClinicOutsideImage(String clinicOutsideImage) {
+        this.clinicOutsideImage = clinicOutsideImage;
+    }
+
+    public String getDigitalSignatureImage() {
+        return digitalSignatureImage;
+    }
+
+    public void setDigitalSignatureImage(String digitalSignatureImage) {
+        this.digitalSignatureImage = digitalSignatureImage;
     }
 
     public boolean isVeterinaryRegistrationVerified() {

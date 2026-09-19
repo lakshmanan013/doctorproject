@@ -614,15 +614,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 5px;
   min-width: 170px;
 }
 
-.rx-preview-sign-line::before {
-  content: "";
+.rx-digital-signature-img {
+  max-height: 44px;
+  max-width: 155px;
+  object-fit: contain;
   display: block;
+  margin-bottom: 2px;
+  filter: contrast(1.05);
+}
+
+.rx-signature-placeholder-space {
+  height: 36px;
+  width: 100%;
+}
+
+.rx-sign-line-bar {
   width: 170px;
-  border-bottom: 1px solid var(--text-faint);
+  height: 1px;
+  background-color: var(--text-faint, #94a3b8);
 }
 
 .rx-preview-sign-line span {

@@ -14,11 +14,13 @@ export default function Sidebar() {
   const { logout, doctor: authDoctor } = useAuth();
 
   const [doctor, setDoctor] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
   const loadDoctorProfile = async () => {
     try {
       const data = await getDoctorProfile();
       setDoctor(data || null);
+      setImgError(false);
     } catch {
       setDoctor(null);
     }
@@ -39,6 +41,7 @@ export default function Sidebar() {
 
   const doctorName = doctor?.fullName?.trim() || authDoctor?.fullName?.trim() || "Doctor";
   const clinicName = doctor?.clinicHospital?.trim() || authDoctor?.clinicHospital?.trim() || "Clinic";
+  const profilePhoto = doctor?.profileImage || authDoctor?.profileImage || "";
 
   const getInitials = (name) => {
     if (!name || name === "Doctor") return "DR";
@@ -104,7 +107,18 @@ export default function Sidebar() {
           onClick={() => navigate("/settings")}
           title="Open doctor profile"
         >
-          <div className="doctor-avatar">{doctorInitials}</div>
+          <div className="doctor-avatar">
+            {profilePhoto && !imgError ? (
+              <img
+                src={profilePhoto}
+                alt={doctorName}
+                className="doctor-avatar-img"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <span className="doctor-avatar-initials">{doctorInitials}</span>
+            )}
+          </div>
 
           <div className="doctor-info">
             <div className="doctor-info-header">

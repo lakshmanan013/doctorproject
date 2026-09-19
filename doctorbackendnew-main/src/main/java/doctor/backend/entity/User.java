@@ -1,3 +1,4 @@
+
 package doctor.backend.entity;
 
 import jakarta.persistence.*;
@@ -11,32 +12,27 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     private String fullName;
 
     @Column(unique = true)
     private String phone;
 
-    @Column(nullable = false)
-    private String role = "DOCTOR";
+    private String role; // DOCTOR, ADMIN, RECEPTIONIST, NURSE
 
-    @Column(nullable = false)
     private boolean active = true;
 
     // =========================
-    // Admin approval status
-    // Doctor accounts start PENDING and can only log in once the
-    // Zenve admin backend approves them (see AdminApprovalClient).
-    // Values: PENDING, APPROVED, REJECTED
+    // Admin approval
     // =========================
 
-    // Not DB-NOT-NULL: hibernate ddl-auto=update would fail adding a NOT NULL
+    // "PENDING", "APPROVED", "REJECTED". Defaults to PENDING on new
+    // doctor registrations. Defaulting in Java rather than a DB column
+    // DEFAULT keeps hibernate ddl-auto=update happy when adding the
     // column to a "users" table that may already have rows. AuthService
     // treats a null value the same as PENDING.
     private String approvalStatus = "PENDING";
@@ -64,6 +60,26 @@ public class User {
     // so a resetToken alone (leaked/guessed) is never enough to change
     // the password - the OTP step must also have been passed.
     private boolean otpVerified = false;
+
+    // =========================
+    // Image & Upload fields
+    // =========================
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String profileImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String clinicInsideImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String clinicOutsideImage;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String digitalSignatureImage;
 
     private LocalDateTime createdAt;
 
@@ -208,6 +224,38 @@ public class User {
 
     public void setOtpVerified(boolean otpVerified) {
         this.otpVerified = otpVerified;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getClinicInsideImage() {
+        return clinicInsideImage;
+    }
+
+    public void setClinicInsideImage(String clinicInsideImage) {
+        this.clinicInsideImage = clinicInsideImage;
+    }
+
+    public String getClinicOutsideImage() {
+        return clinicOutsideImage;
+    }
+
+    public void setClinicOutsideImage(String clinicOutsideImage) {
+        this.clinicOutsideImage = clinicOutsideImage;
+    }
+
+    public String getDigitalSignatureImage() {
+        return digitalSignatureImage;
+    }
+
+    public void setDigitalSignatureImage(String digitalSignatureImage) {
+        this.digitalSignatureImage = digitalSignatureImage;
     }
 
     public LocalDateTime getCreatedAt() {

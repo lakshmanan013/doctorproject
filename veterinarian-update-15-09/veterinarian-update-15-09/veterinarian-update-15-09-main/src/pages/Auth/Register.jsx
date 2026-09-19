@@ -10,6 +10,7 @@ import {
   FiEye,
   FiEyeOff,
   FiAlertCircle,
+  FiHome,
 } from "react-icons/fi";
 
 import Button from "../../components/ui/Button";
@@ -39,6 +40,7 @@ export default function Register() {
       fullName: "",
       email: "",
       phone: "",
+      clinicHospital: "",
       password: "",
       confirmPassword: "",
     },
@@ -55,18 +57,16 @@ export default function Register() {
         fullName: values.fullName.trim(),
         email: values.email.trim().toLowerCase(),
         phone: values.phone.trim(),
+        clinicHospital: values.clinicHospital ? values.clinicHospital.trim() : "",
         password: values.password,
       });
 
       if (data?.token) {
-        // Already-approved / auto-login path, if the backend ever issues one.
         toast.success(`Account created. Welcome, Dr. ${data?.fullName?.split(" ")[0] || ""}`.trim());
         navigate(ROUTES.DASHBOARD, { replace: true });
         return;
       }
 
-      // Normal path: account is created but pending admin approval, so send
-      // the doctor to Login with a clear message instead of the dashboard.
       toast.success(
         data?.message ||
           "Account created. It's pending admin approval - you'll be able to log in once approved.",
@@ -90,7 +90,7 @@ export default function Register() {
     <AuthLayout>
       <div className="auth-form-header">
         <h2>Create Doctor Account</h2>
-        <p>Set up your veterinary dashboard in a couple of minutes.</p>
+        <p>Set up your veterinary dashboard & profile in a couple of minutes.</p>
       </div>
 
       {serverError && (
@@ -165,6 +165,21 @@ export default function Register() {
             />
           </div>
           {errors.phone && <span className="field-error">{errors.phone.message}</span>}
+        </Field>
+
+        <Field label="Clinic / Hospital name">
+          <div className="auth-input-wrap">
+            <span className="auth-input-icon">
+              <FiHome size={16} />
+            </span>
+
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Zenve Pet Clinic & Care"
+              {...register("clinicHospital")}
+            />
+          </div>
         </Field>
 
         <div className="auth-form-row">
@@ -252,3 +267,4 @@ export default function Register() {
     </AuthLayout>
   );
 }
+

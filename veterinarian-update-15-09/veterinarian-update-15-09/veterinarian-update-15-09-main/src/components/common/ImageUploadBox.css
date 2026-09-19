@@ -1,0 +1,325 @@
+.img-upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.img-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.img-upload-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.req-asterisk {
+  color: #ef4444;
+}
+
+.img-upload-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.img-upload-zone {
+  position: relative;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-upload-zone:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.img-upload-zone.has-image {
+  border-style: solid;
+  border-color: #e2e8f0;
+  background: #ffffff;
+  padding: 0;
+}
+
+.img-placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px 14px;
+  gap: 6px;
+}
+
+.img-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+  transition: transform 0.2s ease;
+}
+
+.img-upload-zone:hover .img-icon-circle {
+  transform: scale(1.08);
+  background: #6366f1;
+  color: #ffffff;
+}
+
+.img-prompt-text {
+  font-size: 12.5px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.upload-cta {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.img-helper-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Image Preview */
+.img-preview-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.img-preview {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.img-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+
+.img-preview-wrap:hover .img-preview-overlay {
+  opacity: 1;
+}
+
+.img-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.replace-btn {
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.replace-btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.remove-btn {
+  background: #ef4444;
+  color: #ffffff;
+  padding: 6px 8px;
+}
+
+.remove-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.img-uploaded-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(16, 185, 129, 0.95);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* Shape Variations */
+.shape-circle .img-upload-zone {
+  width: 100px;
+  height: 100px;
+  min-height: 100px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+.shape-circle .img-preview-wrap,
+.shape-circle .img-preview {
+  height: 100px;
+  border-radius: 50%;
+}
+
+.shape-wide .img-upload-zone {
+  min-height: 130px;
+}
+
+.shape-wide .img-preview {
+  height: 130px;
+}
+
+/* ==========================================================
+   DIGITAL SIGNATURE FORMAT STYLING (Small & Clean in Profile)
+========================================================== */
+.is-signature-field .img-upload-zone {
+  min-height: 84px;
+  height: 84px;
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.is-signature-field .img-upload-zone:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.is-signature-field .img-upload-zone.has-image {
+  border-style: solid;
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.signature-preview-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff !important;
+  overflow: hidden;
+  padding: 6px 12px;
+}
+
+/* Subtle digital security ledger grid pattern */
+.sig-ledger-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+  background-size: 14px 14px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Signature baseline line */
+.sig-ledger-grid::after {
+  content: "";
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  bottom: 12px;
+  border-bottom: 1px dashed #cbd5e1;
+  pointer-events: none;
+}
+
+/* Clean compact transparent signature rendering */
+.signature-img-preview {
+  max-height: 54px !important;
+  max-width: 82% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block;
+  z-index: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
+}
+
+/* Compact digital badge */
+.sig-digital-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: none;
+  z-index: 2;
+  letter-spacing: 0.02em;
+}
+
+.is-signature-field .img-placeholder-content {
+  padding: 10px 12px;
+  gap: 3px;
+}
+
+.is-signature-field .img-icon-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
+.is-signature-field .img-prompt-text {
+  font-size: 11.5px;
+}
+
+.is-signature-field .img-helper-sub {
+  font-size: 10px;
+}

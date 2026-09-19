@@ -20,6 +20,16 @@ public class RegisterRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
+    private String clinicHospital;
+
+    private String profileImage;
+
+    private String clinicInsideImage;
+
+    private String clinicOutsideImage;
+
+    private String digitalSignatureImage;
+
     public String getFullName() {
         return fullName;
     }
@@ -50,5 +60,45 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getClinicHospital() {
+        return clinicHospital;
+    }
+
+    public void setClinicHospital(String clinicHospital) {
+        this.clinicHospital = clinicHospital;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getClinicInsideImage() {
+        return clinicInsideImage;
+    }
+
+    public void setClinicInsideImage(String clinicInsideImage) {
+        this.clinicInsideImage = clinicInsideImage;
+    }
+
+    public String getClinicOutsideImage() {
+        return clinicOutsideImage;
+    }
+
+    public void setClinicOutsideImage(String clinicOutsideImage) {
+        this.clinicOutsideImage = clinicOutsideImage;
+    }
+
+    public String getDigitalSignatureImage() {
+        return digitalSignatureImage;
+    }
+
+    public void setDigitalSignatureImage(String digitalSignatureImage) {
+        this.digitalSignatureImage = digitalSignatureImage;
     }
 }

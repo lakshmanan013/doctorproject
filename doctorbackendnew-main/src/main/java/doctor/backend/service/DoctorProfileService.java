@@ -2,18 +2,22 @@ package doctor.backend.service;
 
 import doctor.backend.entity.DoctorProfile;
 import doctor.backend.repository.DoctorProfileRepository;
+import doctor.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DoctorProfileService {
 
     private final DoctorProfileRepository repository;
+    private final UserRepository userRepository;
     private final ZippyCrmSyncService zippyCrmSyncService;
 
     public DoctorProfileService(
             DoctorProfileRepository repository,
+            UserRepository userRepository,
             ZippyCrmSyncService zippyCrmSyncService) {
         this.repository = repository;
+        this.userRepository = userRepository;
         this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
@@ -25,14 +29,26 @@ public class DoctorProfileService {
      */
     public DoctorProfile getProfile(Long userId) {
 
-        return repository
+        DoctorProfile profile = repository
                 .findByUserId(userId)
                 .orElseGet(() -> {
-                    DoctorProfile profile = new DoctorProfile();
-                    profile.setUserId(userId);
+                    DoctorProfile newProf = new DoctorProfile();
+                    newProf.setUserId(userId);
 
-                    return repository.save(profile);
+                    return repository.save(newProf);
                 });
+
+        // Ensure images from User table are reflected if not yet on DoctorProfile
+        if (profile.getProfileImage() == null || profile.getProfileImage().isBlank()) {
+            userRepository.findById(userId).ifPresent(user -> {
+                if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+                    profile.setProfileImage(user.getProfileImage());
+                    repository.save(profile);
+                }
+            });
+        }
+
+        return profile;
     }
 
     public DoctorProfile saveProfile(
@@ -87,7 +103,28 @@ public class DoctorProfileService {
         existing.setExperience(
                 profile.getExperience());
 
+        existing.setProfileImage(profile.getProfileImage());
+        existing.setClinicInsideImage(profile.getClinicInsideImage());
+        existing.setClinicOutsideImage(profile.getClinicOutsideImage());
+        existing.setDigitalSignatureImage(profile.getDigitalSignatureImage());
+
         DoctorProfile saved = repository.save(existing);
+
+        // Also sync profile images & info to users table
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setProfileImage(profile.getProfileImage());
+            user.setClinicInsideImage(profile.getClinicInsideImage());
+            user.setClinicOutsideImage(profile.getClinicOutsideImage());
+            user.setDigitalSignatureImage(profile.getDigitalSignatureImage());
+            if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
+                user.setFullName(profile.getFullName());
+            }
+            if (profile.getPhone() != null && !profile.getPhone().isBlank()) {
+                user.setPhone(profile.getPhone());
+            }
+            userRepository.save(user);
+        });
+
         zippyCrmSyncService.syncDoctor(saved);
         return saved;
     }

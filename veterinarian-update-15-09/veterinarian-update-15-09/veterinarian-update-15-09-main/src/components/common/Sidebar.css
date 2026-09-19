@@ -224,14 +224,31 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 14px;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  font-size: 13.5px;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  position: relative;
+}
+
+.doctor-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.doctor-avatar-initials {
+  letter-spacing: 0.04em;
+  line-height: 1;
+  user-select: none;
 }
 
 .doctor-info {
