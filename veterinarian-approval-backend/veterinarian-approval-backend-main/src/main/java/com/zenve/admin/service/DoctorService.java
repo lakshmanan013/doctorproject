@@ -42,15 +42,19 @@ public class DoctorService {
                 try {
                     java.util.Map<String, Object> prof = doctorAppNotifier.fetchProfile(d.getEmail());
                     if (prof != null) {
+                        String area = prof.get("area") != null ? String.valueOf(prof.get("area")).trim() : null;
                         String city = prof.get("city") != null ? String.valueOf(prof.get("city")).trim() : null;
                         String pincode = prof.get("pincode") != null ? String.valueOf(prof.get("pincode")).trim() : null;
+                        if (area != null && !area.isBlank()) {
+                            d.setArea(area);
+                        }
                         if (city != null && !city.isBlank()) {
                             d.setCity(city);
                         }
                         if (pincode != null && !pincode.isBlank()) {
                             d.setPincode(pincode);
                         }
-                        if ((city != null && !city.isBlank()) || (pincode != null && !pincode.isBlank())) {
+                        if ((area != null && !area.isBlank()) || (city != null && !city.isBlank()) || (pincode != null && !pincode.isBlank())) {
                             doctorRepository.save(d);
                         }
                     }
@@ -193,9 +197,11 @@ public class DoctorService {
             try {
                 java.util.Map<String, Object> prof = doctorAppNotifier.fetchProfile(doctor.getEmail());
                 if (prof != null) {
+                    String area = prof.get("area") != null ? String.valueOf(prof.get("area")).trim() : null;
                     String city = prof.get("city") != null ? String.valueOf(prof.get("city")).trim() : null;
                     String pincode = prof.get("pincode") != null ? String.valueOf(prof.get("pincode")).trim() : null;
                     String profileImage = prof.get("profileImage") != null ? String.valueOf(prof.get("profileImage")).trim() : null;
+                    if (area != null && !area.isBlank()) doctor.setArea(area);
                     if (city != null && !city.isBlank()) doctor.setCity(city);
                     if (pincode != null && !pincode.isBlank()) doctor.setPincode(pincode);
                     if (profileImage != null && !profileImage.isBlank()) doctor.setProfileImage(profileImage);
@@ -225,6 +231,7 @@ public class DoctorService {
                     .phone(body.get("phone"))
                     .clinicName(body.get("clinicName"))
                     .qualification(body.get("qualification"))
+                    .area(body.get("area"))
                     .city(body.get("city"))
                     .pincode(body.get("pincode"))
                     .profileImage(body.get("profileImage"))
@@ -235,6 +242,7 @@ public class DoctorService {
             if (body.get("phone") != null && !body.get("phone").isBlank()) doctor.setPhone(body.get("phone"));
             if (body.get("clinicName") != null) doctor.setClinicName(body.get("clinicName"));
             if (body.get("qualification") != null) doctor.setQualification(body.get("qualification"));
+            if (body.get("area") != null) doctor.setArea(body.get("area"));
             if (body.get("city") != null) doctor.setCity(body.get("city"));
             if (body.get("pincode") != null) doctor.setPincode(body.get("pincode"));
             if (body.get("profileImage") != null) doctor.setProfileImage(body.get("profileImage"));

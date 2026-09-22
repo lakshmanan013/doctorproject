@@ -59,7 +59,7 @@ public class AdminApprovalClient {
         }
     }
 
-    public void notifyProfileUpdated(String email, String fullName, String phone, String clinicHospital, String qualification, String city, Integer pincode, String profileImage) {
+    public void notifyProfileUpdated(String email, String fullName, String phone, String clinicHospital, String qualification, String area, String city, Integer pincode, String profileImage) {
         if (email == null || email.isBlank()) return;
         String url = properties.getBaseUrl() + "/doctors/profile-sync";
 
@@ -69,6 +69,7 @@ public class AdminApprovalClient {
         if (phone != null) body.put("phone", phone);
         if (clinicHospital != null) body.put("clinicName", clinicHospital);
         if (qualification != null) body.put("qualification", qualification);
+        if (area != null) body.put("area", area);
         if (city != null) body.put("city", city);
         if (pincode != null) body.put("pincode", String.valueOf(pincode));
         if (profileImage != null) body.put("profileImage", profileImage);

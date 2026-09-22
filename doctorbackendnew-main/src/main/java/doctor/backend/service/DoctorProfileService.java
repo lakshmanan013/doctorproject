@@ -97,6 +97,9 @@ public class DoctorProfileService {
         existing.setSlotLength(
                 profile.getSlotLength());
 
+        existing.setArea(
+                profile.getArea());
+
         existing.setCity(
                 profile.getCity());
 
@@ -139,6 +142,7 @@ public class DoctorProfileService {
                         saved.getPhone() != null ? saved.getPhone() : user.getPhone(),
                         saved.getClinicHospital(),
                         saved.getQualification(),
+                        saved.getArea(),
                         saved.getCity(),
                         saved.getPincode(),
                         saved.getProfileImage()

@@ -25,6 +25,8 @@ public class DoctorProfile {
 
     private String speciality;
 
+    private String area;
+
     private String city;
 
     private Integer pincode;
@@ -187,6 +189,14 @@ public class DoctorProfile {
 
     public void setSlotLength(Integer slotLength) {
         this.slotLength = slotLength;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
     }
 
     public String getCity() {

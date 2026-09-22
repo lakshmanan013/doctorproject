@@ -311,9 +311,9 @@ export default function Dashboard() {
                       <p className="text-[11px] text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5">
                         <span>{d.email}</span>
                         {d.clinicName && <span>· {d.clinicName}</span>}
-                        {(d.city || d.pincode) && (
+                        {(d.area || d.city || d.pincode) && (
                           <span className="inline-flex items-center gap-1 text-indigo-600 font-medium">
-                            · 📍 {[d.city, d.pincode].filter(Boolean).join(' - ')}
+                            · 📍 {[d.area, [d.city, d.pincode].filter(Boolean).join(' - ')].filter(Boolean).join(', ')}
                           </span>
                         )}
                       </p>
