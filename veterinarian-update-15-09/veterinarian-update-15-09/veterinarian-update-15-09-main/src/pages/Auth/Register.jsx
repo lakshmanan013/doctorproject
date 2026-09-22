@@ -10,7 +10,6 @@ import {
   FiEye,
   FiEyeOff,
   FiAlertCircle,
-  FiHome,
 } from "react-icons/fi";
 
 import Button from "../../components/ui/Button";
@@ -40,7 +39,6 @@ export default function Register() {
       fullName: "",
       email: "",
       phone: "",
-      clinicHospital: "",
       password: "",
       confirmPassword: "",
     },
@@ -57,7 +55,6 @@ export default function Register() {
         fullName: values.fullName.trim(),
         email: values.email.trim().toLowerCase(),
         phone: values.phone.trim(),
-        clinicHospital: values.clinicHospital ? values.clinicHospital.trim() : "",
         password: values.password,
       });
 
@@ -130,7 +127,7 @@ export default function Register() {
             <input
               type="email"
               className={`input${errors.email ? " input-error" : ""}`}
-              placeholder="you@clinic.com"
+              placeholder="doctor@example.com"
               autoComplete="email"
               {...register("email", {
                 required: "Email is required",
@@ -165,21 +162,6 @@ export default function Register() {
             />
           </div>
           {errors.phone && <span className="field-error">{errors.phone.message}</span>}
-        </Field>
-
-        <Field label="Clinic / Hospital name">
-          <div className="auth-input-wrap">
-            <span className="auth-input-icon">
-              <FiHome size={16} />
-            </span>
-
-            <input
-              type="text"
-              className="input"
-              placeholder="e.g. Zenve Pet Clinic & Care"
-              {...register("clinicHospital")}
-            />
-          </div>
         </Field>
 
         <div className="auth-form-row">

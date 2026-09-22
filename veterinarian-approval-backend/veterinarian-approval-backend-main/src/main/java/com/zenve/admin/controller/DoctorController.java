@@ -26,6 +26,11 @@ public class DoctorController {
         return doctorService.list(status);
     }
 
+    @GetMapping("/{id}")
+    public DoctorDto get(@PathVariable String id) {
+        return doctorService.get(id);
+    }
+
     @PostMapping("/{id}/approve")
     public DoctorDto approve(@PathVariable String id) {
         return doctorService.approve(id);
@@ -65,5 +70,10 @@ public class DoctorController {
     @ResponseStatus(HttpStatus.CREATED)
     public DoctorDto register(@Valid @RequestBody RegisterDoctorRequest request) {
         return doctorService.register(request);
+    }
+
+    @PostMapping("/profile-sync")
+    public DoctorDto syncProfile(@RequestBody java.util.Map<String, String> body) {
+        return doctorService.syncProfile(body);
     }
 }

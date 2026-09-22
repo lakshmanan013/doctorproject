@@ -83,7 +83,25 @@ export default function Prescription() {
       toast.success(`Prescription #${rx.id} saved`); return rx;
     } catch (e) { toast.error(e?.response?.data?.message || "Could not save prescription"); throw e; } finally { setSaving(false); }
   };
-  const content = () => `Patient: ${patient?.name || ""}\nDiagnosis: ${diagnosis}\nComplaint: ${complaint}\nMedicines:\n${medicines.map(m => { const med = allMeds.find(x => String(x.id) === String(m.medicineId)); return `${med?.name || ""} ${m.dosage} ${m.frequency} ${m.duration}`; }).join("\n")}\nInstructions: ${instructions}\nPet food / diet: ${petFood || "—"}${vaccineName.trim() ? `\nVaccination given: ${vaccineName.trim()}${vaccineDueDate ? ` (next due ${vaccineDueDate})` : ""}` : ""}${showFeesOnRx ? `\nMedicine charges: ₹${medicineTotal}\nDoctor fee: ₹${feeTotal}\nTotal: ₹${grandTotal}` : ""}\nNotes: ${notes}`;
+  const content = () => {
+    const clinicHeader = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+    const doctorLine = doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "";
+    return [
+      `*${clinicHeader.toUpperCase()}*`,
+      doctorLine ? `Doctor: ${doctorLine}` : null,
+      `Date: ${visitDate}`,
+      `-----------------------------`,
+      `Patient: ${patient?.name || ""}`,
+      complaint ? `Complaint: ${complaint}` : null,
+      diagnosis ? `Diagnosis: ${diagnosis}` : null,
+      `Medicines:\n${medicines.map(m => { const med = allMeds.find(x => String(x.id) === String(m.medicineId)); return `• ${med?.name || ""} ${m.dosage} ${m.frequency} ${m.duration}`.trim(); }).join("\n")}`,
+      instructions ? `Instructions: ${instructions}` : null,
+      petFood ? `Pet food / diet: ${petFood}` : null,
+      vaccineName.trim() ? `Vaccination given: ${vaccineName.trim()}${vaccineDueDate ? ` (next due ${vaccineDueDate})` : ""}` : null,
+      showFeesOnRx ? `Medicine charges: ₹${medicineTotal}\nDoctor fee: ₹${feeTotal}\nTotal: ₹${grandTotal}` : null,
+      notes ? `Notes: ${notes}` : null,
+    ].filter(Boolean).join("\n");
+  };
   const downloadPdf = async () => {
     const node = previewRef.current;
     if (!node) return;
@@ -148,15 +166,15 @@ export default function Prescription() {
       setGeneratingPdf(false);
     }
   };
-  const patientEmail = (patient?.ownerEmail || patient?.email || patient?.owner?.email || "").trim();
+  const patientEmail = (patient?.ownerEmail || patient?.email || "").trim();
 
   const getEmailContent = () => {
     const medRows = medicines
       .filter((m) => m.medicineId || m.dosage)
-      .map((m, i) => {
+      .map((m, idx) => {
         const med = allMeds.find((x) => String(x.id) === String(m.medicineId));
-        let line = `${i + 1}. ${med?.name || "Medicine"}`;
-        if (m.dosage) line += ` | Dose: ${m.dosage}`;
+        let line = `${idx + 1}. ${med?.name || "Medicine"}`;
+        if (m.dosage) line += ` - Dosage: ${m.dosage}`;
         if (m.frequency) line += ` | Frequency: ${m.frequency}`;
         if (m.duration) line += ` | Duration: ${m.duration}`;
         if (m.quantity) line += ` | Qty: ${m.quantity}`;
@@ -164,12 +182,15 @@ export default function Prescription() {
         return line;
       });
 
+    const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+
     return [
-      `ZENVE VETERINARY CLINIC - PRESCRIPTION`,
+      `${clinicTitle.toUpperCase()} - PRESCRIPTION`,
       `==================================================`,
       `Doctor: ${doctor?.fullName || "Veterinary Doctor"}`,
       doctor?.qualification ? `Qualification: ${doctor.qualification}` : null,
-      doctor?.clinicName ? `Clinic: ${doctor.clinicName}` : null,
+      (doctor?.clinicHospital || doctor?.clinicName) ? `Clinic / Hospital: ${doctor?.clinicHospital || doctor?.clinicName}` : null,
+      (doctor?.city || doctor?.pincode) ? `Location: ${[doctor?.city, doctor?.pincode].filter(Boolean).join(" - ")}` : null,
       doctor?.phone ? `Doctor Contact: ${doctor.phone}` : null,
       `Date: ${visitDate}`,
       `--------------------------------------------------`,
@@ -194,7 +215,7 @@ export default function Prescription() {
       showFeesOnRx ? `Consultation Fee: ₹${Number(consultationFee || 0).toFixed(2)}\nMedicine Charges: ₹${medicineTotal.toFixed(2)}\nTotal Amount: ₹${grandTotal.toFixed(2)}\n` : null,
       notes ? `Doctor's Notes:\n${notes}\n` : null,
       `==================================================`,
-      `This is a computer-generated prescription from Zenve Veterinary Clinic.`,
+      `This is a computer-generated prescription from ${clinicTitle}.`,
     ].filter(Boolean).join("\n");
   };
 
@@ -223,7 +244,8 @@ export default function Prescription() {
         if (!patientEmail) {
           return toast.error("This patient has no registered email address on file. Please add an email address in the Patient profile.");
         }
-        const subject = `Veterinary Prescription: ${patient?.name || "Patient"}${patient?.petId ? ` (${patient.petId})` : ""} - Zenve Veterinary Clinic`;
+        const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+        const subject = `Veterinary Prescription: ${patient?.name || "Patient"}${patient?.petId ? ` (${patient.petId})` : ""} - ${clinicTitle}`;
         const emailBody = getEmailContent();
         result = await sendEmail({
           recipient: patientEmail,
@@ -330,8 +352,15 @@ export default function Prescription() {
               <img src="/zenve.png" alt="Zenve logo" className="rx-preview-logo" />
             </div>
             <div>
-              <p className="rx-preview-clinic">Zenve Veterinary Clinic</p>
-              <p className="rx-preview-tagline">Veterinary Doctor · General &amp; Emergency Care</p>
+              <p className="rx-preview-clinic">{doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic"}</p>
+              <p className="rx-preview-tagline">
+                {[
+                  doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Veterinary Doctor",
+                  doctor?.qualification,
+                  doctor?.speciality,
+                  [doctor?.city, doctor?.pincode].filter(Boolean).join(" - ")
+                ].filter(Boolean).join(" · ") || "Veterinary Doctor · General & Emergency Care"}
+              </p>
             </div>
           </div>
           <div className="rx-preview-doctitle">

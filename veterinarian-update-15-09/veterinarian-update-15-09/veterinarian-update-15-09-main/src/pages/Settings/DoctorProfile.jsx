@@ -9,6 +9,9 @@ import {
   FiEdit3,
   FiTrash2,
   FiCheckCircle,
+  FiMapPin,
+  FiNavigation,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import Input, {
@@ -75,12 +78,164 @@ export default function DoctorProfile() {
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [locationVerified, setLocationVerified] = useState(false);
   const [verifications, setVerifications] = useState({
     veterinaryRegistrationVerified: false,
     kycVerified: false,
     digitalSignatureVerified: false,
     stateCouncilSyncVerified: false,
   });
+
+  // ==========================================
+  // LOCATION AUTO-FETCH & VERIFY
+  // ==========================================
+
+  const cleanCityName = (city) => {
+    if (!city) return "";
+    return city
+      .replace(/\s*(Corporation|Municipal Corporation|City Corporation|District|Division|Municipality)\s*/gi, "")
+      .trim();
+  };
+
+  const handleFetchLocation = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsFetchingLocation(true);
+    const toastId = toast.loading("Detecting current GPS location...");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          let detectedCity = "";
+          let detectedPincode = "";
+
+          // 1. Try Nominatim OpenStreetMap reverse geocoding
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+              {
+                headers: {
+                  "Accept-Language": "en",
+                },
+              }
+            );
+            if (res.ok) {
+              const data = await res.json();
+              const addr = data?.address || {};
+              detectedCity = cleanCityName(
+                addr.city || addr.town || addr.village || addr.suburb || addr.state_district || addr.county || ""
+              );
+              detectedPincode = (addr.postcode || "").trim();
+            }
+          } catch (e) {
+            console.warn("Nominatim reverse geocoding failed, trying fallback:", e);
+          }
+
+          // 2. Fallback to BigDataCloud reverse geocode client
+          if (!detectedCity || !detectedPincode) {
+            try {
+              const bdcRes = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+              );
+              if (bdcRes.ok) {
+                const bdcData = await bdcRes.json();
+                if (!detectedCity) {
+                  detectedCity = cleanCityName(bdcData?.city || bdcData?.locality || bdcData?.principalSubdivision || "");
+                }
+                if (!detectedPincode) {
+                  detectedPincode = (bdcData?.postcode || "").trim();
+                }
+              }
+            } catch (e) {
+              console.warn("BigDataCloud reverse geocoding fallback failed:", e);
+            }
+          }
+
+          if (!detectedCity && !detectedPincode) {
+            toast.error("Could not determine city or pincode from coordinates", { id: toastId });
+            setIsFetchingLocation(false);
+            return;
+          }
+
+          // Update form state and auto-save
+          setForm((current) => {
+            const newCity = detectedCity || current.city;
+            const newPincode = detectedPincode || current.pincode;
+
+            const updated = {
+              ...current,
+              city: newCity,
+              pincode: newPincode,
+            };
+
+            const profile = {
+              fullName: updated.fullName?.trim() || "",
+              qualification: updated.qualification?.trim() || "",
+              speciality: updated.speciality?.trim() || "",
+              councilRegistration: updated.council?.trim() || "",
+              clinicHospital: updated.clinic?.trim() || "",
+              city: newCity?.trim() || "",
+              pincode: newPincode === "" || newPincode == null ? null : Number(newPincode),
+              experience: updated.experience === "" || updated.experience == null ? null : Number(updated.experience),
+              phone: updated.phone?.trim() || "",
+              email: updated.email?.trim() || "",
+              digitalSignatureName: updated.signature?.trim() || "",
+              consultationFee: updated.consultationFee === "" || updated.consultationFee == null ? null : Number(updated.consultationFee),
+              followUpFee: updated.followupFee === "" || updated.followupFee == null ? null : Number(updated.followupFee),
+              slotLength: updated.slotLength === "" || updated.slotLength == null ? null : Number(updated.slotLength),
+              profileImage: updated.profileImage || "",
+              clinicInsideImage: updated.clinicInsideImage || "",
+              clinicOutsideImage: updated.clinicOutsideImage || "",
+              digitalSignatureImage: updated.digitalSignatureImage || "",
+            };
+
+            updateDoctorProfile(profile)
+              .then(() => {
+                window.dispatchEvent(new Event("doctorProfileUpdated"));
+              })
+              .catch((err) => {
+                console.error("Failed to auto-save location to profile:", err);
+              });
+
+            return updated;
+          });
+
+          setLocationVerified(true);
+          toast.success(
+            `Location verified: ${detectedCity ? detectedCity : ""}${detectedCity && detectedPincode ? ", " : ""}${detectedPincode ? detectedPincode : ""}`,
+            { id: toastId }
+          );
+        } catch (err) {
+          console.error("Error processing geolocation:", err);
+          toast.error("Failed to process location coordinates", { id: toastId });
+        } finally {
+          setIsFetchingLocation(false);
+        }
+      },
+      (error) => {
+        setIsFetchingLocation(false);
+        let msg = "Failed to retrieve your location";
+        if (error.code === 1) {
+          msg = "Location permission denied. Please allow location access in your browser.";
+        } else if (error.code === 2) {
+          msg = "Location unavailable. Please check your GPS / network connection.";
+        } else if (error.code === 3) {
+          msg = "Location request timed out. Please try again.";
+        }
+        toast.error(msg, { id: toastId });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   // ==========================================
   // UPDATE FORM & AUTO-SAVE IMAGES
@@ -254,6 +409,10 @@ export default function DoctorProfile() {
           digitalSignatureVerified: data?.digitalSignatureVerified ?? false,
           stateCouncilSyncVerified: data?.stateCouncilSyncVerified ?? false,
         });
+
+        if (data?.city || data?.pincode) {
+          setLocationVerified(true);
+        }
       } catch (err) {
         console.error("Error loading doctor profile:", err);
         toast.error("Failed to load doctor profile");
@@ -729,46 +888,96 @@ export default function DoctorProfile() {
       </div>
 
       {/* ===================================== */}
-      {/* VERIFICATION                          */}
+      {/* RIGHT SIDE / VERIFICATIONS            */}
       {/* ===================================== */}
-      <div className="panel settings-side">
-        <h3
-          className="settings-heading"
-          style={{ marginBottom: 4 }}
-        >
-          <FiShield className="settings-icon" />
-          Verification
-        </h3>
+      <div className="stack-6 settings-side-column">
+        {/* ADMIN VERIFICATION */}
+        <div className="panel settings-side">
+          <h3
+            className="settings-heading"
+            style={{ marginBottom: 4 }}
+          >
+            <FiShield className="settings-icon" />
+            Verification
+          </h3>
 
-        <p
-          className="panel-subtitle"
-          style={{ marginBottom: 16 }}
-        >
-          Reviewed and verified by an admin.
-        </p>
+          <p
+            className="panel-subtitle"
+            style={{ marginBottom: 16 }}
+          >
+            Reviewed and verified by an admin.
+          </p>
 
-        <div className="stack-3">
-          {VERIFICATION_ITEMS.map((verification) => {
-            const isVerified = verifications[verification.key];
+          <div className="stack-3">
+            {VERIFICATION_ITEMS.map((verification) => {
+              const isVerified = verifications[verification.key];
 
-            return (
-              <div
-                key={verification.label}
-                className="settings-verify-row"
-              >
-                <span
-                  className="text-muted"
-                  style={{ fontSize: 14 }}
+              return (
+                <div
+                  key={verification.label}
+                  className="settings-verify-row"
                 >
-                  {verification.label}
-                </span>
+                  <span
+                    className="text-muted"
+                    style={{ fontSize: 14 }}
+                  >
+                    {verification.label}
+                  </span>
 
-                <Badge variant={isVerified ? "success" : "warning"}>
-                  {isVerified ? "Verified" : "Pending admin review"}
-                </Badge>
-              </div>
-            );
-          })}
+                  <Badge variant={isVerified ? "success" : "warning"}>
+                    {isVerified ? "Verified" : "Pending admin review"}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* LOCATION VERIFICATION */}
+        <div className="panel settings-side location-verify-card">
+          <div className="location-verify-header">
+            <div className="location-verify-title-wrap">
+              <h3 className="settings-heading" style={{ marginBottom: 2 }}>
+                <FiMapPin className="settings-icon" />
+                Location verification
+              </h3>
+              <p className="panel-subtitle" style={{ marginBottom: 0 }}>
+                GPS practice location verification
+              </p>
+            </div>
+            <Badge variant={isFetchingLocation ? "accent" : (locationVerified || (form.city && form.pincode) ? "success" : "warning")}>
+              {isFetchingLocation ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <FiRefreshCw className="spin-icon" size={11} /> Locating...
+                </span>
+              ) : (locationVerified || (form.city && form.pincode)) ? (
+                "Verified"
+              ) : (
+                "Pending"
+              )}
+            </Badge>
+          </div>
+
+          <div className="location-details-box">
+            <div className="location-info-row">
+              <span className="location-info-label">City</span>
+              <span className="location-info-value">{form.city || <span className="text-muted-italic">Not set</span>}</span>
+            </div>
+            <div className="location-info-row">
+              <span className="location-info-label">Pincode</span>
+              <span className="location-info-value">{form.pincode || <span className="text-muted-italic">Not set</span>}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn-location-fetch"
+            disabled={isFetchingLocation}
+            onClick={handleFetchLocation}
+          >
+            <FiNavigation size={13} className={isFetchingLocation ? "spin-icon" : ""} />
+            {isFetchingLocation ? "Detecting GPS location..." : (form.city || form.pincode ? "Re-detect GPS Location" : "Auto-fetch City & Pincode")}
+          </button>
         </div>
       </div>
     </div>

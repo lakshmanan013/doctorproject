@@ -276,4 +276,121 @@
   gap: 8px;
 }
 
+/* ==========================================================
+   LOCATION VERIFICATION CARD & ACTIONS
+========================================================== */
+.settings-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.location-verify-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.location-verify-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.location-verify-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-details-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 14px 0 12px;
+}
+
+.location-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.location-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-muted-italic {
+  font-size: 12px;
+  font-weight: 400;
+  font-style: italic;
+  color: #94a3b8;
+}
+
+.btn-location-fetch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 14px;
+  background: #f0f4ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.06);
+}
+
+.btn-location-fetch:hover:not(:disabled) {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #3730a3;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.14);
+}
+
+.btn-location-fetch:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-location-fetch:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 

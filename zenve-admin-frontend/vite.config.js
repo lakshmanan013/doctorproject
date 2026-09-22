@@ -5,5 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
+    proxy: {
+      '/doctor-api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/doctor-api/, ''),
+      },
+    },
   },
 })

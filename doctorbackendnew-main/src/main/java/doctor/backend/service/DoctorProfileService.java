@@ -11,14 +11,17 @@ public class DoctorProfileService {
     private final DoctorProfileRepository repository;
     private final UserRepository userRepository;
     private final ZippyCrmSyncService zippyCrmSyncService;
+    private final AdminApprovalClient adminApprovalClient;
 
     public DoctorProfileService(
             DoctorProfileRepository repository,
             UserRepository userRepository,
-            ZippyCrmSyncService zippyCrmSyncService) {
+            ZippyCrmSyncService zippyCrmSyncService,
+            AdminApprovalClient adminApprovalClient) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.zippyCrmSyncService = zippyCrmSyncService;
+        this.adminApprovalClient = adminApprovalClient;
     }
 
     /**
@@ -126,6 +129,24 @@ public class DoctorProfileService {
         });
 
         zippyCrmSyncService.syncDoctor(saved);
+
+        // Also sync location and profile info to Zenve admin approval backend
+        try {
+            userRepository.findById(userId).ifPresent(user -> {
+                adminApprovalClient.notifyProfileUpdated(
+                        user.getEmail(),
+                        saved.getFullName() != null ? saved.getFullName() : user.getFullName(),
+                        saved.getPhone() != null ? saved.getPhone() : user.getPhone(),
+                        saved.getClinicHospital(),
+                        saved.getQualification(),
+                        saved.getCity(),
+                        saved.getPincode(),
+                        saved.getProfileImage()
+                );
+            });
+        } catch (Exception ignored) {
+        }
+
         return saved;
     }
 

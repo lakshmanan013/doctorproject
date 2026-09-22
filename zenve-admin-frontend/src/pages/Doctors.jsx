@@ -13,6 +13,7 @@ import {
   User,
   GraduationCap,
   Calendar,
+  MapPin,
 } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../context/AuthContext'
@@ -77,8 +78,33 @@ export default function Doctors() {
     if (!token) return
     try {
       const data = await api.listDoctors(token, tab)
-      setDoctors(data?.doctors || [])
+      const rawDoctors = data?.doctors || []
+      setDoctors(rawDoctors)
       setCounts(data?.counts || { pending: 0, approved: 0, rejected: 0, all: 0 })
+
+      // Enrich missing fields (city, pincode, profileImage) asynchronously
+      Promise.all(
+        rawDoctors.map(async (doc) => {
+          if (doc.email) {
+            try {
+              const liveProfile = await api.fetchDoctorProfile(doc.email)
+              if (liveProfile) {
+                return {
+                  ...doc,
+                  city: liveProfile.city || doc.city,
+                  pincode: liveProfile.pincode || doc.pincode,
+                  clinicName: liveProfile.clinicHospital || doc.clinicName,
+                  qualification: liveProfile.qualification || doc.qualification,
+                  profileImage: liveProfile.profileImage || doc.profileImage,
+                }
+              }
+            } catch {}
+          }
+          return doc
+        })
+      ).then((enriched) => {
+        setDoctors(enriched)
+      }).catch(() => {})
     } catch {
       setDoctors([])
       setCounts({ pending: 0, approved: 0, rejected: 0, all: 0 })
@@ -201,6 +227,8 @@ export default function Doctors() {
       (d.clinicName || '').toLowerCase().includes(q) ||
       (d.phone || '').toLowerCase().includes(q) ||
       (d.qualification || '').toLowerCase().includes(q) ||
+      (d.city || '').toLowerCase().includes(q) ||
+      (d.pincode ? String(d.pincode) : '').toLowerCase().includes(q) ||
       (d.status || '').toLowerCase().includes(q)
     )
   })
@@ -212,7 +240,7 @@ export default function Doctors() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint" />
           <input
             className="input pl-9 pr-8 w-full"
-            placeholder="Search name, email, clinic, phone..."
+            placeholder="Search name, email, clinic, city, phone..."
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
           />
@@ -255,10 +283,19 @@ export default function Doctors() {
           <div
             key={d.id}
             onClick={() => setSelectedDoctor(d)}
-            className={`flex flex-col lg:flex-row lg:items-center gap-3 border-l-[3px] px-5 py-4 transition-colors hover:bg-surface2/60 cursor-pointer ${
+            className={`flex flex-col lg:flex-row lg:items-center gap-3.5 border-l-[3px] px-5 py-4 transition-colors hover:bg-surface2/60 cursor-pointer ${
               RAIL[d.status] || 'border-l-transparent'
             }`}
           >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+              {d.profileImage ? (
+                <img src={d.profileImage} alt={d.fullName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-admin-light text-admin font-bold text-xs">
+                  {d.fullName ? d.fullName.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                </div>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold text-ink truncate">{d.fullName}</p>
@@ -278,8 +315,13 @@ export default function Doctors() {
                     <Building2 className="h-3.5 w-3.5" /> {d.clinicName}
                   </span>
                 )}
+                {(d.city || d.pincode) && (
+                  <span className="inline-flex items-center gap-1.5 text-indigo-600 font-medium bg-indigo-50/70 px-2 py-0.5 rounded-md border border-indigo-100">
+                    <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                    {[d.city, d.pincode].filter(Boolean).join(' - ')}
+                  </span>
+                )}
               </div>
-              {d.qualification && <p className="text-xs text-ink-faint mt-1">{d.qualification}</p>}
               {d.status === 'rejected' && d.rejectionReason && (
                 <p className="text-xs text-danger mt-1">Reason: {d.rejectionReason}</p>
               )}
@@ -475,7 +517,55 @@ export default function Doctors() {
 }
 
 function DoctorProfileModal({ doctor, busyId, busyVerifyKey, onClose, onApprove, onReject, onVerify }) {
-  const d = doctor
+  const { token } = useAuth()
+  const [d, setD] = useState(doctor)
+
+  useEffect(() => {
+    setD(doctor)
+    let isMounted = true
+
+    const fetchDetails = async () => {
+      let freshAdmin = null
+      let liveProfile = null
+
+      if (token && doctor?.id) {
+        try {
+          freshAdmin = await api.getDoctor(token, doctor.id)
+        } catch (e) {
+          console.warn('getDoctor error:', e)
+        }
+      }
+
+      if (doctor?.email) {
+        try {
+          liveProfile = await api.fetchDoctorProfile(doctor.email)
+        } catch (e) {
+          console.warn('fetchDoctorProfile error:', e)
+        }
+      }
+
+      if (isMounted) {
+        setD((prev) => {
+          const merged = { ...prev }
+          if (freshAdmin) {
+            Object.assign(merged, freshAdmin)
+          }
+          if (liveProfile) {
+            if (liveProfile.city) merged.city = liveProfile.city
+            if (liveProfile.pincode) merged.pincode = liveProfile.pincode
+            if (liveProfile.clinicHospital) merged.clinicName = liveProfile.clinicHospital
+            if (liveProfile.qualification) merged.qualification = liveProfile.qualification
+            if (liveProfile.profileImage) merged.profileImage = liveProfile.profileImage
+          }
+          return merged
+        })
+      }
+    }
+
+    fetchDetails()
+    return () => { isMounted = false }
+  }, [doctor, token])
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
@@ -483,9 +573,15 @@ function DoctorProfileModal({ doctor, busyId, busyVerifyKey, onClose, onApprove,
     >
       <div className="card w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-admin-light text-admin">
-              <User className="h-5 w-5" />
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0 shadow-2xs">
+              {d.profileImage ? (
+                <img src={d.profileImage} alt={d.fullName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-admin-light text-admin font-bold text-sm">
+                  {d.fullName ? d.fullName.charAt(0).toUpperCase() : <User className="h-5 w-5" />}
+                </div>
+              )}
             </div>
             <div>
               <h2 className="text-sm font-semibold text-ink">{d.fullName}</h2>
@@ -497,34 +593,41 @@ function DoctorProfileModal({ doctor, busyId, busyVerifyKey, onClose, onApprove,
           </button>
         </div>
 
-        <div className="space-y-2 text-sm text-ink-soft">
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-ink-faint" /> {d.email}
+        <div className="space-y-3">
+          {/* Basic Info Rows */}
+          <div className="space-y-2.5 text-sm text-ink-soft bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <Mail className="h-4 w-4 text-ink-faint shrink-0" />
+              <span className="text-ink">{d.email}</span>
+            </div>
+            {d.phone && (
+              <div className="flex items-center gap-2.5">
+                <Phone className="h-4 w-4 text-ink-faint shrink-0" />
+                <span className="text-ink">{d.phone}</span>
+              </div>
+            )}
+            {d.clinicName && (
+              <div className="flex items-center gap-2.5">
+                <Building2 className="h-4 w-4 text-ink-faint shrink-0" />
+                <span className="text-ink">{d.clinicName}</span>
+              </div>
+            )}
+            {(d.city || d.pincode) && (
+              <div className="flex items-center gap-2.5">
+                <MapPin className="h-4 w-4 text-ink-faint shrink-0" />
+                <span className="text-ink">{[d.city, d.pincode].filter(Boolean).join(' - ')}</span>
+              </div>
+            )}
+            {d.createdAt && (
+              <div className="flex items-center gap-2.5">
+                <Calendar className="h-4 w-4 text-ink-faint shrink-0" />
+                <span>Joined {new Date(d.createdAt).toLocaleDateString()}</span>
+              </div>
+            )}
+            {d.status === 'rejected' && d.rejectionReason && (
+              <p className="text-xs text-danger pt-1">Reason: {d.rejectionReason}</p>
+            )}
           </div>
-          {d.phone && (
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-ink-faint" /> {d.phone}
-            </div>
-          )}
-          {d.clinicName && (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-ink-faint" /> {d.clinicName}
-            </div>
-          )}
-          {d.qualification && (
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-ink-faint" /> {d.qualification}
-            </div>
-          )}
-          {d.createdAt && (
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-ink-faint" />
-              Joined {new Date(d.createdAt).toLocaleDateString()}
-            </div>
-          )}
-          {d.status === 'rejected' && d.rejectionReason && (
-            <p className="text-xs text-danger pt-1">Reason: {d.rejectionReason}</p>
-          )}
         </div>
 
         {d.status === 'approved' && (

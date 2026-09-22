@@ -106,7 +106,7 @@ export default function Login() {
             <input
               type="email"
               className={`input${errors.email ? " input-error" : ""}`}
-              placeholder="you@clinic.com"
+              placeholder="doctor@example.com"
               autoComplete="email"
               {...register("email", {
                 required: "Email is required",

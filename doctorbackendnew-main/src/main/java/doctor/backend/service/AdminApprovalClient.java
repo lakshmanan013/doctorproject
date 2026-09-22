@@ -58,4 +58,28 @@ public class AdminApprovalClient {
                     user.getEmail(), ex.getMessage());
         }
     }
+
+    public void notifyProfileUpdated(String email, String fullName, String phone, String clinicHospital, String qualification, String city, Integer pincode, String profileImage) {
+        if (email == null || email.isBlank()) return;
+        String url = properties.getBaseUrl() + "/doctors/profile-sync";
+
+        java.util.Map<String, String> body = new java.util.HashMap<>();
+        body.put("email", email);
+        if (fullName != null) body.put("fullName", fullName);
+        if (phone != null) body.put("phone", phone);
+        if (clinicHospital != null) body.put("clinicName", clinicHospital);
+        if (qualification != null) body.put("qualification", qualification);
+        if (city != null) body.put("city", city);
+        if (pincode != null) body.put("pincode", String.valueOf(pincode));
+        if (profileImage != null) body.put("profileImage", profileImage);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            restTemplate.postForEntity(url, new HttpEntity<>(body, headers), Void.class);
+        } catch (Exception ex) {
+            log.debug("Could not notify admin backend about profile update ({}): {}", email, ex.getMessage());
+        }
+    }
 }

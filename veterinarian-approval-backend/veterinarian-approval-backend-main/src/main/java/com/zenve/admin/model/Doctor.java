@@ -36,6 +36,22 @@ public class Doctor {
 
     private String qualification;
 
+    private String city;
+
+    private String pincode;
+
+    @Lob
+    @Column(name = "profile_image", columnDefinition = "LONGTEXT")
+    private String profileImage;
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     @Builder.Default

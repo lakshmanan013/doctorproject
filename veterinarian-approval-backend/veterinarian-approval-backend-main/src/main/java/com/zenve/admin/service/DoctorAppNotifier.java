@@ -58,6 +58,32 @@ public class DoctorAppNotifier {
     }
 
     /**
+     * Fetches the doctor's profile (including city, pincode, etc.) from the
+     * doctor-facing backend.
+     */
+    public Map<String, Object> fetchProfile(String email) {
+        if (email == null || email.isBlank()) return null;
+        String url = properties.baseUrl() + "/internal/doctors/profile?email=" + email.trim().toLowerCase();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(SECRET_HEADER, properties.internalSecret() != null ? properties.internalSecret() : "");
+
+        try {
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    Objects.requireNonNull(url),
+                    Objects.requireNonNull(org.springframework.http.HttpMethod.GET),
+                    requestEntity,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            return response.getBody();
+        } catch (Exception ex) {
+            log.debug("Could not fetch profile from doctor backend for {}: {}", email, ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Creates the doctor's login account on the doctor-facing backend when an
      * admin creates the doctor directly from the admin CRM.
      */

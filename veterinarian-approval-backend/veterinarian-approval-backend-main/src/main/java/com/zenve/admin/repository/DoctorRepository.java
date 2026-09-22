@@ -10,4 +10,5 @@ public interface DoctorRepository extends JpaRepository<Doctor, String> {
     List<Doctor> findAllByOrderByCreatedAtDesc();
     List<Doctor> findByStatusOrderByCreatedAtDesc(DoctorStatus status);
     long countByStatus(DoctorStatus status);
+    java.util.Optional<Doctor> findByEmail(String email);
 }

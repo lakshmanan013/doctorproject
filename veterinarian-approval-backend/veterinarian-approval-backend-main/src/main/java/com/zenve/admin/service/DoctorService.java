@@ -37,7 +37,28 @@ public class DoctorService {
             doctors = doctorRepository.findByStatusOrderByCreatedAtDesc(status);
         }
 
-        List<DoctorDto> dtos = doctors.stream().map(DoctorDto::from).toList();
+        List<DoctorDto> dtos = doctors.stream().map(d -> {
+            if ((d.getCity() == null || d.getCity().isBlank()) && d.getEmail() != null) {
+                try {
+                    java.util.Map<String, Object> prof = doctorAppNotifier.fetchProfile(d.getEmail());
+                    if (prof != null) {
+                        String city = prof.get("city") != null ? String.valueOf(prof.get("city")).trim() : null;
+                        String pincode = prof.get("pincode") != null ? String.valueOf(prof.get("pincode")).trim() : null;
+                        if (city != null && !city.isBlank()) {
+                            d.setCity(city);
+                        }
+                        if (pincode != null && !pincode.isBlank()) {
+                            d.setPincode(pincode);
+                        }
+                        if ((city != null && !city.isBlank()) || (pincode != null && !pincode.isBlank())) {
+                            doctorRepository.save(d);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            return DoctorDto.from(d);
+        }).toList();
         return new DoctorsResponse(dtos, counts());
     }
 
@@ -163,6 +184,62 @@ public class DoctorService {
                 doctor.getFullName() + " signed up and is waiting for approval.",
                 doctor.getId());
 
+        return DoctorDto.from(doctor);
+    }
+
+    public DoctorDto get(String id) {
+        Doctor doctor = getOrThrow(id);
+        if (doctor.getEmail() != null) {
+            try {
+                java.util.Map<String, Object> prof = doctorAppNotifier.fetchProfile(doctor.getEmail());
+                if (prof != null) {
+                    String city = prof.get("city") != null ? String.valueOf(prof.get("city")).trim() : null;
+                    String pincode = prof.get("pincode") != null ? String.valueOf(prof.get("pincode")).trim() : null;
+                    String profileImage = prof.get("profileImage") != null ? String.valueOf(prof.get("profileImage")).trim() : null;
+                    if (city != null && !city.isBlank()) doctor.setCity(city);
+                    if (pincode != null && !pincode.isBlank()) doctor.setPincode(pincode);
+                    if (profileImage != null && !profileImage.isBlank()) doctor.setProfileImage(profileImage);
+                    if (doctor.getClinicName() == null && prof.get("clinicHospital") != null) {
+                        doctor.setClinicName(String.valueOf(prof.get("clinicHospital")).trim());
+                    }
+                    if (doctor.getQualification() == null && prof.get("qualification") != null) {
+                        doctor.setQualification(String.valueOf(prof.get("qualification")).trim());
+                    }
+                    doctorRepository.save(doctor);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return DoctorDto.from(doctor);
+    }
+
+    public DoctorDto syncProfile(java.util.Map<String, String> body) {
+        if (body == null) return null;
+        String email = body.get("email");
+        if (email == null || email.isBlank()) return null;
+        Doctor doctor = doctorRepository.findByEmail(email.trim().toLowerCase()).orElse(null);
+        if (doctor == null) {
+            doctor = Doctor.builder()
+                    .fullName(body.getOrDefault("fullName", "Doctor"))
+                    .email(email.trim().toLowerCase())
+                    .phone(body.get("phone"))
+                    .clinicName(body.get("clinicName"))
+                    .qualification(body.get("qualification"))
+                    .city(body.get("city"))
+                    .pincode(body.get("pincode"))
+                    .profileImage(body.get("profileImage"))
+                    .status(DoctorStatus.pending)
+                    .build();
+        } else {
+            if (body.get("fullName") != null && !body.get("fullName").isBlank()) doctor.setFullName(body.get("fullName"));
+            if (body.get("phone") != null && !body.get("phone").isBlank()) doctor.setPhone(body.get("phone"));
+            if (body.get("clinicName") != null) doctor.setClinicName(body.get("clinicName"));
+            if (body.get("qualification") != null) doctor.setQualification(body.get("qualification"));
+            if (body.get("city") != null) doctor.setCity(body.get("city"));
+            if (body.get("pincode") != null) doctor.setPincode(body.get("pincode"));
+            if (body.get("profileImage") != null) doctor.setProfileImage(body.get("profileImage"));
+        }
+        doctorRepository.save(java.util.Objects.requireNonNull(doctor));
         return DoctorDto.from(doctor);
     }
 

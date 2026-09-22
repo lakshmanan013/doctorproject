@@ -48,6 +48,37 @@ export const api = {
       token,
     }),
 
+  getDoctor: (token, id) =>
+    request(`/doctors/${id}`, {
+      token,
+    }),
+
+  fetchDoctorProfile: async (email) => {
+    if (!email) return null;
+    const cleanEmail = encodeURIComponent(email.trim().toLowerCase());
+    const urls = [
+      `/doctor-api/api/internal/doctors/profile?email=${cleanEmail}`,
+      `http://localhost:8080/api/internal/doctors/profile?email=${cleanEmail}`,
+    ];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'X-Internal-Secret': 'change-this-shared-secret',
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data) return data;
+        }
+      } catch (e) {
+        // try next endpoint
+      }
+    }
+    return null;
+  },
+
   approveDoctor: (token, id) =>
     request(`/doctors/${id}/approve`, {
       method: 'POST',
