@@ -477,15 +477,16 @@ export default function Prescription() {
             type="button"
             onClick={toggleVoiceCapture}
             className={`rx-mic-btn${listening ? " rx-mic-btn-active" : ""}`}
+            title={listening ? "Click to stop listening" : "Click to dictate notes"}
           >
             {listening ? <FiMicOff size={16} /> : <FiMic size={16} />}
           </button>
           <div>
-            <p className="rx-mic-title">Voice → Prescription</p>
+            <p className="rx-mic-title">Voice Dictation → Notes</p>
             <p className="rx-mic-desc">
               {listening
-                ? "Listening... tap the mic again to stop. Speech is transcribed into Notes."
-                : "Tap the mic and dictate — it's transcribed straight into the Notes field below."}
+                ? "Listening... tap the mic again to stop. Speech is transcribed directly into Notes."
+                : "Tap the mic and dictate — speech is transcribed directly into the Notes field below."}
             </p>
           </div>
         </div>

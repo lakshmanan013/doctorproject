@@ -266,6 +266,13 @@ public class PrescriptionService {
                 return;
             }
 
+            if (prescription.getPatient() == null
+                    || prescription.getPatient().getOwner() == null
+                    || prescription.getPatient().getOwner().getId() == null) {
+                // Cannot create an invoice without a valid patient owner
+                return;
+            }
+
             // A single combined invoice for the whole visit (medicines +
             // doctor fees), rather than one invoice per component - a
             // prescription should only ever produce one bill.

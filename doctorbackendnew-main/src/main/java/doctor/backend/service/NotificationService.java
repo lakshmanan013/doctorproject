@@ -11,6 +11,7 @@ import doctor.backend.repository.PatientRepository;
 import doctor.backend.security.CurrentUserProvider;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class NotificationService {
     // CREATE NOTIFICATION
     // =====================================================
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public NotificationResponse createNotification(
             NotificationRequest request) {
 

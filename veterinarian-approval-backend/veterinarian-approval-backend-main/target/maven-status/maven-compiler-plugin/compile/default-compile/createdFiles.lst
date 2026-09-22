@@ -9,6 +9,7 @@ com\zenve\admin\exception\ApiException.class
 com\zenve\admin\dto\NotificationsResponse.class
 com\zenve\admin\dto\DatabaseInfoResponse$DbCounts.class
 com\zenve\admin\dto\MeResponse.class
+com\zenve\admin\service\DoctorAppNotifier$1.class
 com\zenve\admin\dto\NotificationDto.class
 com\zenve\admin\repository\NotificationRepository.class
 com\zenve\admin\controller\AuthController.class
