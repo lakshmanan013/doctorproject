@@ -296,52 +296,54 @@ export default function Prescription() {
     try {
       setGeneratingPdf(true);
 
-      const renderScale = Math.max(3, window.devicePixelRatio || 1);
-      const canvas = await html2canvas(node, {
-        scale: renderScale,
+      // Clone node and render with full A4 dimensions (794px width x ~1123px height)
+      const clone = node.cloneNode(true);
+      clone.classList.add("rx-a4-full-export");
+      clone.style.position = "fixed";
+      clone.style.top = "0";
+      clone.style.left = "0";
+      clone.style.width = "794px";
+      clone.style.minHeight = "1123px";
+      clone.style.zIndex = "-999";
+      clone.style.boxShadow = "none";
+      clone.style.borderRadius = "0";
+      clone.style.border = "none";
+      clone.style.background = "#ffffff";
+      document.body.appendChild(clone);
+
+      // Wait brief moment for fonts and layout reflow
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: node.scrollWidth,
-        windowHeight: node.scrollHeight,
+        width: 794,
+        windowWidth: 794,
       });
 
+      document.body.removeChild(clone);
+
       const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 595.28 pt
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 841.89 pt
 
-      const margin = 28;
-      const contentWidth = pageWidth - margin * 2;
-      const contentHeight = pageHeight - margin * 2;
+      // Fit strictly on 1 full A4 page spanning full width and height
+      const scaleRatio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      const drawWidth = canvas.width * scaleRatio;
+      const drawHeight = canvas.height * scaleRatio;
+      const xOffset = (pageWidth - drawWidth) / 2;
+      const yOffset = (pageHeight - drawHeight) / 2;
 
-      const pxPerPt = canvas.width / contentWidth;
-      const pageSlicePx = Math.floor(contentHeight * pxPerPt);
-      const totalPages = Math.max(1, Math.ceil(canvas.height / pageSlicePx));
-
-      const pageCanvas = document.createElement("canvas");
-      pageCanvas.width = canvas.width;
-      const ctx = pageCanvas.getContext("2d");
-
-      for (let page = 0; page < totalPages; page++) {
-        const sliceStart = page * pageSlicePx;
-        const sliceHeight = Math.min(pageSlicePx, canvas.height - sliceStart);
-        pageCanvas.height = sliceHeight;
-        ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, sliceStart, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-        const imgData = pageCanvas.toDataURL("image/png", 1.0);
-        const drawHeight = (sliceHeight * contentWidth) / canvas.width;
-
-        if (page > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, margin, contentWidth, drawHeight, undefined, "FAST");
-      }
+      const imgData = canvas.toDataURL("image/png", 1.0);
+      pdf.addImage(imgData, "PNG", xOffset, yOffset, drawWidth, drawHeight, undefined, "FAST");
 
       const fileName = `prescription-${patient?.name ? patient.name.replace(/\s+/g, "-").toLowerCase() : "zenve"}-${visitDate}.pdf`;
       pdf.save(fileName);
-      toast.success("PDF downloaded");
+      toast.success("A4 Full-Size PDF downloaded");
     } catch (e) {
+      console.error(e);
       toast.error("Could not generate PDF");
     } finally {
       setGeneratingPdf(false);
@@ -603,49 +605,73 @@ export default function Prescription() {
                     doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Veterinary Doctor",
                     doctor?.qualification,
                     doctor?.speciality,
-                    [doctor?.city, doctor?.pincode].filter(Boolean).join(" - ")
-                  ].filter(Boolean).join(" · ") || "Veterinary Doctor · General & Emergency Care"}
+                    doctor?.registrationNumber ? `Reg No: ${doctor.registrationNumber}` : null,
+                    [doctor?.city, doctor?.pincode].filter(Boolean).join(" - "),
+                    doctor?.phoneNumber ? `Ph: ${doctor.phoneNumber}` : null,
+                  ].filter(Boolean).join(" · ") || "Veterinary Doctor · Comprehensive Animal Care & Surgery"}
                 </p>
               </div>
             </div>
             <div className="rx-preview-doctitle">
-              <span className="rx-preview-doc-label">Prescription</span>
+              <div className="rx-doc-rx-badge">
+                <span className="rx-symbol">℞</span>
+                <span className="rx-preview-doc-label">Prescription</span>
+              </div>
+              <p className="rx-preview-doc-id">
+                Rx #{savedRx?.id ? String(savedRx.id).padStart(4, "0") : (patientId ? `${patientId}-${visitDate.replace(/-/g, "").slice(4)}` : "OPD-01")}
+              </p>
               <p className="rx-preview-doc-date">Date: {visitDate}</p>
             </div>
           </div>
 
           <div className="rx-preview-grid">
-            <div><p className="rx-eyebrow">Patient</p><p className="rx-preview-value">{patient?.name || "—"} · {patient?.species || ""} · {patient?.breed || ""}</p></div>
             <div>
-              <p className="rx-eyebrow">Owner</p>
-              <p className="rx-preview-value">{patient?.ownerName || "—"}</p>
-              {patientEmail && <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{patientEmail}</p>}
+              <p className="rx-eyebrow">Patient Details</p>
+              <p className="rx-preview-value">{patient?.name || "—"}</p>
+              <p className="rx-preview-subval">{[patient?.species, patient?.breed].filter(Boolean).join(" · ") || "Pet Patient"}</p>
             </div>
-            <div><p className="rx-eyebrow">Weight</p><p className="rx-preview-value">{patient?.weight != null ? `${patient.weight} kg` : "—"}</p></div>
-            <div><p className="rx-eyebrow">Date</p><p className="rx-preview-value">{visitDate}</p></div>
+            <div>
+              <p className="rx-eyebrow">Pet Parent (Owner)</p>
+              <p className="rx-preview-value">{patient?.ownerName || "—"}</p>
+              <p className="rx-preview-subval">{patient?.ownerPhone || patient?.phone || patientEmail || "—"}</p>
+            </div>
+            <div>
+              <p className="rx-eyebrow">Vitals & Weight</p>
+              <p className="rx-preview-value">{patient?.weight != null ? `${patient.weight} kg` : "—"}</p>
+              <p className="rx-preview-subval">{vitals?.temp ? `Temp: ${vitals.temp}°F` : "Vitals Normal"}</p>
+            </div>
+            <div>
+              <p className="rx-eyebrow">Visit Details</p>
+              <p className="rx-preview-value">{visitDate}</p>
+              <p className="rx-preview-subval">OPD Consultation</p>
+            </div>
           </div>
 
           <div className="rx-preview-body">
             <div className="rx-preview-2col">
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Complaint</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Chief Complaint</p>
                 <div className="rx-preview-box">{complaint || "—"}</div>
               </div>
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Diagnosis</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Clinical Diagnosis</p>
                 <div className="rx-preview-box">{diagnosis || "—"}</div>
               </div>
             </div>
 
             <div className="rx-preview-block">
-              <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Medicines</p>
+              <div className="rx-block-title-row">
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Medications Prescribed</p>
+                <span className="rx-table-rx-tag">℞</span>
+              </div>
               {medicines.filter(m => m.medicineId || m.dosage).length === 0 ? (
                 <p className="rx-preview-empty">No medicines added yet</p>
               ) : (
                 <table className="rx-med-table">
                   <thead>
                     <tr>
-                      <th>Medicine</th>
+                      <th style={{ width: "38px" }}>#</th>
+                      <th>Medicine Name & Dosage</th>
                       <th>Duration</th>
                       <th>Frequency</th>
                       <th>Qty</th>
@@ -658,8 +684,15 @@ export default function Prescription() {
                         <tr key={m.id}>
                           <td>
                             <span className="rx-med-index">{i + 1}</span>
-                            <span className="rx-med-name">{med?.name || "—"}</span>
-                            {m.dosage && <span className="rx-med-dosage">{m.dosage}</span>}
+                          </td>
+                          <td>
+                            <div className="rx-med-name-wrap">
+                              <span className="rx-med-name">{med?.name || "—"}</span>
+                              {m.dosage && <span className="rx-med-dosage">{m.dosage}</span>}
+                            </div>
+                            {m.instructions && (
+                              <div className="rx-med-sub-instruction">↳ {m.instructions}</div>
+                            )}
                           </td>
                           <td>{m.duration || "—"}</td>
                           <td>{m.frequency || "—"}</td>
@@ -674,18 +707,18 @@ export default function Prescription() {
 
             <div className="rx-preview-2col">
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Instructions</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Instructions & Advice</p>
                 <div className="rx-preview-box">{instructions || "—"}</div>
               </div>
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Pet food / Diet</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Pet Food / Diet</p>
                 <div className="rx-preview-box">{petFood || "—"}</div>
               </div>
             </div>
 
             {vaccineName.trim() && (
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Vaccination</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Vaccination Given</p>
                 <span className="rx-vaccine-pill">
                   <FaPaw /> {vaccineName}{vaccineDueDate ? ` · Next due ${vaccineDueDate}` : ""}
                 </span>
@@ -694,7 +727,7 @@ export default function Prescription() {
 
             {showFeesOnRx && (
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Fees</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Fees Breakdown</p>
                 <div className="rx-fee-card">
                   <div className="rx-fee-card-row"><span>Medicine charges</span><span>₹{medicineTotal.toFixed(2)}</span></div>
                   <div className="rx-fee-card-row"><span>Doctor fee</span><span>₹{feeTotal.toFixed(2)}</span></div>
@@ -704,12 +737,19 @@ export default function Prescription() {
             )}
 
             <div className="rx-preview-block">
-              <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Notes</p>
+              <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Clinical Notes</p>
               <div className="rx-preview-box">{notes || "—"}</div>
             </div>
 
             <div className="rx-preview-footer">
-              <p className="rx-preview-footer-note">This is a computer-generated prescription.</p>
+              <div className="rx-preview-footer-left">
+                <p className="rx-preview-helpline">
+                  Emergency Contact: <strong>{doctor?.phoneNumber || "+91 98765 43210"}</strong>
+                </p>
+                <p className="rx-preview-footer-note">
+                  This computer-generated prescription is a valid legal medical document.
+                </p>
+              </div>
               <div className="rx-preview-sign-line">
                 {doctor?.digitalSignatureImage ? (
                   <img
@@ -721,7 +761,8 @@ export default function Prescription() {
                   <div className="rx-signature-placeholder-space" />
                 )}
                 <div className="rx-sign-line-bar" />
-                <span>Doctor's Signature</span>
+                <span className="rx-sign-name">{doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Doctor's Signature"}</span>
+                <span className="rx-sign-title">Authorized Signatory · Registered Vet</span>
               </div>
             </div>
           </div>
