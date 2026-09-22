@@ -111,8 +111,9 @@ export default function ImageUploadBox({
   };
 
   const handleApplySignature = (digitizedDataUrl) => {
-    onChange?.(digitizedDataUrl);
+    setStudioOpen(false);
     setPendingSignatureSource(null);
+    onChange?.(digitizedDataUrl);
     toast.success("Digital signature applied successfully!");
   };
 
@@ -232,7 +233,7 @@ export default function ImageUploadBox({
       </div>
 
       {/* Interactive Signature Studio Modal */}
-      {isSig && (
+      {isSig && studioOpen && (
         <SignatureStudioModal
           isOpen={studioOpen}
           imageSource={pendingSignatureSource}

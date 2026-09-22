@@ -5,14 +5,20 @@
 .sig-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9999;
-  background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999999;
+  background-color: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   animation: sigFadeIn 0.2s ease-out forwards;
 }
 
@@ -32,11 +38,14 @@
   border-radius: 20px;
   width: 100%;
   max-width: 980px;
-  max-height: 92vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(226, 232, 240, 0.8);
   overflow: hidden;
+  position: relative;
+  z-index: 1000000;
+  margin: auto;
 }
 
 /* Header */

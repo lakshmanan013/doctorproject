@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   FiRotateCcw,
   FiRotateCw,
@@ -23,8 +24,9 @@ import "./SignatureStudioModal.css";
 
 /**
  * SignatureStudioModal
- * Full-featured interactive studio for paper signature auto-detection,
- * rotation, cropping, shadow cleaning, and digital ink conversion.
+ * Full-screen popup modal rendered via React Portal.
+ * Interactive studio for paper signature auto-detection, rotation, cropping,
+ * shadow removal, and digital ink conversion.
  */
 export default function SignatureStudioModal({
   isOpen,
@@ -65,6 +67,18 @@ export default function SignatureStudioModal({
     startY: 0,
     initialCrop: null,
   });
+
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   // Load source image
   useEffect(() => {
@@ -314,7 +328,7 @@ export default function SignatureStudioModal({
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div className="sig-modal-backdrop" onClick={onClose}>
       <div className="sig-studio-dialog" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -650,4 +664,8 @@ export default function SignatureStudioModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
