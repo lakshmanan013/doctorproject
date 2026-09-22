@@ -201,9 +201,9 @@ export default function ImageUploadBox({
               style={
                 height
                   ? {
-                      height: `${height}px`,
-                      objectFit: "contain",
-                    }
+                    height: `${height}px`,
+                    objectFit: "contain",
+                  }
                   : {}
               }
             />
@@ -217,7 +217,7 @@ export default function ImageUploadBox({
                   aria-label="Edit in Studio"
                   onClick={handleOpenExistingInStudio}
                 >
-                  <FiEdit2 size={13} /> Studio
+                  <FiEdit2 size={13} /> Edit
                 </button>
               )}
               <button
