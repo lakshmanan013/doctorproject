@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/sms")
-@CrossOrigin(origins = "*")
 public class SmsController {
 
     private final SmsService smsService;

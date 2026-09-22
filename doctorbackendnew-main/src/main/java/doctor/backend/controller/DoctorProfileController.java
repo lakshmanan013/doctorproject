@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/doctor-profile")
-@CrossOrigin(origins = "http://localhost:5173")
 public class DoctorProfileController {
 
     private final DoctorProfileService service;

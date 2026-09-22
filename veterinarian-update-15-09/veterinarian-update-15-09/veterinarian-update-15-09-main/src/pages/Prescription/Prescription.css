@@ -132,6 +132,45 @@
   line-height: 1.5;
 }
 
+.rx-notes-label-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.rx-notes-label-text {
+  font-weight: 600;
+}
+
+.rx-voice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light, #f0fdfa);
+  color: var(--primary, #0d9488);
+  border: 1px solid var(--primary, #0d9488);
+  border-radius: var(--radius-pill, 20px);
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.rx-voice-chip:hover {
+  background: var(--primary, #0d9488);
+  color: #fff;
+}
+
+.rx-voice-chip.listening {
+  background: #e11d48;
+  color: #fff;
+  border-color: #be123c;
+  animation: rx-mic-pulse 1.4s ease-in-out infinite;
+}
+
 /* ==========================================================
    ADD MEDICINE CHIP
 ========================================================== */

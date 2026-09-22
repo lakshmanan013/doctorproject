@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/follow-ups")
-@CrossOrigin(origins = "*")
 public class FollowUpController {
 
     private final FollowUpService followUpService;

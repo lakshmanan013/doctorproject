@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/owners")
-@CrossOrigin(origins = "http://localhost:5173")
 public class OwnerController {
 
     private final OwnerService ownerService;

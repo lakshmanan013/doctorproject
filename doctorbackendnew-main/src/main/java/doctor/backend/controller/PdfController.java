@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/pdfs")
-@CrossOrigin(origins = "*")
 public class PdfController {
 
     private final PdfService pdfService;

@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/medical-records")
-@CrossOrigin(origins = "*")
 public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
