@@ -118,25 +118,51 @@ export default function ImageUploadBox({
   };
 
   const handleOpenExistingInStudio = (e) => {
+    e.preventDefault();
     e.stopPropagation();
     if (!value) return;
     setPendingSignatureSource(value);
     setStudioOpen(true);
   };
 
+  const handleReplaceClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!processing && fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
   const handleRemove = (e) => {
+    e.preventDefault();
     e.stopPropagation();
     onChange?.("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleZoneClick = (e) => {
+    if (processing) return;
+    // Only launch upload dialog if no image is currently present
+    if (!value && fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
   };
 
   return (
-    <div className={`img-upload-field shape-${shape} ${isSig ? "is-signature-field" : ""}`}>
+    <div
+      className={`img-upload-field shape-${shape} ${isSig ? "is-signature-field" : ""}`}
+      onClick={(e) => e.stopPropagation()}
+    >
       {(label || badgeText) && (
-        <div className="img-upload-header">
+        <div className="img-upload-header" onClick={(e) => e.stopPropagation()}>
           {label && (
-            <label className="img-upload-label">
+            <span className="img-upload-label">
               {label} {required && <span className="req-asterisk">*</span>}
-            </label>
+            </span>
           )}
           {badgeText && <span className="img-upload-badge">{badgeText}</span>}
         </div>
@@ -145,7 +171,7 @@ export default function ImageUploadBox({
       <div
         className={`img-upload-zone ${value ? "has-image" : ""} ${isSig ? "signature-zone" : ""}`}
         style={height ? { minHeight: `${height}px`, height: `${height}px` } : {}}
-        onClick={() => !processing && fileInputRef.current?.click()}
+        onClick={handleZoneClick}
       >
         <input
           ref={fileInputRef}
@@ -153,6 +179,7 @@ export default function ImageUploadBox({
           accept="image/*"
           style={{ display: "none" }}
           onChange={handleFileChange}
+          onClick={(e) => e.stopPropagation()}
         />
 
         {processing ? (
@@ -181,29 +208,32 @@ export default function ImageUploadBox({
               }
             />
 
-            <div className="img-preview-overlay">
+            <div className="img-preview-overlay" onClick={(e) => e.stopPropagation()}>
               {isSig && (
                 <button
                   type="button"
                   className="img-action-btn edit-sig-btn"
                   title="Edit & Recrop in Studio"
+                  aria-label="Edit in Studio"
                   onClick={handleOpenExistingInStudio}
                 >
-                  <FiEdit2 size={12} /> Studio
+                  <FiEdit2 size={13} /> Studio
                 </button>
               )}
               <button
                 type="button"
                 className="img-action-btn replace-btn"
-                title="Upload New"
-                onClick={() => fileInputRef.current?.click()}
+                title={isSig ? "Upload New Signature" : "Upload New Image"}
+                aria-label={isSig ? "Upload New Signature" : "Upload New Image"}
+                onClick={handleReplaceClick}
               >
                 <FiUploadCloud size={13} /> {isSig ? "New" : "Change"}
               </button>
               <button
                 type="button"
                 className="img-action-btn remove-btn"
-                title="Remove"
+                title={isSig ? "Remove Signature" : "Remove Image"}
+                aria-label={isSig ? "Remove Signature" : "Remove Image"}
                 onClick={handleRemove}
               >
                 <FiTrash2 size={13} />

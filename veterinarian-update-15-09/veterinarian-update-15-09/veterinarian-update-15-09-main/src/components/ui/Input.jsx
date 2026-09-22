@@ -4,7 +4,7 @@ import clsx from "clsx";
 
 export function Field({ label, required = false, className = "", children }) {
   return (
-    <label className={clsx("field", className)}>
+    <div className={clsx("field", className)}>
       {label && (
         <span className="field-label">
           {label}
@@ -12,7 +12,7 @@ export function Field({ label, required = false, className = "", children }) {
         </span>
       )}
       {children}
-    </label>
+    </div>
   );
 }
 

@@ -889,23 +889,24 @@ export default function DoctorProfile() {
           </div>
 
           {/* DIGITAL SIGNATURE: IMAGE UPLOAD INSTEAD OF TEXT */}
-          <div style={{ marginTop: 16 }}>
-            <Field label="Digital signature (Upload signature image)">
-              <div style={{ maxWidth: 360, marginTop: 4 }}>
-                <ImageUploadBox
-                  value={form.digitalSignatureImage}
-                  onChange={(val) => {
-                    autoSaveField("digitalSignatureImage", val);
-                    toast.success("Digital signature saved");
-                  }}
-                  placeholderIcon={<FiEdit3 size={18} />}
-                  helperText="Sign on white paper & upload photo"
-                  shape="signature"
-                  isSignature={true}
-                  height={84}
-                />
-              </div>
-            </Field>
+          <div style={{ marginTop: 16, maxWidth: 360 }}>
+            <ImageUploadBox
+              label="Digital signature (Upload signature image)"
+              value={form.digitalSignatureImage}
+              onChange={(val) => {
+                autoSaveField("digitalSignatureImage", val);
+                if (val) {
+                  toast.success("Digital signature saved");
+                } else {
+                  toast.success("Digital signature removed");
+                }
+              }}
+              placeholderIcon={<FiEdit3 size={18} />}
+              helperText="Sign on white paper & upload photo"
+              shape="signature"
+              isSignature={true}
+              height={84}
+            />
           </div>
         </div>
 

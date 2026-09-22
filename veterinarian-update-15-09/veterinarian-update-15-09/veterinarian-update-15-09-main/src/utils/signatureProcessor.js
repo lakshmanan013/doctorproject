@@ -92,16 +92,32 @@ export function createTransformedCanvas(img, rotation = 0, flipH = false, flipV 
  */
 export function calculatePaperThreshold(data, totalPixels, thresholdOffset = 0) {
   const hist = new Uint32Array(256);
+  let opaqueCount = 0;
+  let transparentCount = 0;
+
   for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a < 35) {
+      transparentCount++;
+      continue;
+    }
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
     hist[lum]++;
+    opaqueCount++;
+  }
+
+  // Check if image is already a transparent digital signature
+  const isAlreadyTransparent = transparentCount > totalPixels * 0.05;
+
+  if (isAlreadyTransparent || opaqueCount === 0) {
+    return { paperLum: 255, paperThreshold: 255, isAlreadyTransparent: true };
   }
 
   let count = 0;
-  const target85th = Math.floor(totalPixels * 0.85);
+  const target85th = Math.floor(opaqueCount * 0.85);
   let paperLum = 220;
   for (let l = 0; l < 256; l++) {
     count += hist[l];
@@ -115,7 +131,7 @@ export function calculatePaperThreshold(data, totalPixels, thresholdOffset = 0) 
   const baseThreshold = Math.round(paperLum * 0.88);
   const paperThreshold = Math.max(110, Math.min(250, baseThreshold + thresholdOffset));
 
-  return { paperLum, paperThreshold };
+  return { paperLum, paperThreshold, isAlreadyTransparent: false };
 }
 
 /**
@@ -132,7 +148,7 @@ export function detectSignatureBounds(canvas, thresholdOffset = 0) {
   const data = imgData.data;
   const totalPixels = width * height;
 
-  const { paperThreshold } = calculatePaperThreshold(data, totalPixels, thresholdOffset);
+  const { paperThreshold, isAlreadyTransparent } = calculatePaperThreshold(data, totalPixels, thresholdOffset);
 
   let minX = width;
   let minY = height;
@@ -144,22 +160,35 @@ export function detectSignatureBounds(canvas, thresholdOffset = 0) {
   for (let y = 0; y < height; y += 2) {
     for (let x = 0; x < width; x += 2) {
       const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const a = data[idx + 3];
 
-      if (lum < paperThreshold - 8) {
-        inkCount++;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+      if (isAlreadyTransparent) {
+        if (a > 30) {
+          inkCount++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      } else {
+        if (a < 35) continue;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        if (lum < paperThreshold - 8) {
+          inkCount++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
       }
     }
   }
 
-  const detected = inkCount > 15 && maxX > minX && maxY > minY;
+  const detected = inkCount > 10 && maxX > minX && maxY > minY;
 
   if (!detected) {
     // Default to a central 80% box if no clear strokes detected
@@ -168,8 +197,8 @@ export function detectSignatureBounds(canvas, thresholdOffset = 0) {
     return {
       x: marginX,
       y: marginY,
-      width: width - marginX * 2,
-      height: height - marginY * 2,
+      width: Math.max(10, width - marginX * 2),
+      height: Math.max(10, height - marginY * 2),
       inkCount: 0,
       detected: false,
     };
@@ -253,7 +282,7 @@ export async function processSignature({
   const data = imgData.data;
   const totalPixels = cw * ch;
 
-  const { paperThreshold } = calculatePaperThreshold(data, totalPixels, thresholdOffset);
+  const { paperThreshold, isAlreadyTransparent } = calculatePaperThreshold(data, totalPixels, thresholdOffset);
 
   // Target ink RGB presets
   const inkColors = {
@@ -265,6 +294,35 @@ export async function processSignature({
   const selectedInk = inkColors[inkColor] || inkColors.blue;
 
   for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+
+    if (isAlreadyTransparent) {
+      if (a < 18) {
+        data[i + 3] = 0;
+        continue;
+      }
+
+      let alpha = a;
+      if (strokeBoost > 0) {
+        alpha = Math.min(255, Math.round(alpha * (1 + strokeBoost * 0.25)));
+      }
+      data[i + 3] = alpha;
+
+      if (enhanceInk) {
+        if (inkColor !== "original") {
+          data[i] = selectedInk.r;
+          data[i + 1] = selectedInk.g;
+          data[i + 2] = selectedInk.b;
+        }
+      }
+      continue;
+    }
+
+    if (a < 30) {
+      data[i + 3] = 0;
+      continue;
+    }
+
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
