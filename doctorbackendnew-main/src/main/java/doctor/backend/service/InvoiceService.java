@@ -7,6 +7,7 @@ import doctor.backend.repository.InvoiceRepository;
 import doctor.backend.security.CurrentUserProvider;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -31,6 +32,7 @@ public class InvoiceService {
     // CREATE INVOICE
     // =====================================================
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public InvoiceResponse createInvoice(InvoiceRequest request) {
 
         Long doctorId = currentUserProvider.getCurrentDoctorId();

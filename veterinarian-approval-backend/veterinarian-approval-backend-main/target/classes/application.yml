@@ -48,9 +48,9 @@ spring:
     activate:
       on-profile: mysql
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:vetcare}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:doctortest}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
     username: ${DB_USER:root}
-    password: ${DB_PASSWORD:NewPassword@123}
+    password: ${DB_PASSWORD:Vasanth@zenve}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 app:

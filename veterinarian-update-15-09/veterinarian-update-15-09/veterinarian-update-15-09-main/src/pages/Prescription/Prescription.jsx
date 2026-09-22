@@ -44,7 +44,6 @@ export default function Prescription() {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
   const shouldListenRef = useRef(false);
-  const autoSaveTimerRef = useRef(null);
   const speechBaseNotesRef = useRef("");
   const { doctor } = useDoctorProfile();
 
@@ -127,21 +126,11 @@ export default function Prescription() {
     }
   }, [patientId, notesWithPetFood, medicines, visitDate, diagnosis, instructions, doctor, consultationFee, followupFee, savedRx, complaint, patient, vitals, vaccineName, vaccineDueDate]);
 
-  const latestPatientIdRef = useRef(patientId);
   const latestNotesRef = useRef(notes);
-  const latestSavePrescriptionRef = useRef(savePrescriptionToDb);
-
-  useEffect(() => {
-    latestPatientIdRef.current = patientId;
-  }, [patientId]);
 
   useEffect(() => {
     latestNotesRef.current = notes;
   }, [notes]);
-
-  useEffect(() => {
-    latestSavePrescriptionRef.current = savePrescriptionToDb;
-  }, [savePrescriptionToDb]);
 
   // Voice capture toggle
   const toggleVoiceCapture = () => {
@@ -157,9 +146,6 @@ export default function Prescription() {
       try {
         recognitionRef.current?.stop();
       } catch { }
-      if (latestPatientIdRef.current) {
-        latestSavePrescriptionRef.current?.(latestNotesRef.current, false);
-      }
       toast("Voice dictation stopped", { icon: "⏹️" });
       return;
     }
@@ -236,13 +222,6 @@ export default function Prescription() {
 
       console.log("[SpeechRecognition] Spoken:", spokenText, "Combined:", combined);
       setNotes(combined);
-
-      if (finalText.trim() && latestPatientIdRef.current) {
-        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => {
-          latestSavePrescriptionRef.current?.(combined, true);
-        }, 1500);
-      }
     };
 
     recognitionRef.current = recognition;
@@ -256,7 +235,6 @@ export default function Prescription() {
   useEffect(() => {
     return () => {
       shouldListenRef.current = false;
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       recognitionRef.current?.stop();
     };
   }, []);
@@ -501,15 +479,16 @@ export default function Prescription() {
             type="button"
             onClick={toggleVoiceCapture}
             className={`rx-mic-btn${listening ? " rx-mic-btn-active" : ""}`}
+            title={listening ? "Click to stop listening" : "Click to dictate notes"}
           >
             {listening ? <FiMicOff size={16} /> : <FiMic size={16} />}
           </button>
           <div>
-            <p className="rx-mic-title">Voice → Prescription</p>
+            <p className="rx-mic-title">Voice Dictation → Notes</p>
             <p className="rx-mic-desc">
               {listening
-                ? "Listening... tap the mic again to stop. Speech is transcribed into Notes."
-                : "Tap the mic and dictate — it's transcribed straight into the Notes field below."}
+                ? "Listening... tap the mic again to stop. Speech is transcribed directly into Notes."
+                : "Tap the mic and dictate — speech is transcribed directly into the Notes field below."}
             </p>
           </div>
         </div>
@@ -590,15 +569,7 @@ export default function Prescription() {
             rows={3}
             placeholder="Type notes or click 'Voice dictation' above to speak..."
             value={notes}
-            onChange={e => {
-              setNotes(e.target.value);
-              if (patientId) {
-                if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                autoSaveTimerRef.current = setTimeout(() => {
-                  savePrescriptionToDb(e.target.value, true);
-                }, 2000);
-              }
-            }}
+            onChange={e => setNotes(e.target.value)}
           />
         </Field>
 

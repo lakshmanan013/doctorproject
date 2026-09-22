@@ -12,6 +12,7 @@ import doctor.backend.repository.PatientRepository;
 import doctor.backend.security.CurrentUserProvider;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -45,6 +46,7 @@ public class FollowUpService {
     // CREATE FOLLOW-UP
     // =====================================================
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public FollowUpResponse createFollowUp(
             FollowUpRequest request) {
 
