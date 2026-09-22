@@ -1,13 +1,21 @@
 import React, { useRef, useState } from "react";
-import { FiUploadCloud, FiTrash2, FiCheck, FiCheckCircle, FiLoader } from "react-icons/fi";
+import {
+  FiUploadCloud,
+  FiTrash2,
+  FiCheckCircle,
+  FiLoader,
+  FiEdit2,
+  FiFeather,
+} from "react-icons/fi";
 import toast from "react-hot-toast";
-import { convertPaperSignatureToDigital } from "../../utils/signatureProcessor";
+import SignatureStudioModal from "./SignatureStudioModal";
 import "./ImageUploadBox.css";
 
 /**
  * ImageUploadBox
- * Handles image file selection, background removal (for signatures on paper),
- * compression to Base64 data URL, preview, and removal.
+ * Handles image file selection, interactive signature digitization studio
+ * (auto-detect, crop, rotate, shadow removal), standard image compression,
+ * preview, and removal.
  */
 export default function ImageUploadBox({
   label = "",
@@ -24,6 +32,12 @@ export default function ImageUploadBox({
   const fileInputRef = useRef(null);
   const [processing, setProcessing] = useState(false);
 
+  // Signature studio modal state
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [pendingSignatureSource, setPendingSignatureSource] = useState(null);
+
+  const isSig = isSignature || shape === "signature";
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -33,56 +47,60 @@ export default function ImageUploadBox({
       return;
     }
 
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Image file size must be less than 8MB");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image file size must be less than 10MB");
       return;
     }
 
+    if (isSig) {
+      // For signatures, read data URL and launch Interactive Studio Modal
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPendingSignatureSource(event.target.result);
+        setStudioOpen(true);
+      };
+      reader.onerror = () => {
+        toast.error("Could not read image file");
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+      return;
+    }
+
+    // Standard non-signature image compression via Canvas
     setProcessing(true);
-
     try {
-      if (isSignature || shape === "signature") {
-        // Convert paper handwritten signature to transparent digital signature
-        const digitalSigUrl = await convertPaperSignatureToDigital(file, {
-          enhanceInk: true,
-          inkColor: "original",
-        });
-        onChange?.(digitalSigUrl);
-        toast.success("Signature digitized & background removed!");
-      } else {
-        // Standard image compression via Canvas
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement("canvas");
-            let width = img.width;
-            let height = img.height;
-            const maxDimension = 1200;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 1200;
 
-            if (width > maxDimension || height > maxDimension) {
-              if (width > height) {
-                height = Math.round((height * maxDimension) / width);
-                width = maxDimension;
-              } else {
-                width = Math.round((width * maxDimension) / height);
-                height = maxDimension;
-              }
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
             }
+          }
 
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
 
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-            onChange?.(dataUrl);
-            toast.success(`${label || "Image"} uploaded successfully`);
-          };
-          img.src = event.target.result;
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          onChange?.(dataUrl);
+          toast.success(`${label || "Image"} uploaded successfully`);
         };
-        reader.readAsDataURL(file);
-      }
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
       console.error("Image processing error:", err);
       toast.error("Failed to process image. Please try again.");
@@ -92,12 +110,23 @@ export default function ImageUploadBox({
     }
   };
 
+  const handleApplySignature = (digitizedDataUrl) => {
+    onChange?.(digitizedDataUrl);
+    setPendingSignatureSource(null);
+    toast.success("Digital signature applied successfully!");
+  };
+
+  const handleOpenExistingInStudio = (e) => {
+    e.stopPropagation();
+    if (!value) return;
+    setPendingSignatureSource(value);
+    setStudioOpen(true);
+  };
+
   const handleRemove = (e) => {
     e.stopPropagation();
     onChange?.("");
   };
-
-  const isSig = isSignature || shape === "signature";
 
   return (
     <div className={`img-upload-field shape-${shape} ${isSig ? "is-signature-field" : ""}`}>
@@ -128,7 +157,7 @@ export default function ImageUploadBox({
         {processing ? (
           <div className="img-processing-state">
             <FiLoader className="spin-icon" size={20} />
-            <span>{isSig ? "Digitizing signature..." : "Processing image..."}</span>
+            <span>Processing image...</span>
           </div>
         ) : value ? (
           <div
@@ -152,13 +181,23 @@ export default function ImageUploadBox({
             />
 
             <div className="img-preview-overlay">
+              {isSig && (
+                <button
+                  type="button"
+                  className="img-action-btn edit-sig-btn"
+                  title="Edit & Recrop in Studio"
+                  onClick={handleOpenExistingInStudio}
+                >
+                  <FiEdit2 size={12} /> Studio
+                </button>
+              )}
               <button
                 type="button"
                 className="img-action-btn replace-btn"
                 title="Upload New"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FiUploadCloud size={13} /> Change
+                <FiUploadCloud size={13} /> {isSig ? "New" : "Change"}
               </button>
               <button
                 type="button"
@@ -177,20 +216,33 @@ export default function ImageUploadBox({
         ) : (
           <div className="img-placeholder-content">
             <div className="img-icon-circle">
-              {placeholderIcon || <FiUploadCloud size={18} />}
+              {placeholderIcon || (isSig ? <FiFeather size={18} /> : <FiUploadCloud size={18} />)}
             </div>
             <div className="img-prompt-text">
               <span className="upload-cta">
                 {isSig ? "Upload paper signature" : "Click to upload"}
               </span>{" "}
-              {isSig ? "photo (auto-digitized)" : "or drag & drop"}
+              {isSig ? "photo (auto-crop & rotate)" : "or drag & drop"}
             </div>
             <span className="img-helper-sub">
-              {isSig ? "Sign on plain white paper & upload photo" : helperText}
+              {isSig ? "Sign on white paper & upload photo" : helperText}
             </span>
           </div>
         )}
       </div>
+
+      {/* Interactive Signature Studio Modal */}
+      {isSig && (
+        <SignatureStudioModal
+          isOpen={studioOpen}
+          imageSource={pendingSignatureSource}
+          onClose={() => {
+            setStudioOpen(false);
+            setPendingSignatureSource(null);
+          }}
+          onApply={handleApplySignature}
+        />
+      )}
     </div>
   );
 }
