@@ -44,8 +44,8 @@ export default function Prescription() {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
   const shouldListenRef = useRef(false);
-  const autoSaveTimerRef = useRef(null);
   const speechBaseNotesRef = useRef("");
+  const latestNotesRef = useRef(notes);
   const { doctor } = useDoctorProfile();
 
   const patient = patients.find(p => String(p.id) === String(patientId));
@@ -127,21 +127,9 @@ export default function Prescription() {
     }
   }, [patientId, notesWithPetFood, medicines, visitDate, diagnosis, instructions, doctor, consultationFee, followupFee, savedRx, complaint, patient, vitals, vaccineName, vaccineDueDate]);
 
-  const latestPatientIdRef = useRef(patientId);
-  const latestNotesRef = useRef(notes);
-  const latestSavePrescriptionRef = useRef(savePrescriptionToDb);
-
-  useEffect(() => {
-    latestPatientIdRef.current = patientId;
-  }, [patientId]);
-
   useEffect(() => {
     latestNotesRef.current = notes;
   }, [notes]);
-
-  useEffect(() => {
-    latestSavePrescriptionRef.current = savePrescriptionToDb;
-  }, [savePrescriptionToDb]);
 
   // Voice capture toggle
   const toggleVoiceCapture = () => {
@@ -157,9 +145,6 @@ export default function Prescription() {
       try {
         recognitionRef.current?.stop();
       } catch { }
-      if (latestPatientIdRef.current) {
-        latestSavePrescriptionRef.current?.(latestNotesRef.current, false);
-      }
       toast("Voice dictation stopped", { icon: "⏹️" });
       return;
     }
@@ -234,15 +219,7 @@ export default function Prescription() {
       const base = speechBaseNotesRef.current ? speechBaseNotesRef.current.trim() : "";
       const combined = base ? (spokenText ? `${base} ${spokenText}` : base) : spokenText;
 
-      console.log("[SpeechRecognition] Spoken:", spokenText, "Combined:", combined);
       setNotes(combined);
-
-      if (finalText.trim() && latestPatientIdRef.current) {
-        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => {
-          latestSavePrescriptionRef.current?.(combined, true);
-        }, 1500);
-      }
     };
 
     recognitionRef.current = recognition;
@@ -256,7 +233,6 @@ export default function Prescription() {
   useEffect(() => {
     return () => {
       shouldListenRef.current = false;
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       recognitionRef.current?.stop();
     };
   }, []);
@@ -590,15 +566,7 @@ export default function Prescription() {
             rows={3}
             placeholder="Type notes or click 'Voice dictation' above to speak..."
             value={notes}
-            onChange={e => {
-              setNotes(e.target.value);
-              if (patientId) {
-                if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                autoSaveTimerRef.current = setTimeout(() => {
-                  savePrescriptionToDb(e.target.value, true);
-                }, 2000);
-              }
-            }}
+            onChange={e => setNotes(e.target.value)}
           />
         </Field>
 
