@@ -81,9 +81,8 @@ export default function Vaccination() {
 
       const status = String(vaccination.status || "").toUpperCase();
 
-      // If marked PENDING or OVERDUE, or due date is in the past, it goes to Overdue
+      // If marked OVERDUE or due date is in the past, it goes to Overdue
       if (
-        status === "PENDING" ||
         status === "OVERDUE" ||
         (vaccination.nextDueDate && vaccination.nextDueDate < today)
       ) {
@@ -145,7 +144,13 @@ export default function Vaccination() {
           ? "Vaccination marked completed"
           : "Vaccination marked pending"
       );
-      changeTab(nextStatus === "COMPLETED" ? "completed" : "overdue");
+      if (nextStatus === "COMPLETED") {
+        changeTab("completed");
+      } else {
+        const isPast = vaccination.nextDueDate && vaccination.nextDueDate < today;
+        const isThisWeek = vaccination.nextDueDate && vaccination.nextDueDate <= plusDays(7);
+        changeTab(isPast ? "overdue" : isThisWeek ? "week" : "dueNow");
+      }
     } catch (error) {
       setVaccinations(previous);
       toast.error(
@@ -222,10 +227,12 @@ export default function Vaccination() {
             const isOverdue =
               !completed &&
               (tab === "overdue" ||
-                status === "PENDING" ||
                 status === "OVERDUE" ||
-                (vaccination.nextDueDate && vaccination.nextDueDate < today));
-            const dueThisWeek = !completed && !isOverdue && tab === "week";
+                Boolean(vaccination.nextDueDate && vaccination.nextDueDate < today));
+            const dueThisWeek =
+              !completed &&
+              !isOverdue &&
+              (tab === "week" || Boolean(vaccination.nextDueDate && vaccination.nextDueDate <= plusDays(7)));
             const isUpdating = updatingId === vaccination.id;
 
             return (

@@ -36,6 +36,8 @@ public class Doctor {
 
     private String qualification;
 
+    private String area;
+
     private String city;
 
     private String pincode;

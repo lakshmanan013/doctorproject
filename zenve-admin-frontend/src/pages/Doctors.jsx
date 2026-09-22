@@ -91,6 +91,7 @@ export default function Doctors() {
               if (liveProfile) {
                 return {
                   ...doc,
+                  area: liveProfile.area || doc.area,
                   city: liveProfile.city || doc.city,
                   pincode: liveProfile.pincode || doc.pincode,
                   clinicName: liveProfile.clinicHospital || doc.clinicName,
@@ -227,6 +228,7 @@ export default function Doctors() {
       (d.clinicName || '').toLowerCase().includes(q) ||
       (d.phone || '').toLowerCase().includes(q) ||
       (d.qualification || '').toLowerCase().includes(q) ||
+      (d.area || '').toLowerCase().includes(q) ||
       (d.city || '').toLowerCase().includes(q) ||
       (d.pincode ? String(d.pincode) : '').toLowerCase().includes(q) ||
       (d.status || '').toLowerCase().includes(q)
@@ -315,10 +317,10 @@ export default function Doctors() {
                     <Building2 className="h-3.5 w-3.5" /> {d.clinicName}
                   </span>
                 )}
-                {(d.city || d.pincode) && (
+                {(d.area || d.city || d.pincode) && (
                   <span className="inline-flex items-center gap-1.5 text-indigo-600 font-medium bg-indigo-50/70 px-2 py-0.5 rounded-md border border-indigo-100">
                     <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                    {[d.city, d.pincode].filter(Boolean).join(' - ')}
+                    {[d.area, [d.city, d.pincode].filter(Boolean).join(' - ')].filter(Boolean).join(', ')}
                   </span>
                 )}
               </div>
@@ -551,6 +553,7 @@ function DoctorProfileModal({ doctor, busyId, busyVerifyKey, onClose, onApprove,
             Object.assign(merged, freshAdmin)
           }
           if (liveProfile) {
+            if (liveProfile.area) merged.area = liveProfile.area
             if (liveProfile.city) merged.city = liveProfile.city
             if (liveProfile.pincode) merged.pincode = liveProfile.pincode
             if (liveProfile.clinicHospital) merged.clinicName = liveProfile.clinicHospital
@@ -612,10 +615,10 @@ function DoctorProfileModal({ doctor, busyId, busyVerifyKey, onClose, onApprove,
                 <span className="text-ink">{d.clinicName}</span>
               </div>
             )}
-            {(d.city || d.pincode) && (
+            {(d.area || d.city || d.pincode) && (
               <div className="flex items-center gap-2.5">
                 <MapPin className="h-4 w-4 text-ink-faint shrink-0" />
-                <span className="text-ink">{[d.city, d.pincode].filter(Boolean).join(' - ')}</span>
+                <span className="text-ink">{[d.area, [d.city, d.pincode].filter(Boolean).join(' - ')].filter(Boolean).join(', ')}</span>
               </div>
             )}
             {d.createdAt && (

@@ -36,6 +36,7 @@ const EMPTY = {
   speciality: "",
   council: "",
   clinic: "",
+  area: "",
   city: "",
   pincode: "",
   experience: "",
@@ -111,6 +112,7 @@ export default function DoctorProfile() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
+          let detectedArea = "";
           let detectedCity = "";
           let detectedPincode = "";
 
@@ -127,8 +129,23 @@ export default function DoctorProfile() {
             if (res.ok) {
               const data = await res.json();
               const addr = data?.address || {};
+
+              // Extract Area name (suburb, neighbourhood, residential, subdistrict, etc.)
+              detectedArea = (
+                addr.suburb ||
+                addr.neighbourhood ||
+                addr.residential ||
+                addr.subdistrict ||
+                addr.quarter ||
+                addr.city_district ||
+                addr.locality ||
+                addr.village ||
+                addr.hamlet ||
+                ""
+              ).trim();
+
               detectedCity = cleanCityName(
-                addr.city || addr.town || addr.village || addr.suburb || addr.state_district || addr.county || ""
+                addr.city || addr.town || addr.municipality || addr.state_district || addr.district || addr.county || ""
               );
               detectedPincode = (addr.postcode || "").trim();
             }
@@ -137,7 +154,7 @@ export default function DoctorProfile() {
           }
 
           // 2. Fallback to BigDataCloud reverse geocode client
-          if (!detectedCity || !detectedPincode) {
+          if (!detectedCity || !detectedPincode || !detectedArea) {
             try {
               const bdcRes = await fetch(
                 `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
@@ -145,7 +162,13 @@ export default function DoctorProfile() {
               if (bdcRes.ok) {
                 const bdcData = await bdcRes.json();
                 if (!detectedCity) {
-                  detectedCity = cleanCityName(bdcData?.city || bdcData?.locality || bdcData?.principalSubdivision || "");
+                  detectedCity = cleanCityName(bdcData?.city || bdcData?.principalSubdivision || "");
+                }
+                if (!detectedArea) {
+                  const bdcLocality = (bdcData?.locality || "").trim();
+                  if (bdcLocality && bdcLocality.toLowerCase() !== detectedCity.toLowerCase()) {
+                    detectedArea = bdcLocality;
+                  }
                 }
                 if (!detectedPincode) {
                   detectedPincode = (bdcData?.postcode || "").trim();
@@ -156,19 +179,54 @@ export default function DoctorProfile() {
             }
           }
 
-          if (!detectedCity && !detectedPincode) {
-            toast.error("Could not determine city or pincode from coordinates", { id: toastId });
+          // 3. Fallback: if pincode is available and area or city is still empty, look up Indian Postal Pincode API
+          if (detectedPincode && (!detectedArea || !detectedCity)) {
+            try {
+              const pinClean = detectedPincode.replace(/\D/g, "");
+              if (pinClean.length === 6) {
+                const pinRes = await fetch(`https://api.postalpincode.in/pincode/${pinClean}`);
+                if (pinRes.ok) {
+                  const pinData = await pinRes.json();
+                  if (pinData?.[0]?.Status === "Success" && pinData[0].PostOffice?.length > 0) {
+                    const po = pinData[0].PostOffice[0];
+                    if (!detectedArea) {
+                      detectedArea = po.Name || "";
+                    }
+                    if (!detectedCity && po.District) {
+                      detectedCity = cleanCityName(po.District);
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn("Postal pincode lookup fallback failed:", e);
+            }
+          }
+
+          // Clean up if area and city duplicate
+          if (detectedArea && detectedCity && detectedArea.toLowerCase() === detectedCity.toLowerCase()) {
+            detectedArea = "";
+          }
+          if (!detectedCity && detectedArea) {
+            detectedCity = detectedArea;
+            detectedArea = "";
+          }
+
+          if (!detectedCity && !detectedPincode && !detectedArea) {
+            toast.error("Could not determine area, city or pincode from coordinates", { id: toastId });
             setIsFetchingLocation(false);
             return;
           }
 
           // Update form state and auto-save
           setForm((current) => {
+            const newArea = detectedArea || current.area;
             const newCity = detectedCity || current.city;
             const newPincode = detectedPincode || current.pincode;
 
             const updated = {
               ...current,
+              area: newArea,
               city: newCity,
               pincode: newPincode,
             };
@@ -179,6 +237,7 @@ export default function DoctorProfile() {
               speciality: updated.speciality?.trim() || "",
               councilRegistration: updated.council?.trim() || "",
               clinicHospital: updated.clinic?.trim() || "",
+              area: newArea?.trim() || "",
               city: newCity?.trim() || "",
               pincode: newPincode === "" || newPincode == null ? null : Number(newPincode),
               experience: updated.experience === "" || updated.experience == null ? null : Number(updated.experience),
@@ -206,8 +265,9 @@ export default function DoctorProfile() {
           });
 
           setLocationVerified(true);
+          const locationParts = [detectedArea, detectedCity, detectedPincode].filter(Boolean);
           toast.success(
-            `Location verified: ${detectedCity ? detectedCity : ""}${detectedCity && detectedPincode ? ", " : ""}${detectedPincode ? detectedPincode : ""}`,
+            `Location verified: ${locationParts.join(", ")}`,
             { id: toastId }
           );
         } catch (err) {
@@ -259,6 +319,7 @@ export default function DoctorProfile() {
         speciality: updated.speciality?.trim() || "",
         councilRegistration: updated.council?.trim() || "",
         clinicHospital: updated.clinic?.trim() || "",
+        area: updated.area?.trim() || "",
         city: updated.city?.trim() || "",
         pincode: updated.pincode === "" || updated.pincode == null ? null : Number(updated.pincode),
         experience: updated.experience === "" || updated.experience == null ? null : Number(updated.experience),
@@ -388,6 +449,7 @@ export default function DoctorProfile() {
           speciality: data?.speciality ?? "",
           council: data?.councilRegistration ?? "",
           clinic: data?.clinicHospital ?? "",
+          area: data?.area ?? "",
           city: data?.city ?? "",
           pincode: data?.pincode ?? "",
           experience: data?.experience ?? "",
@@ -410,7 +472,7 @@ export default function DoctorProfile() {
           stateCouncilSyncVerified: data?.stateCouncilSyncVerified ?? false,
         });
 
-        if (data?.city || data?.pincode) {
+        if (data?.city || data?.pincode || data?.area) {
           setLocationVerified(true);
         }
       } catch (err) {
@@ -445,6 +507,7 @@ export default function DoctorProfile() {
         speciality: form.speciality.trim(),
         councilRegistration: form.council.trim(),
         clinicHospital: form.clinic.trim(),
+        area: form.area.trim(),
         city: form.city.trim(),
         pincode: form.pincode === "" ? null : Number(form.pincode),
         experience: form.experience === "" ? null : Number(form.experience),
@@ -636,10 +699,22 @@ export default function DoctorProfile() {
                 onChange={(e) => update("experience", e.target.value)}
               />
             </Field>
+          </div>
+
+          <div className="form-grid-3" style={{ marginTop: 16 }}>
+            <Field label="Area / Locality">
+              <Input
+                type="text"
+                placeholder="e.g. Indiranagar, Anna Nagar"
+                value={form.area}
+                onChange={(e) => update("area", e.target.value)}
+              />
+            </Field>
 
             <Field label="City">
               <Input
                 type="text"
+                placeholder="e.g. Chennai, Bangalore"
                 value={form.city}
                 onChange={(e) => update("city", e.target.value)}
               />
@@ -648,6 +723,7 @@ export default function DoctorProfile() {
             <Field label="Pincode">
               <Input
                 type="number"
+                placeholder="e.g. 600017"
                 value={form.pincode}
                 onChange={(e) => update("pincode", e.target.value)}
               />
@@ -945,12 +1021,12 @@ export default function DoctorProfile() {
                 GPS practice location verification
               </p>
             </div>
-            <Badge variant={isFetchingLocation ? "accent" : (locationVerified || (form.city && form.pincode) ? "success" : "warning")}>
+            <Badge variant={isFetchingLocation ? "accent" : (locationVerified || (form.city && form.pincode) || form.area ? "success" : "warning")}>
               {isFetchingLocation ? (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   <FiRefreshCw className="spin-icon" size={11} /> Locating...
                 </span>
-              ) : (locationVerified || (form.city && form.pincode)) ? (
+              ) : (locationVerified || (form.city && form.pincode) || form.area) ? (
                 "Verified"
               ) : (
                 "Pending"
@@ -959,6 +1035,10 @@ export default function DoctorProfile() {
           </div>
 
           <div className="location-details-box">
+            <div className="location-info-row">
+              <span className="location-info-label">Area</span>
+              <span className="location-info-value">{form.area || <span className="text-muted-italic">Not set</span>}</span>
+            </div>
             <div className="location-info-row">
               <span className="location-info-label">City</span>
               <span className="location-info-value">{form.city || <span className="text-muted-italic">Not set</span>}</span>
@@ -976,7 +1056,7 @@ export default function DoctorProfile() {
             onClick={handleFetchLocation}
           >
             <FiNavigation size={13} className={isFetchingLocation ? "spin-icon" : ""} />
-            {isFetchingLocation ? "Detecting GPS location..." : (form.city || form.pincode ? "Re-detect GPS Location" : "Auto-fetch City & Pincode")}
+            {isFetchingLocation ? "Detecting GPS location..." : (form.area || form.city || form.pincode ? "Re-detect GPS Location" : "Auto-fetch Area, City & Pincode")}
           </button>
         </div>
       </div>

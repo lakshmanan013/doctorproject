@@ -39,6 +39,7 @@ export default function Prescription() {
   const [followupFee, setFollowupFee] = useState("");
   const [showFeesOnRx, setShowFeesOnRx] = useState(false);
   const [savedRx, setSavedRx] = useState(null);
+  const savedVaccineRef = useRef(null);
   const previewRef = useRef(null);
 
   const [listening, setListening] = useState(false);
@@ -105,14 +106,16 @@ export default function Prescription() {
         doctorName: doctor?.fullName || "Veterinary Doctor"
       }).catch(() => { });
 
-      if (vaccineName.trim()) {
+      if (vaccineName.trim() && savedVaccineRef.current !== `${patientId}-${vaccineName.trim()}-${vaccineDueDate}`) {
         createVaccination({
           patientId: Number(patientId),
           vaccineName: vaccineName.trim(),
           vaccinationDate: visitDate,
           nextDueDate: vaccineDueDate || null,
           administeredBy: doctor?.fullName || "Veterinary Doctor",
-          status: "Completed"
+          status: "Scheduled"
+        }).then(() => {
+          savedVaccineRef.current = `${patientId}-${vaccineName.trim()}-${vaccineDueDate}`;
         }).catch(() => { });
       }
 
