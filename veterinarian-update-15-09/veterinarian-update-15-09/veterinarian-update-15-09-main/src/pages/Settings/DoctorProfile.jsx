@@ -12,6 +12,7 @@ import {
   FiMapPin,
   FiNavigation,
   FiRefreshCw,
+  FiVideo,
 } from "react-icons/fi";
 
 import Input, {
@@ -46,6 +47,7 @@ const EMPTY = {
   consultationFee: "",
   followupFee: "",
   slotLength: "",
+  videoConsultationEnabled: false,
   profileImage: "",
   clinicInsideImage: "",
   clinicOutsideImage: "",
@@ -247,6 +249,7 @@ export default function DoctorProfile() {
               consultationFee: updated.consultationFee === "" || updated.consultationFee == null ? null : Number(updated.consultationFee),
               followUpFee: updated.followupFee === "" || updated.followupFee == null ? null : Number(updated.followupFee),
               slotLength: updated.slotLength === "" || updated.slotLength == null ? null : Number(updated.slotLength),
+              videoConsultationEnabled: Boolean(updated.videoConsultationEnabled),
               profileImage: updated.profileImage || "",
               clinicInsideImage: updated.clinicInsideImage || "",
               clinicOutsideImage: updated.clinicOutsideImage || "",
@@ -329,6 +332,7 @@ export default function DoctorProfile() {
         consultationFee: updated.consultationFee === "" || updated.consultationFee == null ? null : Number(updated.consultationFee),
         followUpFee: updated.followupFee === "" || updated.followupFee == null ? null : Number(updated.followupFee),
         slotLength: updated.slotLength === "" || updated.slotLength == null ? null : Number(updated.slotLength),
+        videoConsultationEnabled: Boolean(updated.videoConsultationEnabled),
         profileImage: updated.profileImage || "",
         clinicInsideImage: updated.clinicInsideImage || "",
         clinicOutsideImage: updated.clinicOutsideImage || "",
@@ -459,6 +463,7 @@ export default function DoctorProfile() {
           consultationFee: data?.consultationFee ?? "",
           followupFee: data?.followUpFee ?? "",
           slotLength: data?.slotLength ?? "",
+          videoConsultationEnabled: data?.videoConsultationEnabled === true,
           profileImage: data?.profileImage ?? "",
           clinicInsideImage: data?.clinicInsideImage ?? "",
           clinicOutsideImage: data?.clinicOutsideImage ?? "",
@@ -517,6 +522,7 @@ export default function DoctorProfile() {
         consultationFee: form.consultationFee === "" ? null : Number(form.consultationFee),
         followUpFee: form.followupFee === "" ? null : Number(form.followupFee),
         slotLength: form.slotLength === "" ? null : Number(form.slotLength),
+        videoConsultationEnabled: Boolean(form.videoConsultationEnabled),
         profileImage: form.profileImage,
         clinicInsideImage: form.clinicInsideImage,
         clinicOutsideImage: form.clinicOutsideImage,
@@ -541,6 +547,7 @@ export default function DoctorProfile() {
         consultationFee: saved?.consultationFee ?? prev.consultationFee,
         followupFee: saved?.followUpFee ?? prev.followupFee,
         slotLength: saved?.slotLength ?? prev.slotLength,
+        videoConsultationEnabled: saved?.videoConsultationEnabled === true,
         profileImage: saved?.profileImage ?? prev.profileImage,
         clinicInsideImage: saved?.clinicInsideImage ?? prev.clinicInsideImage,
         clinicOutsideImage: saved?.clinicOutsideImage ?? prev.clinicOutsideImage,
@@ -944,6 +951,50 @@ export default function DoctorProfile() {
                 onChange={(e) => update("slotLength", e.target.value)}
               />
             </Field>
+          </div>
+
+          {/* VIDEO CONSULTATION MODE TOGGLE */}
+          <div className={`video-consult-mode-card ${form.videoConsultationEnabled ? "active" : ""}`}>
+            <div className="video-consult-mode-left">
+              <div className={`video-consult-icon-box ${form.videoConsultationEnabled ? "active" : "inactive"}`}>
+                <FiVideo size={20} />
+              </div>
+              <div className="video-consult-mode-info">
+                <div className="video-consult-mode-title-row">
+                  <span className="video-consult-mode-title">Video Consultation Mode</span>
+                  <span className={`video-consult-status-badge ${form.videoConsultationEnabled ? "badge-on" : "badge-off"}`}>
+                    <span className="video-consult-status-dot" />
+                    {form.videoConsultationEnabled ? "MODE ON" : "MODE OFF"}
+                  </span>
+                </div>
+                <p className="video-consult-mode-desc">
+                  {form.videoConsultationEnabled
+                    ? "Pet parents can book and join online video appointments with you."
+                    : "Video consultation is currently disabled. Pet parents can only book in-clinic visits."}
+                </p>
+              </div>
+            </div>
+
+            <div className="video-consult-mode-right">
+              <button
+                type="button"
+                className={`video-consult-toggle-btn ${form.videoConsultationEnabled ? "btn-on" : "btn-off"}`}
+                onClick={() => {
+                  const nextVal = !form.videoConsultationEnabled;
+                  update("videoConsultationEnabled", nextVal);
+                  autoSaveField("videoConsultationEnabled", nextVal);
+                  toast.success(`Video consultation mode turned ${nextVal ? "ON" : "OFF"}`);
+                }}
+                aria-label="Toggle Video Consultation Mode"
+              >
+                <span className="video-consult-toggle-slider">
+                  <span className="video-consult-toggle-knob" />
+                </span>
+                <span className="video-consult-toggle-label">
+                  {form.videoConsultationEnabled ? "ON" : "OFF"}
+                </span>
+              </button>
+            </div>
           </div>
 
           <div

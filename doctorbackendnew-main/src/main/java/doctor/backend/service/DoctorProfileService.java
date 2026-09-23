@@ -97,6 +97,11 @@ public class DoctorProfileService {
         existing.setSlotLength(
                 profile.getSlotLength());
 
+        if (profile.getVideoConsultationEnabled() != null) {
+            existing.setVideoConsultationEnabled(
+                    profile.getVideoConsultationEnabled());
+        }
+
         existing.setArea(
                 profile.getArea());
 

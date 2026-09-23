@@ -19,6 +19,12 @@
    FORM GRIDS
 ========================================================== */
 
+.rx-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
 .rx-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -33,9 +39,10 @@
 
 @media (max-width: 700px) {
 
+  .rx-grid-2,
   .rx-grid-3,
   .rx-grid-4 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 }
 

@@ -176,7 +176,7 @@ export default function Login() {
             transition={{ duration: 0.45 }}
             className="flex items-center gap-3.5"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-b from-[#141A46] to-[#0E1235] shadow-md ring-1 ring-white/10 p-2 overflow-hidden">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-slate-200 p-2 overflow-hidden">
               <img
                 src="/assets/zenve-emblem.png"
                 alt="Zenve Logo"

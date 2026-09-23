@@ -33,6 +33,11 @@ export default function AppointmentCard({ appointment }) {
                 <UserIcon width={16} height={16} />
                 {appointment.reason}
               </div>
+              {appointment.doctorName && (
+                <div className="flex-row text-muted" style={{ gap: 6, fontSize: "0.85rem" }}>
+                  <span>👨‍⚕️ Dr. {appointment.doctorName.replace(/^Dr\.?\s*/i, "")}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -266,6 +266,11 @@ public class AppointmentService {
 
         if (request.getDoctorName() != null && !request.getDoctorName().isBlank()) {
             appointment.setDoctorName(request.getDoctorName());
+        } else if (appointment.getDoctorName() == null || appointment.getDoctorName().isBlank()) {
+            User doctor = currentUserProvider.getCurrentDoctor();
+            if (doctor != null && doctor.getFullName() != null) {
+                appointment.setDoctorName(doctor.getFullName());
+            }
         }
 
         Appointment updatedAppointment =

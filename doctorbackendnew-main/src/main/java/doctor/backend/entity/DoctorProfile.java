@@ -49,6 +49,9 @@ public class DoctorProfile {
 
     private Integer slotLength;
 
+    @Column(columnDefinition = "boolean default false")
+    private Boolean videoConsultationEnabled = false;
+
     // =========================
     // Image & Upload fields
     // =========================
@@ -253,6 +256,14 @@ public class DoctorProfile {
 
     public void setDigitalSignatureImage(String digitalSignatureImage) {
         this.digitalSignatureImage = digitalSignatureImage;
+    }
+
+    public Boolean getVideoConsultationEnabled() {
+        return videoConsultationEnabled;
+    }
+
+    public void setVideoConsultationEnabled(Boolean videoConsultationEnabled) {
+        this.videoConsultationEnabled = videoConsultationEnabled;
     }
 
     public boolean isVeterinaryRegistrationVerified() {

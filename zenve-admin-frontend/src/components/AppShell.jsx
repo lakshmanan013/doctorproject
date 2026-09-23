@@ -36,7 +36,7 @@ function MobileNav({ open, onClose }) {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 p-1 ring-1 ring-white/10 shadow-sm shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white p-1 ring-1 ring-white/20 shadow-sm shrink-0">
                     <img
                       src="/assets/zenve-emblem.png"
                       alt="Zenve Logo"

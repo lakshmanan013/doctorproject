@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FiMic, FiMicOff, FiTrash2, FiDownload, FiSend, FiMail, FiMessageSquare, FiPlusCircle } from "react-icons/fi";
 import { FaWhatsapp, FaPaw } from "react-icons/fa";
@@ -8,7 +9,7 @@ import Input, { Field, Select, Textarea } from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { getPatients } from "../../services/patientService";
 import { getMedicines } from "../../services/medicineService";
-import { createPrescription, updatePrescription } from "../../services/prescriptionService";
+import { getPrescriptions, getPrescriptionById, getPrescriptionsByPatient, createPrescription, updatePrescription } from "../../services/prescriptionService";
 import { createMedicalRecord } from "../../services/medicalRecordService";
 import { createVaccination } from "../../services/vaccinationService";
 import { sendSms, sendWhatsApp, sendEmail } from "../../services/communicationService";
@@ -19,16 +20,24 @@ import "./Prescription.css";
 
 const emptyMed = () => ({ id: Date.now() + Math.random(), medicineId: "", dosage: "", frequency: "Once daily", duration: "", route: "", quantity: "", instructions: "" });
 
+export const formatPrescriptionId = (id, dateStr) => {
+  const year = dateStr ? (new Date(dateStr).getFullYear() || 2026) : 2026;
+  const num = Number(id) || 1;
+  return `${year}/Z${String(num).padStart(3, "0")}`;
+};
+
 export default function Prescription() {
+  const [searchParams] = useSearchParams();
   const [patients, setPatients] = useState([]);
   const [allMeds, setAllMeds] = useState([]);
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(searchParams.get("patientId") || "");
   const [diagnosis, setDiagnosis] = useState("");
   const [instructions, setInstructions] = useState("");
   const [notes, setNotes] = useState("");
   const [petFood, setPetFood] = useState("");
   const [medicines, setMedicines] = useState([emptyMed()]);
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
+  const [visitType, setVisitType] = useState(searchParams.get("visitType") || searchParams.get("type") || "OPD Consultation");
   const [complaint, setComplaint] = useState("");
   const [vitals, setVitals] = useState({ temp: "", pulse: "", resp: "" });
   const [saving, setSaving] = useState(false);
@@ -39,6 +48,7 @@ export default function Prescription() {
   const [followupFee, setFollowupFee] = useState("");
   const [showFeesOnRx, setShowFeesOnRx] = useState(false);
   const [savedRx, setSavedRx] = useState(null);
+  const [nextRxId, setNextRxId] = useState(null);
   const savedVaccineRef = useRef(null);
   const previewRef = useRef(null);
 
@@ -121,6 +131,9 @@ export default function Prescription() {
       }
 
       setSavedRx(rx);
+      if (rx?.id) {
+        setNextRxId(Number(rx.id) + 1);
+      }
       return rx;
     } catch (e) {
       if (!silent) toast.error(e?.response?.data?.message || "Could not save prescription");
@@ -241,13 +254,54 @@ export default function Prescription() {
   }, []);
 
   useEffect(() => {
-    Promise.all([getPatients(), getMedicines()])
-      .then(([p, m]) => {
+    const fetchInitialData = async () => {
+      try {
+        const [p, m, rxList] = await Promise.all([
+          getPatients().catch(() => []),
+          getMedicines().catch(() => []),
+          getPrescriptions().catch(() => [])
+        ]);
         setPatients(Array.isArray(p) ? p : []);
         setAllMeds(Array.isArray(m) ? m : []);
-      })
-      .catch(() => { });
-  }, []);
+
+        if (Array.isArray(rxList) && rxList.length > 0) {
+          const maxId = Math.max(...rxList.map((x) => Number(x.id) || 0));
+          setNextRxId(maxId + 1);
+        } else {
+          setNextRxId(1);
+        }
+
+        const paramRxId = searchParams.get("id") || searchParams.get("prescriptionId");
+        if (paramRxId) {
+          const loaded = await getPrescriptionById(paramRxId).catch(() => null);
+          if (loaded) {
+            setSavedRx(loaded);
+            if (loaded.patientId) setPatientId(String(loaded.patientId));
+            if (loaded.diagnosis) setDiagnosis(loaded.diagnosis);
+            if (loaded.instructions) setInstructions(loaded.instructions);
+            if (loaded.notes) setNotes(loaded.notes);
+            if (loaded.prescriptionDate) setVisitDate(loaded.prescriptionDate);
+            if (loaded.items && Array.isArray(loaded.items) && loaded.items.length > 0) {
+              setMedicines(loaded.items.map((it) => ({
+                id: it.id || Date.now() + Math.random(),
+                medicineId: it.medicineId ? String(it.medicineId) : "",
+                dosage: it.dosage || "",
+                frequency: it.frequency || "Once daily",
+                duration: it.duration || "",
+                route: it.route || "",
+                quantity: it.quantity != null ? String(it.quantity) : "",
+                instructions: it.instructions || ""
+              })));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load initial prescription data:", err);
+      }
+    };
+
+    fetchInitialData();
+  }, [searchParams]);
 
   useEffect(() => {
     if (!doctor) return;
@@ -256,7 +310,10 @@ export default function Prescription() {
   }, [doctor]);
 
   useEffect(() => {
-    setSavedRx(null);
+    if (!patientId) {
+      setSavedRx(null);
+      return;
+    }
   }, [patientId]);
 
   const updateMed = (id, key, value) => setMedicines(ms => ms.map(m => m.id === id ? { ...m, [key]: value } : m));
@@ -273,10 +330,13 @@ export default function Prescription() {
   const content = () => {
     const clinicHeader = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
     const doctorLine = doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "";
+    const prescriptionCode = formatPrescriptionId(savedRx?.id || nextRxId || 1, visitDate);
     return [
       `*${clinicHeader.toUpperCase()}*`,
+      `Prescription ID: ${prescriptionCode}`,
       doctorLine ? `Doctor: ${doctorLine}` : null,
       `Date: ${visitDate}`,
+      `Visit Type: ${visitType || "OPD Consultation"}`,
       `-----------------------------`,
       `Patient: ${patient?.name || ""}`,
       complaint ? `Complaint: ${complaint}` : null,
@@ -367,9 +427,11 @@ export default function Prescription() {
       });
 
     const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+    const prescriptionCode = formatPrescriptionId(savedRx?.id || nextRxId || 1, visitDate);
 
     return [
       `${clinicTitle.toUpperCase()} - PRESCRIPTION`,
+      `Prescription ID: ${prescriptionCode}`,
       `==================================================`,
       `Doctor: ${doctor?.fullName || "Veterinary Doctor"}`,
       doctor?.qualification ? `Qualification: ${doctor.qualification}` : null,
@@ -377,6 +439,7 @@ export default function Prescription() {
       (doctor?.city || doctor?.pincode) ? `Location: ${[doctor?.city, doctor?.pincode].filter(Boolean).join(" - ")}` : null,
       doctor?.phone ? `Doctor Contact: ${doctor.phone}` : null,
       `Date: ${visitDate}`,
+      `Visit Type: ${visitType || "OPD Consultation"}`,
       `--------------------------------------------------`,
       `PATIENT DETAILS`,
       `Patient Name: ${patient?.name || "—"}`,
@@ -496,7 +559,22 @@ export default function Prescription() {
           </div>
         </div>
 
-        <Field label="Date"><Input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)} /></Field>
+        <div className="rx-grid-2">
+          <Field label="Visit Date">
+            <Input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)} />
+          </Field>
+          <Field label="Visit Type">
+            <Select value={visitType} onChange={e => setVisitType(e.target.value)}>
+              <option value="OPD Consultation">OPD Consultation (In-Clinic)</option>
+              <option value="Video Consultation">Video Consultation</option>
+              <option value="Home Visit">Home Visit</option>
+              <option value="Emergency Consultation">Emergency Consultation</option>
+              <option value="Vaccination Visit">Vaccination Visit</option>
+              <option value="Follow-up Consultation">Follow-up Consultation</option>
+              <option value="General Health Checkup">General Health Checkup</option>
+            </Select>
+          </Field>
+        </div>
         <Field label="Presenting complaint"><Input value={complaint} onChange={e => setComplaint(e.target.value)} /></Field>
         <Field label="Diagnosis"><Input value={diagnosis} onChange={e => setDiagnosis(e.target.value)} /></Field>
 
@@ -577,17 +655,17 @@ export default function Prescription() {
         </Field>
 
         <div className="rx-footer">
-          <div className="flex-row" style={{ gap: 8 }}>
-            <Button variant="secondary" icon={FiDownload} onClick={downloadPdf} disabled={generatingPdf}>
+          <div className="flex-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <Button size="sm" variant="secondary" icon={FiDownload} onClick={downloadPdf} disabled={generatingPdf}>
               {generatingPdf ? "Preparing..." : "PDF"}
             </Button>
-            <Button variant="secondary" icon={FaWhatsapp} onClick={() => send("whatsapp")}>WhatsApp</Button>
-            <Button variant="secondary" icon={FiMail} onClick={() => send("email")}>Email</Button>
-            <Button variant="secondary" icon={FiMessageSquare} onClick={() => send("sms")}>SMS</Button>
+            <Button size="sm" variant="secondary" icon={FaWhatsapp} onClick={() => send("whatsapp")}>WhatsApp</Button>
+            <Button size="sm" variant="secondary" icon={FiMail} onClick={() => send("email")}>Email</Button>
+            <Button size="sm" variant="secondary" icon={FiMessageSquare} onClick={() => send("sms")}>SMS</Button>
+            <Button size="sm" icon={FiSend} onClick={submit} disabled={saving}>
+              {saving ? "Saving..." : (savedRx?.id ? `Update #${savedRx.id}` : "Save Prescription")}
+            </Button>
           </div>
-          <Button icon={FiSend} onClick={submit} disabled={saving}>
-            {saving ? "Saving..." : "Save prescription"}
-          </Button>
         </div>
       </div>
 
@@ -614,11 +692,10 @@ export default function Prescription() {
             </div>
             <div className="rx-preview-doctitle">
               <div className="rx-doc-rx-badge">
-                <span className="rx-symbol">℞</span>
                 <span className="rx-preview-doc-label">Prescription</span>
               </div>
               <p className="rx-preview-doc-id">
-                Rx #{savedRx?.id ? String(savedRx.id).padStart(4, "0") : (patientId ? `${patientId}-${visitDate.replace(/-/g, "").slice(4)}` : "OPD-01")}
+                {formatPrescriptionId(savedRx?.id || nextRxId || 1, visitDate)}
               </p>
               <p className="rx-preview-doc-date">Date: {visitDate}</p>
             </div>
@@ -643,7 +720,7 @@ export default function Prescription() {
             <div>
               <p className="rx-eyebrow">Visit Details</p>
               <p className="rx-preview-value">{visitDate}</p>
-              <p className="rx-preview-subval">OPD Consultation</p>
+              <p className="rx-preview-subval">{visitType || "OPD Consultation"}</p>
             </div>
           </div>
 
@@ -662,7 +739,6 @@ export default function Prescription() {
             <div className="rx-preview-block">
               <div className="rx-block-title-row">
                 <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Medications Prescribed</p>
-                <span className="rx-table-rx-tag">℞</span>
               </div>
               {medicines.filter(m => m.medicineId || m.dosage).length === 0 ? (
                 <p className="rx-preview-empty">No medicines added yet</p>
@@ -747,7 +823,7 @@ export default function Prescription() {
                   Emergency Contact: <strong>{doctor?.phoneNumber || "+91 98765 43210"}</strong>
                 </p>
                 <p className="rx-preview-footer-note">
-                  This computer-generated prescription is a valid legal medical document.
+                  This is Zenve-generated prescription is a valid legal medical document.
                 </p>
               </div>
               <div className="rx-preview-sign-line">

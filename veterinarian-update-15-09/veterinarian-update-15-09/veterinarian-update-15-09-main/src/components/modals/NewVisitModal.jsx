@@ -5,6 +5,8 @@ import Button from "../ui/Button";
 import Input, { Field, Select, Textarea } from "../ui/Input";
 import { getPatients } from "../../services/patientService";
 import { createAppointment, updateAppointment } from "../../services/appointmentService";
+import { getDoctorProfile } from "../../services/doctorProfileService";
+import { useAuth } from "../../hooks/useAuth";
 
 const EMPTY = { patientId: "", appointmentDate: new Date().toISOString().slice(0, 10), appointmentTime: "10:00", appointmentType: "In Clinic", reason: "", status: "Confirmed", notes: "", doctorName: "" };
 
@@ -13,17 +15,53 @@ const EMPTY = { patientId: "", appointmentDate: new Date().toISOString().slice(0
 // updateAppointment on save.
 export default function NewVisitModal({ open, onClose, onCreated, onUpdated, appointment }) {
   const isEdit = Boolean(appointment);
+  const { doctor: authDoctor } = useAuth();
   const [patients, setPatients] = useState([]);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [autoDoctorName, setAutoDoctorName] = useState("");
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    if (open) getPatients().then((d) => setPatients(Array.isArray(d) ? d : [])).catch(() => setPatients([]));
-  }, [open]);
+    let active = true;
+    if (open) {
+      getPatients().then((d) => setPatients(Array.isArray(d) ? d : [])).catch(() => setPatients([]));
+      
+      // Auto-fetch doctor profile name
+      getDoctorProfile()
+        .then((profile) => {
+          if (!active) return;
+          const name = profile?.fullName || authDoctor?.fullName || authDoctor?.name || "";
+          if (name) {
+            setAutoDoctorName(name);
+            setForm((prev) => {
+              if (!appointment && !prev.doctorName) {
+                return { ...prev, doctorName: name };
+              }
+              if (appointment && !appointment.doctorName && !prev.doctorName) {
+                return { ...prev, doctorName: name };
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          const fallback = authDoctor?.fullName || authDoctor?.name || "";
+          if (fallback) {
+            setAutoDoctorName(fallback);
+            setForm((prev) => (!appointment && !prev.doctorName ? { ...prev, doctorName: fallback } : prev));
+          }
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [open, appointment, authDoctor]);
 
   useEffect(() => {
     if (!open) return;
+    const defaultDocName = autoDoctorName || authDoctor?.fullName || authDoctor?.name || "";
     if (appointment) {
       setForm({
         patientId: appointment.patientId ?? "",
@@ -33,18 +71,26 @@ export default function NewVisitModal({ open, onClose, onCreated, onUpdated, app
         reason: appointment.reason || "",
         status: appointment.status || "Confirmed",
         notes: appointment.notes || "",
-        doctorName: appointment.doctorName || "",
+        doctorName: appointment.doctorName || defaultDocName,
       });
     } else {
-      setForm(EMPTY);
+      setForm({
+        ...EMPTY,
+        doctorName: defaultDocName,
+      });
     }
-  }, [open, appointment]);
+  }, [open, appointment, autoDoctorName, authDoctor]);
 
   const submit = async () => {
     if (!form.patientId) return toast.error("Select a patient");
     try {
       setSaving(true);
-      const payload = { ...form, patientId: Number(form.patientId) };
+      const fallbackDocName = autoDoctorName || authDoctor?.fullName || authDoctor?.name || "";
+      const payload = { 
+        ...form, 
+        patientId: Number(form.patientId),
+        doctorName: form.doctorName?.trim() || fallbackDocName || undefined
+      };
       if (isEdit) {
         const updated = await updateAppointment(appointment.id, payload);
         toast.success("Visit updated");
@@ -73,7 +119,7 @@ export default function NewVisitModal({ open, onClose, onCreated, onUpdated, app
       <Field label="Visit type"><Select value={form.appointmentType} onChange={(e) => update("appointmentType", e.target.value)}><option>In Clinic</option><option>Video</option><option>Home Visit</option><option>Emergency</option></Select></Field>
       <Field label="Status"><Select value={form.status} onChange={(e) => update("status", e.target.value)}><option>Confirmed</option><option>Waiting</option><option>In Consultation</option><option>Completed</option><option>Cancelled</option></Select></Field>
       <Field label="Reason" className="col-span-2"><Input value={form.reason} onChange={(e) => update("reason", e.target.value)} /></Field>
-      <Field label="Doctor"><Input value={form.doctorName} onChange={(e) => update("doctorName", e.target.value)} placeholder="Doctor name" /></Field>
+      <Field label="Doctor"><Input value={form.doctorName} onChange={(e) => update("doctorName", e.target.value)} placeholder="Auto-fetched Doctor Name" /></Field>
       <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={(e) => update("notes", e.target.value)} /></Field>
     </div>
     <div className="modal-actions"><Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={submit} disabled={saving}>{saving ? "Saving..." : isEdit ? "Save changes" : "Create visit"}</Button></div>

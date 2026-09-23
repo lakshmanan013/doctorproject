@@ -392,5 +392,211 @@
   }
 }
 
+/* ==========================================================
+   VIDEO CONSULTATION MODE TOGGLE CARD
+========================================================== */
+.video-consult-mode-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-top: 20px;
+  transition: all 0.25s ease;
+}
+
+.video-consult-mode-card.active {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);
+}
+
+.video-consult-mode-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.video-consult-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.video-consult-icon-box.active {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.video-consult-icon-box.inactive {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.video-consult-mode-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.video-consult-mode-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+
+.video-consult-mode-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.video-consult-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.video-consult-status-badge.badge-on {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.video-consult-status-badge.badge-off {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.video-consult-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.badge-on .video-consult-status-dot {
+  background: #16a34a;
+  box-shadow: 0 0 6px #16a34a;
+}
+
+.badge-off .video-consult-status-dot {
+  background: #94a3b8;
+}
+
+.video-consult-mode-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.video-consult-mode-right {
+  flex-shrink: 0;
+}
+
+/* Modern Toggle Button */
+.video-consult-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.video-consult-toggle-btn.btn-on {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-color: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.video-consult-toggle-btn.btn-on:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+}
+
+.video-consult-toggle-btn.btn-off {
+  background: #ffffff;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.video-consult-toggle-btn.btn-off:hover {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.video-consult-toggle-slider {
+  width: 32px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  position: relative;
+  transition: background-color 0.25s ease;
+}
+
+.btn-on .video-consult-toggle-slider {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.video-consult-toggle-knob {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-on .video-consult-toggle-knob {
+  transform: translateX(14px);
+}
+
+.btn-off .video-consult-toggle-knob {
+  transform: translateX(0px);
+}
+
+@media (max-width: 640px) {
+  .video-consult-mode-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .video-consult-mode-right {
+    align-self: flex-end;
+    margin-top: 8px;
+  }
+}
+
 
 
