@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 @Service
+@Transactional
 public class ZippyCrmSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(ZippyCrmSyncService.class);
@@ -553,7 +555,34 @@ public class ZippyCrmSyncService {
             String type = appointment.getAppointmentType() != null ? appointment.getAppointmentType() : "In Clinic";
             String status = appointment.getStatus() != null ? appointment.getStatus() : "Scheduled";
             String paymentStatus = "Completed".equalsIgnoreCase(status) ? "Paid" : "Pending";
-            float fee = 500.0f;
+
+            // Determine consultation fee as the total prescription amount
+            double fee = 500.0;
+            Prescription matchingRx = null;
+            if (appointment.getPatient() != null && appointment.getPatient().getId() != null) {
+                List<Prescription> rxs = prescriptionRepository.findByPatientIdAndPrescriptionDate(
+                        appointment.getPatient().getId(), date);
+                if (!rxs.isEmpty()) {
+                    matchingRx = rxs.get(0);
+                } else {
+                    List<Prescription> allRxs = prescriptionRepository.findByPatientId(
+                            appointment.getPatient().getId());
+                    if (!allRxs.isEmpty()) {
+                        matchingRx = allRxs.get(allRxs.size() - 1);
+                    }
+                }
+            }
+
+            if (matchingRx != null) {
+                fee = getPrescriptionTotalAmount(matchingRx);
+            } else {
+                DoctorProfile profile = appointment.getDoctorId() != null
+                        ? doctorProfileRepository.findByUserId(appointment.getDoctorId()).orElse(null)
+                        : null;
+                fee = (profile != null && profile.getConsultationFee() != null)
+                        ? profile.getConsultationFee()
+                        : 500.0;
+            }
 
             Integer existingId = null;
             String checkSql = "SELECT id FROM appointments WHERE pet_id = ? AND doctor_id = ? AND appointment_date = ? AND appointment_time = ? LIMIT 1";
@@ -575,7 +604,7 @@ public class ZippyCrmSyncService {
                     updateStmt.setString(1, type);
                     updateStmt.setString(2, status);
                     updateStmt.setString(3, paymentStatus);
-                    updateStmt.setFloat(4, fee);
+                    updateStmt.setDouble(4, fee);
                     updateStmt.setInt(5, existingId);
                     updateStmt.executeUpdate();
                 }
@@ -589,7 +618,7 @@ public class ZippyCrmSyncService {
                     insertStmt.setString(5, type);
                     insertStmt.setString(6, status);
                     insertStmt.setString(7, paymentStatus);
-                    insertStmt.setFloat(8, fee);
+                    insertStmt.setDouble(8, fee);
                     insertStmt.executeUpdate();
                     try (ResultSet rs = insertStmt.getGeneratedKeys()) {
                         if (rs.next()) {
@@ -700,8 +729,81 @@ public class ZippyCrmSyncService {
                     insertStmt.executeUpdate();
                 }
             }
+
+            // Also update consultation_fee in Zippy CRM appointments table for this patient visit
+            double totalPrescriptionAmount = getPrescriptionTotalAmount(rx);
+            String updateApptSql = "UPDATE appointments SET consultation_fee = ?, payment_status = 'Paid', status = 'Completed' WHERE pet_id = ? AND doctor_id = ? AND appointment_date = ?";
+            try (PreparedStatement updateApptStmt = conn.prepareStatement(updateApptSql)) {
+                updateApptStmt.setDouble(1, totalPrescriptionAmount);
+                updateApptStmt.setInt(2, petId);
+                updateApptStmt.setInt(3, doctorId);
+                updateApptStmt.setDate(4, java.sql.Date.valueOf(rxDate));
+                int rows = updateApptStmt.executeUpdate();
+                if (rows == 0) {
+                    String fallbackSql = "UPDATE appointments SET consultation_fee = ?, payment_status = 'Paid', status = 'Completed' WHERE pet_id = ? AND doctor_id = ? ORDER BY id DESC LIMIT 1";
+                    try (PreparedStatement fbStmt = conn.prepareStatement(fallbackSql)) {
+                        fbStmt.setDouble(1, totalPrescriptionAmount);
+                        fbStmt.setInt(2, petId);
+                        fbStmt.setInt(3, doctorId);
+                        fbStmt.executeUpdate();
+                    }
+                }
+            }
+
         } catch (SQLException e) {
             log.warn("Direct DB sync to Zippy CRM prescriptions failed: {}", e.getMessage());
+        }
+    }
+
+    public double getPrescriptionTotalAmount(Prescription rx) {
+        if (rx == null) {
+            return 500.0;
+        }
+
+        double medTotal = 0.0;
+        if (rx.getItems() != null) {
+            for (PrescriptionItem item : rx.getItems()) {
+                if (item.getMedicine() != null && item.getMedicine().getPrice() != null) {
+                    int qty = parseQuantity(item.getQuantity());
+                    medTotal += item.getMedicine().getPrice() * qty;
+                }
+            }
+        }
+
+        double doctorConsultFee = 0.0;
+        if (rx.getDoctorId() != null) {
+            DoctorProfile profile = doctorProfileRepository.findByUserId(rx.getDoctorId()).orElse(null);
+            if (profile != null && profile.getConsultationFee() != null) {
+                doctorConsultFee = profile.getConsultationFee();
+            }
+        }
+
+        if (doctorConsultFee <= 0 && medTotal <= 0) {
+            doctorConsultFee = 500.0;
+        }
+
+        return medTotal + doctorConsultFee;
+    }
+
+    private int parseQuantity(String quantity) {
+        if (quantity == null || quantity.isBlank()) {
+            return 1;
+        }
+        StringBuilder digits = new StringBuilder();
+        for (char c : quantity.trim().toCharArray()) {
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            } else if (digits.length() > 0) {
+                break;
+            }
+        }
+        if (digits.length() == 0) {
+            return 1;
+        }
+        try {
+            return Math.max(1, Integer.parseInt(digits.toString()));
+        } catch (Exception e) {
+            return 1;
         }
     }
 

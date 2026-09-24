@@ -456,7 +456,7 @@ export default function Dashboard() {
         icon: FileText,
         iconBg: "blue",
         title: `Prescription created for ${p.patientName || "Patient"}`,
-        sub: `Rx #${p.prescriptionNumber || p.id}${p.diagnosis ? " • " + p.diagnosis : ""}`,
+        sub: `Prescription #${p.prescriptionNumber || p.id}${p.diagnosis ? " • " + p.diagnosis : ""}`,
         date: p.createdAt || p.prescriptionDate || "",
       });
     });

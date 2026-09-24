@@ -4,16 +4,14 @@ import {
   FiArrowLeft,
   FiPlus,
   FiCalendar,
-  FiCheckCircle,
   FiClock,
-  FiFileText,
   FiActivity,
   FiPhone,
   FiMail,
   FiMapPin,
   FiExternalLink,
 } from "react-icons/fi";
-import { FaPrescriptionBottleAlt, FaSyringe, FaStethoscope } from "react-icons/fa";
+import { FaPrescriptionBottleAlt, FaSyringe } from "react-icons/fa";
 import toast from "react-hot-toast";
 
 import Button from "../../components/ui/Button";
@@ -38,6 +36,7 @@ import {
 import { getAppointmentsByPatient } from "../../services/appointmentService";
 import { getBatches } from "../../services/inventoryService";
 import { formatPrescriptionId } from "../Prescription/Prescription";
+import "./PatientProfile.css";
 
 const TABS = [
   { key: "records", label: "Medical History", icon: FiActivity },
@@ -314,8 +313,19 @@ export default function PatientProfile() {
 
   if (!patient) {
     return (
-      <div className="table-card">
-        <div className="table-empty">{error || "Patient not found."}</div>
+      <div className="stack-6">
+        <div className="appt-toolbar">
+          <Button
+            variant="secondary"
+            icon={FiArrowLeft}
+            onClick={() => navigate("/patients")}
+          >
+            Back to patients
+          </Button>
+        </div>
+        <div className="table-card">
+          <div className="table-empty">{error || "Patient not found."}</div>
+        </div>
       </div>
     );
   }
@@ -358,7 +368,7 @@ export default function PatientProfile() {
                 {patient.petId && (
                   <Badge variant="navy">{patient.petId}</Badge>
                 )}
-                <Badge variant={patient.status === "ACTIVE" ? "success" : "slate"}>
+                <Badge variant={patient.status === "ACTIVE" || !patient.status ? "success" : "slate"}>
                   {patient.status || "ACTIVE"}
                 </Badge>
               </div>
@@ -371,16 +381,8 @@ export default function PatientProfile() {
             </div>
           </div>
 
-          {/* PARENT / OWNER SUMMARY CARD */}
-          <div
-            style={{
-              padding: "12px 18px",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-lg)",
-              minWidth: 260,
-            }}
-          >
+          {/* PARENT / OWNER SUMMARY */}
+          <div className="patient-profile-owner-box">
             <p className="eyebrow" style={{ marginBottom: 4 }}>
               Parent (Owner) Details
             </p>
@@ -465,7 +467,7 @@ export default function PatientProfile() {
         })}
       </div>
 
-      {/* TAB CONTENT: MEDICAL RECORDS (CONSULTATIONS) */}
+      {/* TAB CONTENT: MEDICAL RECORDS */}
       {activeTab === "records" && (
         <div className="panel">
           <div className="panel-header" style={{ marginBottom: 16 }}>

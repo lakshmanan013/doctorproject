@@ -1,0 +1,8 @@
+/* Patient profile styles aligned with standard application UI tokens */
+.patient-profile-owner-box {
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 260px;
+}

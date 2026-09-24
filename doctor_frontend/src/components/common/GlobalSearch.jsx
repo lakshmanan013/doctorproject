@@ -178,7 +178,7 @@ export default function GlobalSearch() {
       <input
         ref={inputRef}
         type="text"
-        placeholder="Search pet, Pet ID, owner, RX..."
+        placeholder="Search pet, Pet ID, owner..."
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -193,10 +193,6 @@ export default function GlobalSearch() {
         aria-label="Global search"
         autoComplete="off"
       />
-
-      {!query && (
-        <span className="search-shortcut-badge">⌘K</span>
-      )}
 
       {/* CLEAR */}
 

@@ -12,7 +12,7 @@ import { getMedicines } from "../../services/medicineService";
 import { getBatches, getRecentStockMovements } from "../../services/inventoryService";
 import "./Inventory.css";
 
-const TABS = ["All", "Low stock", "Expiring", "Rx only"];
+const TABS = ["All", "Low stock", "Expiring", "Prescription only"];
 const statusOf = (m, batch) => { if ((m.stockQuantity ?? 0) <= (m.reorderLevel ?? 0)) return "Low stock"; if (batch?.expiryDate && new Date(batch.expiryDate) <= new Date(Date.now() + 60 * 86400000)) return "Expiring soon"; return "In stock"; };
 const statusVariant = { "In stock": "success", "Low stock": "warning", "Expiring soon": "warning" };
 
@@ -21,7 +21,7 @@ export default function Inventory() {
   const load = async () => { try { setLoading(true); const [m,b,s] = await Promise.all([getMedicines(), getBatches(), getRecentStockMovements().catch(() => [])]); setMedicines(Array.isArray(m) ? m : []); setBatches(Array.isArray(b) ? b : []); setMovements(Array.isArray(s) ? s : []); } catch (e) { toast.error(e?.response?.data?.message || "Could not load inventory"); } finally { setLoading(false); } };
   useEffect(() => { load(); }, []);
   const enriched = useMemo(() => medicines.map((m) => { const bs = batches.filter((b) => b.medicineId === m.id).sort((a,b) => String(a.expiryDate || "").localeCompare(String(b.expiryDate || ""))); const nearest = bs[0]; return { ...m, nearest, status: statusOf(m, nearest) }; }), [medicines,batches]);
-  const filtered = enriched.filter((m) => { const q = query.toLowerCase(); const qok = `${m.name} ${m.manufacturer} ${m.category}`.toLowerCase().includes(q); const tok = tab === "All" || (tab === "Low stock" && m.status === "Low stock") || (tab === "Expiring" && m.status === "Expiring soon") || (tab === "Rx only" && (m.dosageForm || "").toLowerCase().includes("prescription")); return qok && tok; });
+  const filtered = enriched.filter((m) => { const q = query.toLowerCase(); const qok = `${m.name} ${m.manufacturer} ${m.category}`.toLowerCase().includes(q); const tok = tab === "All" || (tab === "Low stock" && m.status === "Low stock") || (tab === "Expiring" && m.status === "Expiring soon") || (tab === "Prescription only" && (m.dosageForm || "").toLowerCase().includes("prescription")); return qok && tok; });
   const value = medicines.reduce((s,m) => s + Number(m.price || 0) * Number(m.stockQuantity || 0), 0);
   const low = enriched.filter((m) => m.status === "Low stock").length;
   const expiring = enriched.filter((m) => m.status === "Expiring soon").length;

@@ -517,7 +517,7 @@ export default function SignatureStudioModal({
                     onClick={() => setPreviewBg("rx")}
                     title="Prescription Pad View"
                   >
-                    Rx Pad
+                    Prescription Pad
                   </button>
                   <button
                     type="button"
@@ -533,7 +533,6 @@ export default function SignatureStudioModal({
               <div className={`sig-live-preview-box bg-${previewBg}`}>
                 {previewBg === "rx" && (
                   <div className="rx-pad-watermark">
-                    <span className="rx-symbol">℞</span>
                     <span className="rx-doctor-tag">Verified Doctor Signature</span>
                   </div>
                 )}
@@ -560,7 +559,7 @@ export default function SignatureStudioModal({
                   onClick={() => setInkColor("blue")}
                 >
                   <span className="color-swatch blue-swatch" />
-                  <span>Royal Blue (Rx)</span>
+                  <span>Royal Blue</span>
                 </button>
                 <button
                   type="button"
