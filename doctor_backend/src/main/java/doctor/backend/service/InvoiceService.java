@@ -135,8 +135,6 @@ public class InvoiceService {
         Invoice saved =
                 invoiceRepository.save(invoice);
 
-        // TODO: Connectivity to Payments, Orders, Order Items, Sellers, and Stores will be implemented later.
-
         return mapToResponse(saved);
     }
 
@@ -357,8 +355,6 @@ public class InvoiceService {
         Invoice updated =
                 invoiceRepository.save(invoice);
 
-        // TODO: Connectivity to Payments, Orders, Order Items, Sellers, and Stores will be implemented later.
-
         return mapToResponse(updated);
     }
 
@@ -382,8 +378,6 @@ public class InvoiceService {
 
         Invoice updated =
                 invoiceRepository.save(invoice);
-
-        // TODO: Connectivity to Payments, Orders, Order Items, Sellers, and Stores will be implemented later.
 
         return mapToResponse(updated);
     }

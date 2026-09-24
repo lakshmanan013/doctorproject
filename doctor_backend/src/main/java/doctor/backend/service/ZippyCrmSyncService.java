@@ -8,10 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -26,8 +24,6 @@ import java.util.List;
  * - Prescriptions
  * - Consultations & Medical Records
  * - Follow-ups
- *
- * TODO: Connectivity to Payments, Orders, Order Items, Sellers, Stores, and Products will be implemented later.
  */
 @Service
 public class ZippyCrmSyncService {
@@ -174,11 +170,6 @@ public class ZippyCrmSyncService {
         }
 
 
-        // 8. Invoices & Payments (Orders & Billing)
-        // TODO: Connectivity to Payments, Orders, Order Items, Sellers, and Stores will be implemented later.
-
-        // 9. Payments
-        // TODO: Connectivity to Payments, Orders, Order Items, Sellers, and Stores will be implemented later.
 
         // 10. Sync Vaccinations
         try {
