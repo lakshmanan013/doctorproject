@@ -13,18 +13,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-/**
- * Synchronizes clinical modules from Zenve Doctor Backend to Zippy CRM (FastAPI +
- * MySQL pet_management database).
- *
- * Keeps Zippy CRM in real-time sync with:
- * - Doctors & Doctor Profiles
- * - Pet Parents (Owners) & Pets (Patients)
- * - Appointments
- * - Prescriptions
- * - Consultations & Medical Records
- * - Follow-ups
- */
 @Service
 public class ZippyCrmSyncService {
 
