@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiCalendar, FiCheckCircle, FiMail, FiPlus } from "react-icons/fi";
+import { FiCalendar, FiCheckCircle, FiMail, FiPlus, FiBell, FiAlertCircle } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { MdNotificationsActive, MdErrorOutline, MdSms } from "react-icons/md";
+import { MdSms } from "react-icons/md";
 
 import { StatCard } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -330,7 +330,7 @@ export default function Followup() {
     <div className="stack-6">
       <div className="stat-grid">
         <StatCard
-          icon={MdNotificationsActive}
+          icon={FiBell}
           label="Due today"
           value={counts.dueToday}
           iconBg="warning"
@@ -338,7 +338,7 @@ export default function Followup() {
           onClick={() => changeTab("dueToday")}
         />
         <StatCard
-          icon={MdErrorOutline}
+          icon={FiAlertCircle}
           label="Overdue"
           value={counts.overdue}
           iconBg="danger"

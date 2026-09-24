@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiClock, FiCheckCircle, FiCalendar, FiPlus, FiExternalLink } from "react-icons/fi";
-import { MdErrorOutline } from "react-icons/md";
+import { FiClock, FiCheckCircle, FiCalendar, FiPlus, FiExternalLink, FiAlertCircle } from "react-icons/fi";
 import { FaSyringe } from "react-icons/fa";
 
 import { StatCard } from "../../components/ui/Card";
@@ -371,7 +370,7 @@ export default function Vaccination() {
           onClick={() => changeTab("dueNow")}
         />
         <StatCard
-          icon={MdErrorOutline}
+          icon={FiAlertCircle}
           label="Overdue"
           value={counts.overdue}
           iconBg="danger"

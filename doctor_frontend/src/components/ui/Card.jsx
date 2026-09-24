@@ -106,7 +106,7 @@ export function StatCard({
         ) : (
           Icon && (
             <div className={clsx("icon-tile", tone)}>
-              <Icon size={19} strokeWidth={2.2} />
+              <Icon size={19} />
             </div>
           )
         )}
