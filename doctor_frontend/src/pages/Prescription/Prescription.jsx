@@ -738,7 +738,7 @@ export default function Prescription() {
           <div className="rx-preview-body">
             <div className="rx-preview-2col">
               <div className="rx-preview-block">
-                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Chief Complaint</p>
+                <p className="rx-eyebrow"><span className="rx-eyebrow-dot" />Major Issue</p>
                 <div className="rx-preview-box">{complaint || "—"}</div>
               </div>
               <div className="rx-preview-block">
