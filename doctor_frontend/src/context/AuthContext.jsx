@@ -8,9 +8,9 @@ const USER_KEY = "zenve_doctor_user";
 const AuthContext = createContext(null);
 
 function readStoredToken() {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = sessionStorage.getItem(TOKEN_KEY);
   if (!token || token === "zenve_demo_token") {
-    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     return null;
   }
   return token;
@@ -18,7 +18,7 @@ function readStoredToken() {
 
 function readStoredUser() {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = sessionStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -34,11 +34,11 @@ export function AuthProvider({ children }) {
     const { token: newToken, ...doctorInfo } = data || {};
 
     if (newToken) {
-      localStorage.setItem(TOKEN_KEY, newToken);
+      sessionStorage.setItem(TOKEN_KEY, newToken);
       setToken(newToken);
     }
 
-    localStorage.setItem(USER_KEY, JSON.stringify(doctorInfo));
+    sessionStorage.setItem(USER_KEY, JSON.stringify(doctorInfo));
     setDoctor(doctorInfo);
   }, []);
 
@@ -68,6 +68,8 @@ export function AuthProvider({ children }) {
   );
 
   const logout = useCallback(() => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setToken(null);
@@ -75,8 +77,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Keep session state in sync if the token is cleared elsewhere
-  // (e.g. a 401 response wipes it out inside the axios interceptor).
   useEffect(() => {
+    // Clear any legacy localStorage token on startup so fresh visits always go to login
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+
     const syncFromStorage = () => {
       setToken(readStoredToken());
       setDoctor(readStoredUser());

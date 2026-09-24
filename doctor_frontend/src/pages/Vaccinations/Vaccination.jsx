@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FiClock, FiCheckCircle, FiCalendar, FiPlus, FiExternalLink } from "react-icons/fi";
 import { MdErrorOutline } from "react-icons/md";
-import { FaSyringe, FaPrescriptionBottleAlt } from "react-icons/fa";
+import { FaSyringe } from "react-icons/fa";
 
 import { StatCard } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -19,6 +19,7 @@ import {
 } from "../../services/vaccinationService";
 import { getPatients } from "../../services/patientService";
 import { getMedicines } from "../../services/medicineService";
+import { getBatches } from "../../services/inventoryService";
 import "./Vaccination.css";
 
 const TABS = [
@@ -55,6 +56,104 @@ export default function Vaccination() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
+  const [batches, setBatches] = useState([]);
+
+  const generateOrFetchBatch = (
+    vaccineName,
+    patientId = form.patientId,
+    batchesList = batches,
+    vaxList = vaccinations
+  ) => {
+    const vName = (vaccineName || "").trim().toLowerCase();
+    const pid = patientId ? Number(patientId) : null;
+
+    // 1. First priority: Check if this patient already has a completed vaccination record with a batch number
+    if (pid && vaxList && vaxList.length > 0) {
+      const patientVaxes = vaxList.filter(
+        (v) => Number(v.patientId) === pid && (v.batchNumber || "").trim() !== ""
+      );
+
+      if (vName) {
+        // 1a. Match by vaccine name on completed status
+        const matchComp = patientVaxes.find(
+          (v) =>
+            String(v.status || "").toUpperCase() === "COMPLETED" &&
+            ((v.vaccineName || "").toLowerCase().includes(vName) ||
+              vName.includes((v.vaccineName || "").toLowerCase()))
+        );
+        if (matchComp?.batchNumber) return matchComp.batchNumber;
+
+        // 1b. Any match for this patient with this vaccine name
+        const anyMatch = patientVaxes.find(
+          (v) =>
+            (v.vaccineName || "").toLowerCase().includes(vName) ||
+            vName.includes((v.vaccineName || "").toLowerCase())
+        );
+        if (anyMatch?.batchNumber) return anyMatch.batchNumber;
+      }
+
+      // 1c. If no vaccine name typed yet, get this patient's most recent completed vaccine batch
+      const latestComp = patientVaxes.find(
+        (v) => String(v.status || "").toUpperCase() === "COMPLETED"
+      );
+      if (!vName && latestComp?.batchNumber) return latestComp.batchNumber;
+    }
+
+    // 2. Second priority: Check if any patient in the clinic had a completed vaccination with this vaccine name
+    if (vName && vaxList && vaxList.length > 0) {
+      const clinicComp = vaxList.find(
+        (v) =>
+          String(v.status || "").toUpperCase() === "COMPLETED" &&
+          (v.batchNumber || "").trim() !== "" &&
+          ((v.vaccineName || "").toLowerCase().includes(vName) ||
+            vName.includes((v.vaccineName || "").toLowerCase()))
+      );
+      if (clinicComp?.batchNumber) return clinicComp.batchNumber;
+    }
+
+    // 3. Third priority: Inventory batches
+    if (vName && batchesList && batchesList.length > 0) {
+      const match = batchesList.find(
+        (b) =>
+          b.medicineName &&
+          (b.medicineName.toLowerCase().includes(vName) ||
+            vName.includes(b.medicineName.toLowerCase()))
+      );
+      if (match && match.batchNumber) {
+        return match.batchNumber;
+      }
+    }
+
+    // 4. Default: Auto-generate standard batch
+    const prefix = vName
+      ? vName.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase() || "VAC"
+      : "VAC";
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const rand = Math.floor(100 + Math.random() * 900);
+    return `BAT-${prefix}-${yr}${mo}-${rand}`;
+  };
+
+  const openRecordModal = (presetPatientId = "") => {
+    const pid =
+      presetPatientId ||
+      searchParams.get("patientId") ||
+      (patients[0]?.id ? String(patients[0].id) : "");
+    const autoBatch = generateOrFetchBatch("", pid, batches, vaccinations);
+    setForm({
+      patientId: pid,
+      vaccineName: "",
+      vaccineType: "Routine",
+      dosage: "1 ml",
+      batchNumber: autoBatch,
+      vaccinationDate: today,
+      nextDueDate: plusDays(365),
+      status: "Scheduled",
+    });
+    setModalOpen(true);
+  };
+
   // New Vaccination Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,14 +171,16 @@ export default function Vaccination() {
   const load = async () => {
     try {
       setLoading(true);
-      const [vList, pList, mList] = await Promise.all([
+      const [vList, pList, mList, bList] = await Promise.all([
         getVaccinations(),
         getPatients().catch(() => []),
         getMedicines().catch(() => []),
+        getBatches().catch(() => []),
       ]);
       setVaccinations(Array.isArray(vList) ? vList : []);
       setPatients(Array.isArray(pList) ? pList : []);
       setInventoryMeds(Array.isArray(mList) ? mList : []);
+      setBatches(Array.isArray(bList) ? bList : []);
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Could not load vaccinations"
@@ -96,8 +197,7 @@ export default function Vaccination() {
   useEffect(() => {
     const paramPid = searchParams.get("patientId");
     if (paramPid) {
-      setForm((prev) => ({ ...prev, patientId: paramPid }));
-      setModalOpen(true);
+      openRecordModal(paramPid);
     }
   }, [searchParams]);
 
@@ -112,12 +212,16 @@ export default function Vaccination() {
 
     try {
       setSaving(true);
+      const finalBatch =
+        form.batchNumber?.trim() ||
+        generateOrFetchBatch(form.vaccineName, batches);
+
       await createVaccination({
         patientId: Number(form.patientId),
         vaccineName: form.vaccineName.trim(),
         vaccineType: form.vaccineType,
         dosage: form.dosage,
-        batchNumber: form.batchNumber || null,
+        batchNumber: finalBatch,
         vaccinationDate: form.vaccinationDate,
         nextDueDate: form.nextDueDate || null,
         status: form.status,
@@ -313,7 +417,7 @@ export default function Vaccination() {
             </button>
           ))}
 
-          <Button icon={FiPlus} onClick={() => setModalOpen(true)}>
+          <Button icon={FiPlus} onClick={() => openRecordModal()}>
             Record Vaccine
           </Button>
         </div>
@@ -390,29 +494,20 @@ export default function Vaccination() {
                       : "Due now"}
                   </Badge>
 
-                  {/* Consult shortcut */}
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() =>
-                      navigate(`/prescriptions?patientId=${vaccination.patientId}`)
-                    }
-                    title="Consult Patient"
-                  >
-                    <FaPrescriptionBottleAlt size={13} /> Consult
-                  </button>
 
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={isUpdating}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleStatus(vaccination);
-                    }}
-                  >
-                    {completed ? "Mark pending" : "Mark completed"}
-                  </button>
+                  {!completed && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={isUpdating}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleStatus(vaccination);
+                      }}
+                    >
+                      Mark completed
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -443,7 +538,20 @@ export default function Vaccination() {
           <Field label="Patient" className="col-span-2">
             <Select
               value={form.patientId}
-              onChange={(e) => setForm({ ...form, patientId: e.target.value })}
+              onChange={(e) => {
+                const pid = e.target.value;
+                const autoBatch = generateOrFetchBatch(
+                  form.vaccineName,
+                  pid,
+                  batches,
+                  vaccinations
+                );
+                setForm({
+                  ...form,
+                  patientId: pid,
+                  batchNumber: autoBatch,
+                });
+              }}
             >
               <option value="">Select a patient</option>
               {patients.map((p) => (
@@ -457,7 +565,20 @@ export default function Vaccination() {
           <Field label="Vaccine Name" className="col-span-2">
             <Input
               value={form.vaccineName}
-              onChange={(e) => setForm({ ...form, vaccineName: e.target.value })}
+              onChange={(e) => {
+                const name = e.target.value;
+                const autoBatch = generateOrFetchBatch(
+                  name,
+                  form.patientId,
+                  batches,
+                  vaccinations
+                );
+                setForm({
+                  ...form,
+                  vaccineName: name,
+                  batchNumber: autoBatch,
+                });
+              }}
               placeholder="e.g. Anti-Rabies, DHPP, FVRCP"
               autoFocus
             />

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiCalendar, FiCheckCircle, FiMail, FiRotateCcw, FiPlus } from "react-icons/fi";
-import { FaWhatsapp, FaPrescriptionBottleAlt } from "react-icons/fa";
+import { FiCalendar, FiCheckCircle, FiMail, FiPlus } from "react-icons/fi";
+import { FaWhatsapp } from "react-icons/fa";
 import { MdNotificationsActive, MdErrorOutline, MdSms } from "react-icons/md";
 
 import { StatCard } from "../../components/ui/Card";
@@ -444,31 +444,8 @@ export default function Followup() {
                 : "Scheduled"}
             </Badge>
 
-            {/* Consult Shortcut Button */}
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              style={{ padding: "6px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/prescriptions?patientId=${f.patientId}`);
-              }}
-              title="Start Consultation"
-            >
-              <FaPrescriptionBottleAlt size={12} /> Consult
-            </button>
 
-            {tab === "completed" ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markPending(f);
-                }}
-                className="fu-action"
-              >
-                <FiRotateCcw size={15} /> Mark pending
-              </button>
-            ) : (
+            {tab !== "completed" && (
               <>
                 <button
                   onClick={(e) => {

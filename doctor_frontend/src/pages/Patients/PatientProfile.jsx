@@ -36,6 +36,7 @@ import {
   updateFollowup,
 } from "../../services/followupService";
 import { getAppointmentsByPatient } from "../../services/appointmentService";
+import { getBatches } from "../../services/inventoryService";
 import { formatPrescriptionId } from "../Prescription/Prescription";
 
 const TABS = [
@@ -60,6 +61,84 @@ export default function PatientProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [batches, setBatches] = useState([]);
+
+  const generateOrFetchBatch = (
+    vaccineName,
+    batchesList = batches,
+    vaxList = vaccinations
+  ) => {
+    const vName = (vaccineName || "").trim().toLowerCase();
+
+    // 1. First priority: Check this patient's completed vaccinations
+    if (vaxList && vaxList.length > 0) {
+      if (vName) {
+        const matchComp = vaxList.find(
+          (v) =>
+            String(v.status || "").toUpperCase() === "COMPLETED" &&
+            (v.batchNumber || "").trim() !== "" &&
+            ((v.vaccineName || "").toLowerCase().includes(vName) ||
+              vName.includes((v.vaccineName || "").toLowerCase()))
+        );
+        if (matchComp?.batchNumber) return matchComp.batchNumber;
+
+        const anyMatch = vaxList.find(
+          (v) =>
+            (v.batchNumber || "").trim() !== "" &&
+            ((v.vaccineName || "").toLowerCase().includes(vName) ||
+              vName.includes((v.vaccineName || "").toLowerCase()))
+        );
+        if (anyMatch?.batchNumber) return anyMatch.batchNumber;
+      }
+
+      const latestCompleted = vaxList.find(
+        (v) =>
+          String(v.status || "").toUpperCase() === "COMPLETED" &&
+          (v.batchNumber || "").trim() !== ""
+      );
+      if (!vName && latestCompleted?.batchNumber) {
+        return latestCompleted.batchNumber;
+      }
+    }
+
+    // 2. Second priority: Inventory batches
+    if (vName && batchesList && batchesList.length > 0) {
+      const match = batchesList.find(
+        (b) =>
+          b.medicineName &&
+          (b.medicineName.toLowerCase().includes(vName) ||
+            vName.includes(b.medicineName.toLowerCase()))
+      );
+      if (match && match.batchNumber) {
+        return match.batchNumber;
+      }
+    }
+
+    // 3. Fallback: Auto-generate
+    const prefix = vName
+      ? vName.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase() || "VAC"
+      : "VAC";
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const rand = Math.floor(100 + Math.random() * 900);
+    return `BAT-${prefix}-${yr}${mo}-${rand}`;
+  };
+
+  const openAddVaccineModal = () => {
+    const autoBatch = generateOrFetchBatch("", batches, vaccinations);
+    setVacForm({
+      vaccineName: "",
+      vaccineType: "Routine",
+      dosage: "1 ml",
+      batchNumber: autoBatch,
+      vaccinationDate: new Date().toISOString().slice(0, 10),
+      nextDueDate: "",
+      status: "Scheduled",
+    });
+    setVacModalOpen(true);
+  };
+
   // Modals state
   const [visitModalOpen, setVisitModalOpen] = useState(false);
   const [vacModalOpen, setVacModalOpen] = useState(false);
@@ -67,6 +146,7 @@ export default function PatientProfile() {
     vaccineName: "",
     vaccineType: "Routine",
     dosage: "1 ml",
+    batchNumber: "",
     vaccinationDate: new Date().toISOString().slice(0, 10),
     nextDueDate: "",
     status: "Scheduled",
@@ -90,7 +170,7 @@ export default function PatientProfile() {
       setLoading(true);
       setError("");
 
-      const [patientData, medicalData, prescriptionData, vaccinationData, followupData, apptData] =
+      const [patientData, medicalData, prescriptionData, vaccinationData, followupData, apptData, batchData] =
         await Promise.all([
           getPatientById(id),
           getMedicalRecordsByPatient(id).catch(() => []),
@@ -98,6 +178,7 @@ export default function PatientProfile() {
           getVaccinationsByPatient(id).catch(() => []),
           getFollowupsByPatient(id).catch(() => []),
           getAppointmentsByPatient(id).catch(() => []),
+          getBatches().catch(() => []),
         ]);
 
       setPatient(patientData);
@@ -106,6 +187,7 @@ export default function PatientProfile() {
       setVaccinations(Array.isArray(vaccinationData) ? vaccinationData : []);
       setFollowups(Array.isArray(followupData) ? followupData : []);
       setAppointments(Array.isArray(apptData) ? apptData : []);
+      setBatches(Array.isArray(batchData) ? batchData : []);
     } catch (e) {
       console.error("Unable to load patient profile:", e);
       setError(
@@ -131,11 +213,16 @@ export default function PatientProfile() {
     }
     try {
       setSavingAction(true);
+      const finalBatch =
+        vacForm.batchNumber?.trim() ||
+        generateOrFetchBatch(vacForm.vaccineName, batches);
+
       await createVaccination({
         patientId: Number(id),
         vaccineName: vacForm.vaccineName.trim(),
         vaccineType: vacForm.vaccineType,
         dosage: vacForm.dosage,
+        batchNumber: finalBatch,
         vaccinationDate: vacForm.vaccinationDate,
         nextDueDate: vacForm.nextDueDate || null,
         status: vacForm.status || "Scheduled",
@@ -146,6 +233,7 @@ export default function PatientProfile() {
         vaccineName: "",
         vaccineType: "Routine",
         dosage: "1 ml",
+        batchNumber: "",
         vaccinationDate: new Date().toISOString().slice(0, 10),
         nextDueDate: "",
         status: "Scheduled",
@@ -243,37 +331,6 @@ export default function PatientProfile() {
         >
           Back to patients
         </Button>
-
-        {/* CLINICAL ACTION SHORTCUTS */}
-        <div className="flex-row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <Button
-            icon={FaPrescriptionBottleAlt}
-            onClick={() => navigate(`/prescriptions?patientId=${patient.id}`)}
-          >
-            Start Consultation / Prescribe
-          </Button>
-          <Button
-            variant="secondary"
-            icon={FiCalendar}
-            onClick={() => setVisitModalOpen(true)}
-          >
-            Book Visit
-          </Button>
-          <Button
-            variant="secondary"
-            icon={FaSyringe}
-            onClick={() => setVacModalOpen(true)}
-          >
-            Add Vaccine
-          </Button>
-          <Button
-            variant="secondary"
-            icon={FiClock}
-            onClick={() => setFuModalOpen(true)}
-          >
-            Schedule Follow-up
-          </Button>
-        </div>
       </div>
 
       {error && (
@@ -521,7 +578,7 @@ export default function PatientProfile() {
         <div className="panel">
           <div className="panel-header" style={{ marginBottom: 16 }}>
             <h3 className="panel-title">Vaccination Record</h3>
-            <Button size="sm" icon={FaSyringe} onClick={() => setVacModalOpen(true)}>
+            <Button size="sm" icon={FaSyringe} onClick={openAddVaccineModal}>
               Add Vaccine
             </Button>
           </div>
@@ -541,13 +598,15 @@ export default function PatientProfile() {
                   <Badge variant={isComp ? "success" : "warning"}>
                     {isComp ? "Completed" : "Scheduled"}
                   </Badge>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleToggleVaccine(v)}
-                  >
-                    {isComp ? "Mark scheduled" : "Mark completed"}
-                  </button>
+                  {!isComp && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleToggleVaccine(v)}
+                    >
+                      Mark completed
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -581,13 +640,15 @@ export default function PatientProfile() {
                   <Badge variant={isComp ? "success" : "warning"}>
                     {isComp ? "Completed" : "Scheduled"}
                   </Badge>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleToggleFollowup(f)}
-                  >
-                    {isComp ? "Mark scheduled" : "Mark completed"}
-                  </button>
+                  {!isComp && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleToggleFollowup(f)}
+                    >
+                      Mark completed
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -621,19 +682,6 @@ export default function PatientProfile() {
                 <Badge variant={a.status === "Completed" ? "success" : "navy"}>
                   {(a.status || "Scheduled").toUpperCase()}
                 </Badge>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() =>
-                    navigate(
-                      `/prescriptions?patientId=${patient.id}&appointmentId=${a.id}&visitType=${encodeURIComponent(
-                        a.appointmentType || "OPD Consultation"
-                      )}`
-                    )
-                  }
-                >
-                  Consult
-                </button>
               </div>
             ))}
             {!appointments.length && <p className="table-empty">No visits recorded.</p>}
@@ -660,9 +708,24 @@ export default function PatientProfile() {
           <Field label="Vaccine Name" className="col-span-2">
             <Input
               value={vacForm.vaccineName}
-              onChange={(e) => setVacForm({ ...vacForm, vaccineName: e.target.value })}
+              onChange={(e) => {
+                const name = e.target.value;
+                const autoBatch = generateOrFetchBatch(name, batches);
+                setVacForm({
+                  ...vacForm,
+                  vaccineName: name,
+                  batchNumber: autoBatch,
+                });
+              }}
               placeholder="e.g. Rabies, DHPP, Anti-rabies"
               autoFocus
+            />
+          </Field>
+          <Field label="Batch Number">
+            <Input
+              value={vacForm.batchNumber}
+              onChange={(e) => setVacForm({ ...vacForm, batchNumber: e.target.value })}
+              placeholder="Auto-fetched batch no."
             />
           </Field>
           <Field label="Vaccine Type">

@@ -610,6 +610,10 @@ h5 {
   border-bottom: 1px solid var(--border);
 }
 
+.table-card > .row-list {
+  padding: 8px 18px;
+}
+
 .row-item:last-child {
   border-bottom: none;
 }

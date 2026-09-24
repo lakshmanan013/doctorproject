@@ -9,7 +9,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
 
   if (token && token !== "zenve_demo_token") {
     config.headers.Authorization = `Bearer ${token}`;
@@ -24,6 +24,8 @@ api.interceptors.response.use(
     console.error("API request failed:", error?.response?.data || error.message);
 
     if (error?.response?.status === 401) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem("zenve_doctor_user");
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem("zenve_doctor_user");
 

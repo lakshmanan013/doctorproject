@@ -5,6 +5,19 @@
   flex-shrink: 0;
 }
 
+.table-card .row-list {
+  padding: 8px 16px;
+}
+
+.table-card .row-item {
+  padding: 14px 12px;
+  border-radius: 8px;
+}
+
+.table-card .row-item:hover {
+  background: rgba(248, 250, 252, 0.6);
+}
+
 @media (max-width: 560px) {
   .vaccination-row-actions {
     flex-direction: column;

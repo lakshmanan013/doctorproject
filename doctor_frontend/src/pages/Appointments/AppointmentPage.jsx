@@ -12,7 +12,7 @@ import {
   FiExternalLink,
   FiCalendar,
 } from "react-icons/fi";
-import { FaStethoscope, FaPrescriptionBottleAlt, FaSyringe } from "react-icons/fa";
+import { FaStethoscope, FaSyringe } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -181,24 +181,8 @@ export default function AppointmentPage() {
                 {(a.status || "Scheduled").toUpperCase()}
               </Badge>
 
-              <div className="flex-row" style={{ gap: 6, alignItems: "center" }}>
-                {/* Consultation / Prescription Action */}
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  style={{ gap: 4, padding: "6px 12px", fontSize: 12 }}
-                  onClick={() =>
-                    navigate(
-                      `/prescriptions?patientId=${a.patientId}&appointmentId=${a.id}&visitType=${encodeURIComponent(
-                        a.appointmentType || "OPD Consultation"
-                      )}`
-                    )
-                  }
-                  title="Start Consultation & Prescribe"
-                >
-                  <FaPrescriptionBottleAlt size={12} /> Consult
-                </button>
 
+              <div className="flex-row" style={{ gap: 6, alignItems: "center" }}>
                 {/* Follow-up shortcut */}
                 <button
                   type="button"
