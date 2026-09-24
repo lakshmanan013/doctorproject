@@ -18,12 +18,14 @@ public class DoctorService {
     private final DoctorRepository doctorRepository;
     private final NotificationService notificationService;
     private final DoctorAppNotifier doctorAppNotifier;
+    private final ZippyCrmNotifier zippyCrmNotifier;
 
     public DoctorService(DoctorRepository doctorRepository, NotificationService notificationService,
-            DoctorAppNotifier doctorAppNotifier) {
+            DoctorAppNotifier doctorAppNotifier, ZippyCrmNotifier zippyCrmNotifier) {
         this.doctorRepository = doctorRepository;
         this.notificationService = notificationService;
         this.doctorAppNotifier = doctorAppNotifier;
+        this.zippyCrmNotifier = zippyCrmNotifier;
     }
 
     public DoctorsResponse list(String statusFilter) {
@@ -96,6 +98,7 @@ public class DoctorService {
                 doctor.getId());
 
         doctorAppNotifier.notifyApproved(doctor);
+        zippyCrmNotifier.notifyApproved(doctor);
 
         return DoctorDto.from(doctor);
     }
@@ -117,6 +120,7 @@ public class DoctorService {
                 doctor.getId());
 
         doctorAppNotifier.notifyRejected(doctor);
+        zippyCrmNotifier.notifyRejected(doctor);
 
         return DoctorDto.from(doctor);
     }
@@ -187,6 +191,35 @@ public class DoctorService {
                 "New doctor registration",
                 doctor.getFullName() + " signed up and is waiting for approval.",
                 doctor.getId());
+
+        return DoctorDto.from(doctor);
+    }
+
+    @Transactional
+    public DoctorDto executiveAdd(ExecutiveDoctorAddRequest request) {
+        String email = request.email();
+        if (email == null || email.isBlank()) {
+            email = "doc_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@zenve.internal";
+        }
+
+        Doctor doctor = Doctor.builder()
+                .fullName(request.fullName().trim())
+                .email(email.trim().toLowerCase())
+                .phone(request.phone())
+                .qualification(request.qualification())
+                .city(request.city())
+                .pincode(request.pincode())
+                .status(DoctorStatus.pending)
+                .build();
+        doctorRepository.save(java.util.Objects.requireNonNull(doctor));
+
+        notificationService.notify(
+                NotificationType.doctor_registered,
+                "Executive added new doctor",
+                "Executive added " + doctor.getFullName() + ". They are waiting for approval.",
+                doctor.getId());
+
+        doctorAppNotifier.notifyExecutiveAdd(request, doctor.getEmail());
 
         return DoctorDto.from(doctor);
     }

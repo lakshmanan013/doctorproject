@@ -22,15 +22,18 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final OwnerRepository ownerRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public PatientService(
             PatientRepository patientRepository,
             OwnerRepository ownerRepository,
-            CurrentUserProvider currentUserProvider
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService
     ) {
         this.patientRepository = patientRepository;
         this.ownerRepository = ownerRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -88,6 +91,8 @@ public class PatientService {
 
         Patient savedPatient =
                 patientRepository.save(patient);
+
+        zippyCrmSyncService.syncPatient(savedPatient);
 
         return mapToResponse(savedPatient);
     }
@@ -480,6 +485,8 @@ public class PatientService {
 
         Patient updatedPatient =
                 patientRepository.save(patient);
+
+        zippyCrmSyncService.syncPatient(updatedPatient);
 
         return mapToResponse(updatedPatient);
     }

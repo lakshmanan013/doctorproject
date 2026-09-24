@@ -10,6 +10,8 @@ public class PrescriptionRequest {
 
     private Long medicalRecordId;
 
+    private Long appointmentId;
+
     private LocalDate prescriptionDate;
 
     private String diagnosis;
@@ -48,6 +50,18 @@ public class PrescriptionRequest {
 
     public void setMedicalRecordId(Long medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
+    }
+
+    // =========================
+    // Appointment
+    // =========================
+
+    public Long getAppointmentId() {
+        return appointmentId;
+    }
+
+    public void setAppointmentId(Long appointmentId) {
+        this.appointmentId = appointmentId;
     }
 
     // =========================

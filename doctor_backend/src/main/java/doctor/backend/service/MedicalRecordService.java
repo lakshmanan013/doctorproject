@@ -20,15 +20,18 @@ public class MedicalRecordService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final PatientRepository patientRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public MedicalRecordService(
             MedicalRecordRepository medicalRecordRepository,
             PatientRepository patientRepository,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
 
         this.medicalRecordRepository = medicalRecordRepository;
         this.patientRepository = patientRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -65,6 +68,8 @@ public class MedicalRecordService {
 
         MedicalRecord savedRecord =
                 medicalRecordRepository.save(record);
+
+        zippyCrmSyncService.syncMedicalRecord(savedRecord);
 
         return mapToResponse(savedRecord);
     }
@@ -232,6 +237,8 @@ public class MedicalRecordService {
 
         MedicalRecord updatedRecord =
                 medicalRecordRepository.save(record);
+
+        zippyCrmSyncService.syncMedicalRecord(updatedRecord);
 
         return mapToResponse(updatedRecord);
     }

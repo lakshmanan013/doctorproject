@@ -16,10 +16,15 @@ public class OwnerService {
 
     private final OwnerRepository ownerRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
-    public OwnerService(OwnerRepository ownerRepository, CurrentUserProvider currentUserProvider) {
+    public OwnerService(
+            OwnerRepository ownerRepository,
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
         this.ownerRepository = ownerRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // Create Owner
@@ -40,6 +45,7 @@ public class OwnerService {
         owner.setDoctorId(doctorId);
 
         Owner savedOwner = ownerRepository.save(owner);
+        zippyCrmSyncService.syncOwner(savedOwner);
 
         return mapToResponse(savedOwner);
     }
@@ -92,6 +98,7 @@ public class OwnerService {
         owner.setNotes(request.getNotes());
 
         Owner updatedOwner = ownerRepository.save(owner);
+        zippyCrmSyncService.syncOwner(updatedOwner);
 
         return mapToResponse(updatedOwner);
     }

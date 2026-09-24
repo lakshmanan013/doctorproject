@@ -31,6 +31,7 @@ export default function Prescription() {
   const [patients, setPatients] = useState([]);
   const [allMeds, setAllMeds] = useState([]);
   const [patientId, setPatientId] = useState(searchParams.get("patientId") || "");
+  const appointmentId = searchParams.get("appointmentId");
   const [diagnosis, setDiagnosis] = useState("");
   const [instructions, setInstructions] = useState("");
   const [notes, setNotes] = useState("");
@@ -40,6 +41,7 @@ export default function Prescription() {
   const [visitType, setVisitType] = useState(searchParams.get("visitType") || searchParams.get("type") || "OPD Consultation");
   const [complaint, setComplaint] = useState("");
   const [vitals, setVitals] = useState({ temp: "", pulse: "", resp: "" });
+  const [followUpDays, setFollowUpDays] = useState("7");
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [vaccineName, setVaccineName] = useState("");
@@ -84,6 +86,7 @@ export default function Prescription() {
 
     const payload = {
       patientId: Number(patientId),
+      appointmentId: appointmentId ? Number(appointmentId) : undefined,
       prescriptionDate: visitDate,
       diagnosis,
       instructions,
@@ -141,7 +144,7 @@ export default function Prescription() {
     } finally {
       setSaving(false);
     }
-  }, [patientId, notesWithPetFood, medicines, visitDate, diagnosis, instructions, doctor, consultationFee, followupFee, savedRx, complaint, patient, vitals, vaccineName, vaccineDueDate]);
+  }, [patientId, notesWithPetFood, medicines, visitDate, diagnosis, instructions, doctor, consultationFee, followupFee, savedRx, complaint, patient, vitals, vaccineName, vaccineDueDate, appointmentId]);
 
   useEffect(() => {
     latestNotesRef.current = notes;
@@ -579,13 +582,21 @@ export default function Prescription() {
         <Field label="Diagnosis"><Input value={diagnosis} onChange={e => setDiagnosis(e.target.value)} /></Field>
 
         <div>
-          <span className="eyebrow">Medicines</span>
+          <span className="eyebrow">Medicines (Inventory Connected)</span>
           <div className="stack-3" style={{ marginTop: 12 }}>
             {medicines.map(m => (
               <div key={m.id} className="rx-med-row">
                 <Select value={m.medicineId} onChange={e => updateMed(m.id, "medicineId", e.target.value)}>
-                  <option value="">Medicine</option>
-                  {allMeds.map(x => <option key={x.id} value={x.id}>{x.name} {x.strength || ""}</option>)}
+                  <option value="">Select medicine from inventory</option>
+                  {allMeds.map(x => {
+                    const stock = x.stockQuantity ?? 0;
+                    const stockTag = stock <= 0 ? " [Out of Stock]" : stock <= (x.reorderLevel ?? 5) ? ` [Low: ${stock}]` : ` [Stock: ${stock}]`;
+                    return (
+                      <option key={x.id} value={x.id}>
+                        {x.name} {x.strength || ""}{x.dosageForm ? ` (${x.dosageForm})` : ""}{stockTag}
+                      </option>
+                    );
+                  })}
                 </Select>
                 <Input placeholder="Dose" value={m.dosage} onChange={e => updateMed(m.id, "dosage", e.target.value)} />
                 <Input placeholder="Frequency" value={m.frequency} onChange={e => updateMed(m.id, "frequency", e.target.value)} />
@@ -601,10 +612,10 @@ export default function Prescription() {
         </div>
 
         <div className="rx-grid-4">
-          <Field label="Temp (°C)"><Input value={vitals.temp} onChange={e => setVitals({ ...vitals, temp: e.target.value })} /></Field>
-          <Field label="Pulse"><Input value={vitals.pulse} onChange={e => setVitals({ ...vitals, pulse: e.target.value })} /></Field>
-          <Field label="Resp"><Input value={vitals.resp} onChange={e => setVitals({ ...vitals, resp: e.target.value })} /></Field>
-          <Field label="Follow-up days"><Input placeholder="10" /></Field>
+          <Field label="Temp (°C)"><Input value={vitals.temp} onChange={e => setVitals({ ...vitals, temp: e.target.value })} placeholder="38.5" /></Field>
+          <Field label="Pulse"><Input value={vitals.pulse} onChange={e => setVitals({ ...vitals, pulse: e.target.value })} placeholder="80 bpm" /></Field>
+          <Field label="Resp"><Input value={vitals.resp} onChange={e => setVitals({ ...vitals, resp: e.target.value })} placeholder="24 /min" /></Field>
+          <Field label="Follow-up days"><Input type="number" min="0" value={followUpDays} onChange={e => setFollowUpDays(e.target.value)} placeholder="7" /></Field>
         </div>
 
         <Field label="Instructions"><Input value={instructions} onChange={e => setInstructions(e.target.value)} /></Field>

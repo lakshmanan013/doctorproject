@@ -21,15 +21,18 @@ public class VaccinationService {
     private final VaccinationRepository vaccinationRepository;
     private final PatientRepository patientRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public VaccinationService(
             VaccinationRepository vaccinationRepository,
             PatientRepository patientRepository,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
 
         this.vaccinationRepository = vaccinationRepository;
         this.patientRepository = patientRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -97,6 +100,8 @@ public class VaccinationService {
 
         Vaccination savedVaccination =
                 vaccinationRepository.save(vaccination);
+
+        zippyCrmSyncService.syncVaccination(savedVaccination);
 
         return mapToResponse(savedVaccination);
     }
@@ -389,6 +394,8 @@ public class VaccinationService {
 
         Vaccination updatedVaccination =
                 vaccinationRepository.save(vaccination);
+
+        zippyCrmSyncService.syncVaccination(updatedVaccination);
 
         return mapToResponse(updatedVaccination);
     }

@@ -110,7 +110,33 @@ public class DoctorAppNotifier {
         post(url, body, "status change for " + email);
     }
 
+    public void notifyExecutiveAdd(com.zenve.admin.dto.ExecutiveDoctorAddRequest request, String generatedEmail) {
+        String url = properties.baseUrl() + "/internal/doctors/executive-add";
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("fullName", request.fullName());
+        body.put("email", generatedEmail);
+        body.put("password", request.password());
+        body.put("phone", request.phone());
+        body.put("qualification", request.qualification());
+        body.put("specializations", request.specializations());
+        body.put("experienceYears", request.experienceYears());
+        body.put("consultationFee", request.consultationFee());
+        if (request.pincode() != null && !request.pincode().isBlank()) {
+            try {
+                body.put("pincode", Integer.parseInt(request.pincode()));
+            } catch (NumberFormatException ignored) {}
+        }
+        body.put("city", request.city());
+
+        postObj(url, body, "executive add for " + request.phone());
+    }
+
     private void post(String url, Map<String, String> body, String description) {
+        postObj(url, body, description);
+    }
+
+    private void postObj(String url, Object body, String description) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(SECRET_HEADER, properties.internalSecret() != null ? properties.internalSecret() : "");

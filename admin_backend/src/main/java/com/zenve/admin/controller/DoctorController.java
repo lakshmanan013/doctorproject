@@ -72,6 +72,15 @@ public class DoctorController {
         return doctorService.register(request);
     }
 
+    /**
+     * Called by Zippy CRM when an executive adds a new doctor.
+     */
+    @PostMapping("/executive-add")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DoctorDto executiveAdd(@Valid @RequestBody com.zenve.admin.dto.ExecutiveDoctorAddRequest request) {
+        return doctorService.executiveAdd(request);
+    }
+
     @PostMapping("/profile-sync")
     public DoctorDto syncProfile(@RequestBody java.util.Map<String, String> body) {
         return doctorService.syncProfile(body);

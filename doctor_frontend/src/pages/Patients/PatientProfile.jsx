@@ -1,447 +1,760 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiPlus,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiFileText,
+  FiActivity,
+  FiPhone,
+  FiMail,
+  FiMapPin,
+  FiExternalLink,
+} from "react-icons/fi";
+import { FaPrescriptionBottleAlt, FaSyringe, FaStethoscope } from "react-icons/fa";
+import toast from "react-hot-toast";
 
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
+import NewVisitModal from "../../components/modals/NewVisitModal";
+import Modal from "../../components/ui/Modal";
+import Input, { Field, Select, Textarea } from "../../components/ui/Input";
 
 import { getPatientById } from "../../services/patientService";
 import { getMedicalRecordsByPatient } from "../../services/medicalRecordService";
-import { getVaccinationsByPatient } from "../../services/vaccinationService";
+import {
+  getVaccinationsByPatient,
+  createVaccination,
+  updateVaccination,
+} from "../../services/vaccinationService";
+import { getPrescriptionsByPatient } from "../../services/prescriptionService";
+import {
+  getFollowupsByPatient,
+  createFollowup,
+  updateFollowup,
+} from "../../services/followupService";
+import { getAppointmentsByPatient } from "../../services/appointmentService";
+import { formatPrescriptionId } from "../Prescription/Prescription";
+
+const TABS = [
+  { key: "records", label: "Medical History", icon: FiActivity },
+  { key: "prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
+  { key: "vaccinations", label: "Vaccinations", icon: FaSyringe },
+  { key: "followups", label: "Follow-ups", icon: FiClock },
+  { key: "appointments", label: "Visits", icon: FiCalendar },
+];
 
 export default function PatientProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState("records");
   const [patient, setPatient] = useState(null);
   const [records, setRecords] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [vaccinations, setVaccinations] = useState([]);
+  const [followups, setFollowups] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Modals state
+  const [visitModalOpen, setVisitModalOpen] = useState(false);
+  const [vacModalOpen, setVacModalOpen] = useState(false);
+  const [vacForm, setVacForm] = useState({
+    vaccineName: "",
+    vaccineType: "Routine",
+    dosage: "1 ml",
+    vaccinationDate: new Date().toISOString().slice(0, 10),
+    nextDueDate: "",
+    status: "Scheduled",
+  });
+  const [fuModalOpen, setFuModalOpen] = useState(false);
+  const [fuForm, setFuForm] = useState({
+    followUpDate: new Date().toISOString().slice(0, 10),
+    nextFollowUpDate: "",
+    reason: "",
+    notes: "",
+    status: "Scheduled",
+  });
+  const [savingAction, setSavingAction] = useState(false);
+
   // =====================================================
-  // LOAD PATIENT PROFILE
+  // LOAD PATIENT PROFILE & ALL CONNECTED DATA
   // =====================================================
+
+  const loadAll = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [patientData, medicalData, prescriptionData, vaccinationData, followupData, apptData] =
+        await Promise.all([
+          getPatientById(id),
+          getMedicalRecordsByPatient(id).catch(() => []),
+          getPrescriptionsByPatient(id).catch(() => []),
+          getVaccinationsByPatient(id).catch(() => []),
+          getFollowupsByPatient(id).catch(() => []),
+          getAppointmentsByPatient(id).catch(() => []),
+        ]);
+
+      setPatient(patientData);
+      setRecords(Array.isArray(medicalData) ? medicalData : []);
+      setPrescriptions(Array.isArray(prescriptionData) ? prescriptionData : []);
+      setVaccinations(Array.isArray(vaccinationData) ? vaccinationData : []);
+      setFollowups(Array.isArray(followupData) ? followupData : []);
+      setAppointments(Array.isArray(apptData) ? apptData : []);
+    } catch (e) {
+      console.error("Unable to load patient profile:", e);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          "Unable to load patient profile."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const [patientData, medicalData, vaccinationData] =
-          await Promise.all([
-            getPatientById(id),
-
-            getMedicalRecordsByPatient(id).catch(() => []),
-
-            getVaccinationsByPatient(id).catch(() => []),
-          ]);
-
-        console.log("Patient profile:", patientData);
-
-        setPatient(patientData);
-
-        setRecords(
-          Array.isArray(medicalData)
-            ? medicalData
-            : []
-        );
-
-        setVaccinations(
-          Array.isArray(vaccinationData)
-            ? vaccinationData
-            : []
-        );
-      } catch (e) {
-        console.error(
-          "Unable to load patient:",
-          e
-        );
-
-        setError(
-          e?.response?.data?.message ||
-            e?.response?.data?.error ||
-            "Unable to load patient."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) {
-      load();
+      loadAll();
     }
   }, [id]);
 
-  // =====================================================
-  // LOADING
-  // =====================================================
+  // Handle Quick Add Vaccination
+  const handleCreateVaccination = async () => {
+    if (!vacForm.vaccineName.trim()) {
+      return toast.error("Vaccine name is required");
+    }
+    try {
+      setSavingAction(true);
+      await createVaccination({
+        patientId: Number(id),
+        vaccineName: vacForm.vaccineName.trim(),
+        vaccineType: vacForm.vaccineType,
+        dosage: vacForm.dosage,
+        vaccinationDate: vacForm.vaccinationDate,
+        nextDueDate: vacForm.nextDueDate || null,
+        status: vacForm.status || "Scheduled",
+      });
+      toast.success("Vaccination recorded");
+      setVacModalOpen(false);
+      setVacForm({
+        vaccineName: "",
+        vaccineType: "Routine",
+        dosage: "1 ml",
+        vaccinationDate: new Date().toISOString().slice(0, 10),
+        nextDueDate: "",
+        status: "Scheduled",
+      });
+      loadAll();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Could not record vaccination");
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  // Handle Quick Schedule Follow-up
+  const handleCreateFollowup = async () => {
+    if (!fuForm.followUpDate) {
+      return toast.error("Follow-up date is required");
+    }
+    try {
+      setSavingAction(true);
+      await createFollowup({
+        patientId: Number(id),
+        followUpDate: fuForm.followUpDate,
+        nextFollowUpDate: fuForm.nextFollowUpDate || fuForm.followUpDate,
+        reason: fuForm.reason || "Routine follow-up",
+        notes: fuForm.notes,
+        status: fuForm.status || "Scheduled",
+      });
+      toast.success("Follow-up scheduled");
+      setFuModalOpen(false);
+      setFuForm({
+        followUpDate: new Date().toISOString().slice(0, 10),
+        nextFollowUpDate: "",
+        reason: "",
+        notes: "",
+        status: "Scheduled",
+      });
+      loadAll();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Could not schedule follow-up");
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  // Toggle Vaccination Status
+  const handleToggleVaccine = async (v) => {
+    const isCompleted = String(v.status || "").toUpperCase() === "COMPLETED";
+    const nextStatus = isCompleted ? "SCHEDULED" : "COMPLETED";
+    try {
+      await updateVaccination(v.id, { status: nextStatus });
+      toast.success(`Vaccination marked ${nextStatus.toLowerCase()}`);
+      loadAll();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Could not update status");
+    }
+  };
+
+  // Toggle Follow-up Status
+  const handleToggleFollowup = async (f) => {
+    const isCompleted = String(f.status || "").toUpperCase() === "COMPLETED";
+    const nextStatus = isCompleted ? "SCHEDULED" : "COMPLETED";
+    try {
+      await updateFollowup(f.id, { ...f, status: nextStatus });
+      toast.success(`Follow-up marked ${nextStatus.toLowerCase()}`);
+      loadAll();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Could not update follow-up");
+    }
+  };
 
   if (loading) {
     return (
       <div className="table-card">
-        <div className="table-empty">
-          Loading patient...
-        </div>
+        <div className="table-empty">Loading patient profile...</div>
       </div>
     );
   }
-
-  // =====================================================
-  // PATIENT NOT FOUND
-  // =====================================================
 
   if (!patient) {
     return (
       <div className="table-card">
-        <div className="table-empty">
-          {error || "Patient not found."}
-        </div>
+        <div className="table-empty">{error || "Patient not found."}</div>
       </div>
     );
   }
 
-  // =====================================================
-  // PATIENT PROFILE
-  // =====================================================
-
   return (
     <div className="stack-6">
+      {/* HEADER BAR */}
+      <div className="appt-toolbar">
+        <Button
+          variant="secondary"
+          icon={FiArrowLeft}
+          onClick={() => navigate("/patients")}
+        >
+          Back to patients
+        </Button>
 
-      {/* =================================================
-          BACK BUTTON
-      ================================================= */}
-
-      <Button
-        variant="secondary"
-        icon={FiArrowLeft}
-        onClick={() => navigate("/patients")}
-      >
-        Back to patients
-      </Button>
-
-      {/* =================================================
-          ERROR
-      ================================================= */}
+        {/* CLINICAL ACTION SHORTCUTS */}
+        <div className="flex-row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <Button
+            icon={FaPrescriptionBottleAlt}
+            onClick={() => navigate(`/prescriptions?patientId=${patient.id}`)}
+          >
+            Start Consultation / Prescribe
+          </Button>
+          <Button
+            variant="secondary"
+            icon={FiCalendar}
+            onClick={() => setVisitModalOpen(true)}
+          >
+            Book Visit
+          </Button>
+          <Button
+            variant="secondary"
+            icon={FaSyringe}
+            onClick={() => setVacModalOpen(true)}
+          >
+            Add Vaccine
+          </Button>
+          <Button
+            variant="secondary"
+            icon={FiClock}
+            onClick={() => setFuModalOpen(true)}
+          >
+            Schedule Follow-up
+          </Button>
+        </div>
+      </div>
 
       {error && (
-        <div
-          className="table-card"
-          style={{
-            padding: 14,
-            color: "#be123c",
-          }}
-        >
+        <div className="table-card" style={{ padding: 14, color: "#be123c" }}>
           {error}
         </div>
       )}
 
-      {/* =================================================
-          PATIENT INFORMATION
-      ================================================= */}
-
+      {/* PATIENT & PARENT INFO PANEL */}
       <div className="panel">
+        <div className="cell-primary" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div className="flex-row" style={{ gap: 16, alignItems: "center" }}>
+            <div
+              className="row-avatar"
+              style={{ width: 56, height: 56, fontSize: 28 }}
+            >
+              {patient.icon || "🐾"}
+            </div>
 
-        <div className="cell-primary">
+            <div>
+              <div className="flex-row" style={{ gap: 8, alignItems: "center" }}>
+                <h2 className="panel-title" style={{ fontSize: 22, margin: 0 }}>
+                  {patient.name || "Unnamed patient"}
+                </h2>
+                {patient.petId && (
+                  <Badge variant="navy">{patient.petId}</Badge>
+                )}
+                <Badge variant={patient.status === "ACTIVE" ? "success" : "slate"}>
+                  {patient.status || "ACTIVE"}
+                </Badge>
+              </div>
 
-          {/* PET ICON */}
-
-          <div
-            className="row-avatar"
-            style={{
-              width: 52,
-              height: 52,
-            }}
-          >
-            {patient.icon || "🐾"}
+              <p className="panel-subtitle" style={{ marginTop: 4 }}>
+                {[patient.species, patient.breed, patient.gender, patient.weight ? `${patient.weight} kg` : null]
+                  .filter(Boolean)
+                  .join(" · ") || "Pet Patient"}
+              </p>
+            </div>
           </div>
 
-          {/* PET NAME + PET ID */}
-
-          <div>
-
-            {/* Pet Name */}
-
-            <h2 className="panel-title">
-              {patient.name || "Unnamed patient"}
-            </h2>
-
-            {/* =================================================
-                AUTOMATIC PET ID
-                Example:
-                Bruno
-                DOG-0001
-            ================================================= */}
-
-            {patient.petId && (
-              <p
-                style={{
-                  margin: "4px 0 6px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  letterSpacing: "0.4px",
-                  opacity: 0.7,
-                }}
-              >
-                {patient.petId}
-              </p>
-            )}
-
-            {/* Species + Breed */}
-
-            <p className="panel-subtitle">
-              {patient.species || "—"}
-              {" · "}
-              {patient.breed || "—"}
+          {/* PARENT / OWNER SUMMARY CARD */}
+          <div
+            style={{
+              padding: "12px 18px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              minWidth: 260,
+            }}
+          >
+            <p className="eyebrow" style={{ marginBottom: 4 }}>
+              Parent (Owner) Details
             </p>
-
+            <p className="cell-title" style={{ fontSize: 14 }}>
+              {patient.ownerName || "—"}
+            </p>
+            <div className="cell-sub" style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
+              {patient.ownerPhone && (
+                <span className="flex-row" style={{ gap: 6, alignItems: "center" }}>
+                  <FiPhone size={12} /> {patient.ownerPhone}
+                </span>
+              )}
+              {patient.ownerEmail && (
+                <span className="flex-row" style={{ gap: 6, alignItems: "center" }}>
+                  <FiMail size={12} /> {patient.ownerEmail}
+                </span>
+              )}
+              {(patient.ownerCity || patient.ownerAddress) && (
+                <span className="flex-row" style={{ gap: 6, alignItems: "center" }}>
+                  <FiMapPin size={12} /> {[patient.ownerAddress, patient.ownerCity].filter(Boolean).join(", ")}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* =================================================
-            PATIENT DETAILS
-        ================================================= */}
-
+        {/* DETAILS GRID */}
         <div
           className="rx-preview-grid"
           style={{
-            marginTop: 24,
-            paddingTop: 20,
+            marginTop: 20,
+            paddingTop: 16,
             borderTop: "1px solid var(--border)",
           }}
         >
-
-          {/* OWNER */}
-
           <div>
-            <p className="eyebrow">
-              Owner
-            </p>
-
-            <p className="cell-title">
-              {patient.ownerName || "—"}
-            </p>
+            <p className="eyebrow">Date of Birth</p>
+            <p className="cell-title">{patient.dateOfBirth || "—"}</p>
           </div>
-
-          {/* PHONE */}
-
           <div>
-            <p className="eyebrow">
-              Phone
-            </p>
-
-            <p className="cell-title">
-              {patient.ownerPhone || "—"}
-            </p>
+            <p className="eyebrow">Weight</p>
+            <p className="cell-title">{patient.weight != null ? `${patient.weight} kg` : "—"}</p>
           </div>
-
-          {/* EMAIL */}
-
           <div>
-            <p className="eyebrow">
-              Registered Email
-            </p>
-
-            <p className="cell-title">
-              {patient.ownerEmail || "—"}
-            </p>
+            <p className="eyebrow">Gender</p>
+            <p className="cell-title">{patient.gender || "—"}</p>
           </div>
-
-          {/* ADDRESS */}
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <p className="eyebrow">
-              Address
-            </p>
-
-            <p className="cell-title">
-              {[
-                patient.ownerAddress,
-                patient.ownerCity,
-                patient.ownerState,
-                patient.ownerPincode,
-              ]
-                .filter(Boolean)
-                .join(", ") || "—"}
-            </p>
-          </div>
-
-          {/* GENDER */}
-
           <div>
-            <p className="eyebrow">
-              Gender
-            </p>
-
-            <p className="cell-title">
-              {patient.gender || "—"}
+            <p className="eyebrow">Medical Alerts</p>
+            <p className="cell-title" style={{ color: patient.medicalAlerts ? "#e11d48" : "inherit" }}>
+              {patient.medicalAlerts || "None"}
             </p>
           </div>
-
-          {/* WEIGHT */}
-
-          <div>
-            <p className="eyebrow">
-              Weight
-            </p>
-
-            <p className="cell-title">
-              {patient.weight != null
-                ? `${patient.weight} kg`
-                : "—"}
-            </p>
-          </div>
-
-          {/* STATUS */}
-
-          <div>
-            <p className="eyebrow">
-              Status
-            </p>
-
-            <Badge variant="success">
-              {patient.status || "ACTIVE"}
-            </Badge>
-          </div>
-
         </div>
       </div>
 
-      {/* =================================================
-          MEDICAL HISTORY + VACCINATIONS
-      ================================================= */}
+      {/* TIMELINE TABS */}
+      <div className="filter-row">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const count =
+            t.key === "records"
+              ? records.length
+              : t.key === "prescriptions"
+              ? prescriptions.length
+              : t.key === "vaccinations"
+              ? vaccinations.length
+              : t.key === "followups"
+              ? followups.length
+              : appointments.length;
 
-      <div
-        className="dashboard-grid"
-        style={{
-          marginTop: 28,
-          gap: 24,
-        }}
-      >
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`filter-chip ${activeTab === t.key ? "active" : ""}`}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <Icon size={14} /> {t.label} ({count})
+            </button>
+          );
+        })}
+      </div>
 
-        {/* =================================================
-            MEDICAL HISTORY
-        ================================================= */}
-
+      {/* TAB CONTENT: MEDICAL RECORDS (CONSULTATIONS) */}
+      {activeTab === "records" && (
         <div className="panel">
-
           <div className="panel-header" style={{ marginBottom: 16 }}>
-            <h3 className="panel-title">
-              Medical history
-            </h3>
-            {records.length > 0 && (
-              <Badge variant="navy">
-                {records.length} {records.length === 1 ? "record" : "records"}
-              </Badge>
-            )}
+            <h3 className="panel-title">Consultations & Medical Records</h3>
+            <Button
+              size="sm"
+              icon={FaPrescriptionBottleAlt}
+              onClick={() => navigate(`/prescriptions?patientId=${patient.id}`)}
+            >
+              New Consultation
+            </Button>
           </div>
 
           <div className="row-list">
-
-            {records.map((record) => (
-              <div
-                className="row-item"
-                key={record.id}
-                style={{ marginBottom: 10 }}
-              >
+            {records.map((r) => (
+              <div key={r.id} className="row-item" style={{ alignItems: "flex-start" }}>
                 <div className="row-body">
-
-                  <p className="row-title">
-                    {record.visitDate || "—"}
-                    {" · "}
-                    {record.diagnosis || "Visit"}
-                  </p>
-
-                  <p className="row-desc">
-                    {record.chiefComplaint ||
-                      record.symptoms ||
-                      record.treatment ||
-                      "No notes"}
-                  </p>
-
+                  <div className="flex-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <p className="row-title" style={{ fontSize: 15 }}>
+                      {r.visitDate || "—"} · {r.diagnosis || "Consultation"}
+                    </p>
+                    <span className="cell-sub">{r.doctorName ? `Dr. ${r.doctorName.replace(/^Dr\.?\s*/i, "")}` : ""}</span>
+                  </div>
+                  {r.chiefComplaint && (
+                    <p className="row-desc" style={{ marginTop: 4 }}>
+                      <strong>Complaint:</strong> {r.chiefComplaint}
+                    </p>
+                  )}
+                  {r.symptoms && (
+                    <p className="row-desc">
+                      <strong>Symptoms:</strong> {r.symptoms}
+                    </p>
+                  )}
+                  {r.treatment && (
+                    <p className="row-desc">
+                      <strong>Treatment:</strong> {r.treatment}
+                    </p>
+                  )}
+                  {r.notes && (
+                    <p className="row-desc" style={{ fontStyle: "italic" }}>
+                      <strong>Notes:</strong> {r.notes}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
-
-            {!records.length && (
-              <p className="table-empty">
-                No medical records.
-              </p>
-            )}
-
+            {!records.length && <p className="table-empty">No medical records on file.</p>}
           </div>
         </div>
+      )}
 
-        {/* =================================================
-            VACCINATIONS
-        ================================================= */}
-
+      {/* TAB CONTENT: PRESCRIPTIONS */}
+      {activeTab === "prescriptions" && (
         <div className="panel">
-
           <div className="panel-header" style={{ marginBottom: 16 }}>
-            <h3 className="panel-title">
-              Vaccinations
-            </h3>
-            {vaccinations.length > 0 && (
-              <Badge variant="navy">
-                {vaccinations.length} {vaccinations.length === 1 ? "vaccine" : "vaccines"}
-              </Badge>
-            )}
+            <h3 className="panel-title">Prescriptions History</h3>
+            <Button
+              size="sm"
+              icon={FaPrescriptionBottleAlt}
+              onClick={() => navigate(`/prescriptions?patientId=${patient.id}`)}
+            >
+              New Prescription
+            </Button>
           </div>
 
           <div className="row-list">
-
-            {vaccinations.map((vaccination) => (
-              <div
-                className="row-item"
-                key={vaccination.id}
-                style={{ marginBottom: 10 }}
-              >
-
+            {prescriptions.map((rx) => (
+              <div key={rx.id} className="row-item" style={{ alignItems: "flex-start" }}>
                 <div className="row-body">
-
-                  <p className="row-title">
-                    {vaccination.vaccineName}
+                  <div className="flex-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <p className="row-title" style={{ fontSize: 15 }}>
+                      Prescription #{formatPrescriptionId(rx.id, rx.prescriptionDate)} · {rx.prescriptionDate || "—"}
+                    </p>
+                    <button
+                      type="button"
+                      className="link-action"
+                      onClick={() => navigate(`/prescriptions?id=${rx.id}&patientId=${patient.id}`)}
+                      title="Open in Prescriptions"
+                    >
+                      Open <FiExternalLink size={13} />
+                    </button>
+                  </div>
+                  <p className="row-desc" style={{ fontWeight: 600 }}>
+                    Diagnosis: {rx.diagnosis || "General Consultation"}
                   </p>
-
-                  <p className="row-desc">
-                    Given{" "}
-                    {vaccination.vaccinationDate ||
-                      "—"}
-                    {" · "}
-                    Next{" "}
-                    {vaccination.nextDueDate ||
-                      "—"}
-                  </p>
-
+                  {rx.items && rx.items.length > 0 && (
+                    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {rx.items.map((it, idx) => (
+                        <Badge key={idx} variant="info">
+                          💊 {it.medicineName || "Medicine"} {it.dosage ? `(${it.dosage})` : ""} {it.frequency || ""}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {rx.instructions && (
+                    <p className="row-desc" style={{ marginTop: 6 }}>
+                      <strong>Instructions:</strong> {rx.instructions}
+                    </p>
+                  )}
                 </div>
+              </div>
+            ))}
+            {!prescriptions.length && <p className="table-empty">No prescriptions issued yet.</p>}
+          </div>
+        </div>
+      )}
 
-                <Badge
-                  variant={
-                    vaccination.status ===
-                    "COMPLETED"
-                      ? "success"
-                      : "warning"
+      {/* TAB CONTENT: VACCINATIONS */}
+      {activeTab === "vaccinations" && (
+        <div className="panel">
+          <div className="panel-header" style={{ marginBottom: 16 }}>
+            <h3 className="panel-title">Vaccination Record</h3>
+            <Button size="sm" icon={FaSyringe} onClick={() => setVacModalOpen(true)}>
+              Add Vaccine
+            </Button>
+          </div>
+
+          <div className="row-list">
+            {vaccinations.map((v) => {
+              const isComp = String(v.status || "").toUpperCase() === "COMPLETED";
+              return (
+                <div key={v.id} className="row-item">
+                  <div className="row-body">
+                    <p className="row-title">{v.vaccineName || "Vaccine"}</p>
+                    <p className="row-desc">
+                      Given: {v.vaccinationDate || "—"} · Next Due: {v.nextDueDate || "—"}
+                      {v.batchNumber ? ` · Batch: ${v.batchNumber}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant={isComp ? "success" : "warning"}>
+                    {isComp ? "Completed" : "Scheduled"}
+                  </Badge>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleToggleVaccine(v)}
+                  >
+                    {isComp ? "Mark scheduled" : "Mark completed"}
+                  </button>
+                </div>
+              );
+            })}
+            {!vaccinations.length && <p className="table-empty">No vaccinations recorded.</p>}
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: FOLLOW-UPS */}
+      {activeTab === "followups" && (
+        <div className="panel">
+          <div className="panel-header" style={{ marginBottom: 16 }}>
+            <h3 className="panel-title">Follow-up Schedule</h3>
+            <Button size="sm" icon={FiClock} onClick={() => setFuModalOpen(true)}>
+              Schedule Follow-up
+            </Button>
+          </div>
+
+          <div className="row-list">
+            {followups.map((f) => {
+              const isComp = String(f.status || "").toUpperCase() === "COMPLETED";
+              return (
+                <div key={f.id} className="row-item">
+                  <div className="row-body">
+                    <p className="row-title">{f.reason || "Routine Follow-up"}</p>
+                    <p className="row-desc">
+                      Date: {f.nextFollowUpDate || f.followUpDate || "—"}
+                      {f.notes ? ` · ${f.notes}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant={isComp ? "success" : "warning"}>
+                    {isComp ? "Completed" : "Scheduled"}
+                  </Badge>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleToggleFollowup(f)}
+                  >
+                    {isComp ? "Mark scheduled" : "Mark completed"}
+                  </button>
+                </div>
+              );
+            })}
+            {!followups.length && <p className="table-empty">No follow-ups scheduled.</p>}
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: APPOINTMENTS */}
+      {activeTab === "appointments" && (
+        <div className="panel">
+          <div className="panel-header" style={{ marginBottom: 16 }}>
+            <h3 className="panel-title">Appointments & Visits</h3>
+            <Button size="sm" icon={FiCalendar} onClick={() => setVisitModalOpen(true)}>
+              Book Visit
+            </Button>
+          </div>
+
+          <div className="row-list">
+            {appointments.map((a) => (
+              <div key={a.id} className="row-item">
+                <div className="row-body">
+                  <p className="row-title">
+                    {a.appointmentDate || "—"} at {a.appointmentTime || "—"} · {a.appointmentType || "Visit"}
+                  </p>
+                  <p className="row-desc">
+                    {a.reason ? `Reason: ${a.reason}` : "General Visit"}
+                    {a.doctorName ? ` · Dr. ${a.doctorName.replace(/^Dr\.?\s*/i, "")}` : ""}
+                  </p>
+                </div>
+                <Badge variant={a.status === "Completed" ? "success" : "navy"}>
+                  {(a.status || "Scheduled").toUpperCase()}
+                </Badge>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() =>
+                    navigate(
+                      `/prescriptions?patientId=${patient.id}&appointmentId=${a.id}&visitType=${encodeURIComponent(
+                        a.appointmentType || "OPD Consultation"
+                      )}`
+                    )
                   }
                 >
-                  {vaccination.status ||
-                    "Scheduled"}
-                </Badge>
-
+                  Consult
+                </button>
               </div>
             ))}
-
-            {!vaccinations.length && (
-              <p className="table-empty">
-                No vaccinations.
-              </p>
-            )}
-
+            {!appointments.length && <p className="table-empty">No visits recorded.</p>}
           </div>
         </div>
+      )}
 
-      </div>
+      {/* MODALS */}
+      <NewVisitModal
+        open={visitModalOpen}
+        onClose={() => setVisitModalOpen(false)}
+        onCreated={loadAll}
+        appointment={{ patientId: patient.id }}
+      />
+
+      {/* VACCINATION MODAL */}
+      <Modal
+        open={vacModalOpen}
+        onClose={() => setVacModalOpen(false)}
+        title="Record Vaccination"
+        subtitle={`Add vaccination record for ${patient.name}`}
+      >
+        <div className="form-grid-2">
+          <Field label="Vaccine Name" className="col-span-2">
+            <Input
+              value={vacForm.vaccineName}
+              onChange={(e) => setVacForm({ ...vacForm, vaccineName: e.target.value })}
+              placeholder="e.g. Rabies, DHPP, Anti-rabies"
+              autoFocus
+            />
+          </Field>
+          <Field label="Vaccine Type">
+            <Select
+              value={vacForm.vaccineType}
+              onChange={(e) => setVacForm({ ...vacForm, vaccineType: e.target.value })}
+            >
+              <option value="Routine">Routine</option>
+              <option value="Core">Core</option>
+              <option value="Non-Core">Non-Core</option>
+              <option value="Booster">Booster</option>
+            </Select>
+          </Field>
+          <Field label="Dosage">
+            <Input
+              value={vacForm.dosage}
+              onChange={(e) => setVacForm({ ...vacForm, dosage: e.target.value })}
+            />
+          </Field>
+          <Field label="Vaccination Date">
+            <Input
+              type="date"
+              value={vacForm.vaccinationDate}
+              onChange={(e) => setVacForm({ ...vacForm, vaccinationDate: e.target.value })}
+            />
+          </Field>
+          <Field label="Next Due Date">
+            <Input
+              type="date"
+              value={vacForm.nextDueDate}
+              onChange={(e) => setVacForm({ ...vacForm, nextDueDate: e.target.value })}
+            />
+          </Field>
+        </div>
+        <div className="modal-actions">
+          <Button variant="secondary" onClick={() => setVacModalOpen(false)} disabled={savingAction}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateVaccination} disabled={savingAction}>
+            {savingAction ? "Saving..." : "Save Vaccine"}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* FOLLOW-UP MODAL */}
+      <Modal
+        open={fuModalOpen}
+        onClose={() => setFuModalOpen(false)}
+        title="Schedule Follow-up"
+        subtitle={`Schedule follow-up check for ${patient.name}`}
+      >
+        <div className="form-grid-2">
+          <Field label="Follow-up Date">
+            <Input
+              type="date"
+              value={fuForm.followUpDate}
+              onChange={(e) => setFuForm({ ...fuForm, followUpDate: e.target.value })}
+              autoFocus
+            />
+          </Field>
+          <Field label="Next Follow-up Due">
+            <Input
+              type="date"
+              value={fuForm.nextFollowUpDate}
+              onChange={(e) => setFuForm({ ...fuForm, nextFollowUpDate: e.target.value })}
+            />
+          </Field>
+          <Field label="Reason" className="col-span-2">
+            <Input
+              value={fuForm.reason}
+              onChange={(e) => setFuForm({ ...fuForm, reason: e.target.value })}
+              placeholder="e.g. Post-treatment recovery check"
+            />
+          </Field>
+          <Field label="Clinical Notes" className="col-span-2">
+            <Textarea
+              rows={2}
+              value={fuForm.notes}
+              onChange={(e) => setFuForm({ ...fuForm, notes: e.target.value })}
+              placeholder="Enter any instructions or reminders"
+            />
+          </Field>
+        </div>
+        <div className="modal-actions">
+          <Button variant="secondary" onClick={() => setFuModalOpen(false)} disabled={savingAction}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateFollowup} disabled={savingAction}>
+            {savingAction ? "Scheduling..." : "Schedule Follow-up"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

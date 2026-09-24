@@ -1,6 +1,7 @@
 package doctor.backend.service;
 
 import doctor.backend.dto.followup.FollowUpRequest;
+import doctor.backend.dto.inventory.StockMovementRequest;
 import doctor.backend.dto.invoice.InvoiceRequest;
 import doctor.backend.dto.prescription.PrescriptionItemRequest;
 import doctor.backend.dto.prescription.PrescriptionItemResponse;
@@ -12,6 +13,7 @@ import doctor.backend.entity.Owner;
 import doctor.backend.entity.Patient;
 import doctor.backend.entity.Prescription;
 import doctor.backend.entity.PrescriptionItem;
+import doctor.backend.repository.AppointmentRepository;
 import doctor.backend.repository.MedicalRecordRepository;
 import doctor.backend.repository.MedicineRepository;
 import doctor.backend.repository.PatientRepository;
@@ -44,7 +46,10 @@ public class PrescriptionService {
     private final MedicineRepository medicineRepository;
     private final FollowUpService followUpService;
     private final InvoiceService invoiceService;
+    private final InventoryService inventoryService;
+    private final AppointmentRepository appointmentRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public PrescriptionService(
             PrescriptionRepository prescriptionRepository,
@@ -53,7 +58,10 @@ public class PrescriptionService {
             MedicineRepository medicineRepository,
             FollowUpService followUpService,
             InvoiceService invoiceService,
-            CurrentUserProvider currentUserProvider) {
+            InventoryService inventoryService,
+            AppointmentRepository appointmentRepository,
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
 
         this.prescriptionRepository = prescriptionRepository;
         this.patientRepository = patientRepository;
@@ -61,7 +69,10 @@ public class PrescriptionService {
         this.medicineRepository = medicineRepository;
         this.followUpService = followUpService;
         this.invoiceService = invoiceService;
+        this.inventoryService = inventoryService;
+        this.appointmentRepository = appointmentRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -156,6 +167,14 @@ public class PrescriptionService {
 
         Prescription savedPrescription =
                 prescriptionRepository.save(prescription);
+
+        zippyCrmSyncService.syncPrescription(savedPrescription);
+
+        // Deduct inventory stock for prescribed medicines
+        deductInventoryForPrescription(savedPrescription);
+
+        // Mark associated appointment as Completed if an appointment ID was provided
+        completeAppointmentIfPresent(request.getAppointmentId(), doctorId);
 
         // A prescription is the trigger for both a routine follow-up
         // check-in and the bill for the medicines dispensed. Neither
@@ -645,7 +664,67 @@ public class PrescriptionService {
         Prescription updatedPrescription =
                 prescriptionRepository.save(prescription);
 
+        zippyCrmSyncService.syncPrescription(updatedPrescription);
+
+        // Deduct inventory stock for prescribed medicines
+        deductInventoryForPrescription(updatedPrescription);
+
+        // Mark associated appointment as Completed if an appointment ID was provided
+        completeAppointmentIfPresent(request.getAppointmentId(), doctorId);
+
         return mapToResponse(updatedPrescription);
+    }
+
+    // =====================================================
+    // DEDUCT INVENTORY FOR PRESCRIPTION
+    // =====================================================
+
+    private void deductInventoryForPrescription(Prescription prescription) {
+        if (prescription.getItems() == null || prescription.getItems().isEmpty()) {
+            return;
+        }
+
+        for (PrescriptionItem item : prescription.getItems()) {
+            try {
+                if (item.getMedicine() != null && item.getMedicine().getId() != null) {
+                    int qty = parseQuantity(item.getQuantity());
+                    if (qty > 0) {
+                        StockMovementRequest movementRequest = new StockMovementRequest();
+                        movementRequest.setMedicineId(item.getMedicine().getId());
+                        movementRequest.setMovementType("PRESCRIPTION");
+                        movementRequest.setQuantity(qty);
+                        movementRequest.setReferenceType("PRESCRIPTION");
+                        movementRequest.setReferenceId(prescription.getId());
+                        movementRequest.setReason("Prescription #" + prescription.getId() + " - "
+                                + (prescription.getPatient() != null ? prescription.getPatient().getName() : "Patient"));
+                        movementRequest.setPerformedBy(prescription.getDoctorName());
+                        inventoryService.createStockMovement(movementRequest);
+                    }
+                }
+            } catch (Exception ex) {
+                // Non-fatal if stock is low or already deducted — keep prescription flow resilient
+            }
+        }
+    }
+
+    // =====================================================
+    // COMPLETE APPOINTMENT IF LINKED
+    // =====================================================
+
+    private void completeAppointmentIfPresent(Long appointmentId, Long doctorId) {
+        if (appointmentId == null) {
+            return;
+        }
+
+        try {
+            appointmentRepository.findByIdAndDoctorId(appointmentId, doctorId).ifPresent(appointment -> {
+                appointment.setStatus("Completed");
+                appointmentRepository.save(appointment);
+                zippyCrmSyncService.syncAppointment(appointment);
+            });
+        } catch (Exception ex) {
+            // Non-fatal — do not block prescription completion
+        }
     }
 
     // =====================================================

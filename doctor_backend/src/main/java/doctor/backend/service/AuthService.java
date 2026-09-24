@@ -178,6 +178,69 @@ public class AuthService {
     }
 
     // =====================================================
+    // EXECUTIVE-CREATED ACCOUNT
+    // Called when an executive adds a doctor from Zippy CRM.
+    // The account is created with PENDING status until approved by admin.
+    // =====================================================
+
+    public void createPendingExecutiveAccount(doctor.backend.dto.auth.ExecutiveDoctorAddRequest request) {
+        String email = request.getEmail();
+        if (email == null || email.isBlank()) {
+            email = "doc_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@zenve.internal";
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new BadRequestException("An account with this email already exists");
+        }
+
+        String phone = (request.getPhone() == null || request.getPhone().isBlank()) ? null : request.getPhone().trim();
+        if (phone != null && userRepository.existsByPhone(phone)) {
+            throw new BadRequestException("An account with this phone number already exists");
+        }
+
+        User user = new User();
+        user.setFullName(request.getFullName() != null ? request.getFullName().trim() : "Dr. Unknown");
+        user.setEmail(normalizedEmail);
+        user.setPhone(phone);
+
+        String rawPassword = (request.getPassword() != null && !request.getPassword().isBlank())
+                ? request.getPassword()
+                : java.util.UUID.randomUUID().toString();
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole("DOCTOR");
+        user.setActive(true);
+        user.setApprovalStatus("PENDING");
+
+        User saved = userRepository.save(user);
+
+        DoctorProfile profile = new DoctorProfile();
+        profile.setUserId(saved.getId());
+        profile.setFullName(saved.getFullName());
+        profile.setPhone(saved.getPhone());
+        profile.setEmail(saved.getEmail());
+        if (request.getQualification() != null) profile.setQualification(request.getQualification());
+        if (request.getSpecializations() != null) profile.setSpeciality(request.getSpecializations());
+        if (request.getExperienceYears() != null) profile.setExperience(request.getExperienceYears());
+        if (request.getConsultationFee() != null) profile.setConsultationFee(request.getConsultationFee());
+        if (request.getPincode() != null) profile.setPincode(request.getPincode());
+        if (request.getCity() != null) profile.setCity(request.getCity());
+
+        DoctorProfile savedProfile = doctorProfileRepository.save(profile);
+
+        adminApprovalClient.notifyDoctorRegistered(saved);
+        zippyCrmSyncService.syncDoctor(saved, savedProfile);
+    }
+
+    public void deleteAccount(String email) {
+        if (email == null || email.isBlank()) return;
+        userRepository.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
+            doctorProfileRepository.findByUserId(user.getId()).ifPresent(doctorProfileRepository::delete);
+            userRepository.delete(user);
+        });
+    }
+
+    // =====================================================
     // UPDATE APPROVAL STATUS (Admin Action)
     // =====================================================
 

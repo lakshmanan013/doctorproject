@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiCalendar, FiCheckCircle, FiMail, FiRotateCcw } from "react-icons/fi";
-import { FaWhatsapp } from "react-icons/fa";
+import { FiCalendar, FiCheckCircle, FiMail, FiRotateCcw, FiPlus } from "react-icons/fi";
+import { FaWhatsapp, FaPrescriptionBottleAlt } from "react-icons/fa";
 import { MdNotificationsActive, MdErrorOutline, MdSms } from "react-icons/md";
 
 import { StatCard } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import Input, { Field, Select, Textarea } from "../../components/ui/Input";
+import SearchBar from "../../components/ui/SearchBar";
+
 import {
   getFollowups,
+  createFollowup,
   updateFollowup,
   markReminderSent,
 } from "../../services/followupService";
+import { getPatients } from "../../services/patientService";
 import { sendSms, sendWhatsApp, sendEmail } from "../../services/communicationService";
 import { openWhatsApp } from "../../utils/whatsapp";
 import { toE164 } from "../../utils/phone";
@@ -47,13 +54,31 @@ export default function Followup() {
 
   const [tab, setTab] = useState(initialTab);
   const [items, setItems] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // New Follow-up Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    patientId: searchParams.get("patientId") || "",
+    followUpDate: today,
+    nextFollowUpDate: plusDays(7),
+    reason: "",
+    notes: "",
+    status: "Scheduled",
+  });
 
   const load = async () => {
     try {
       setLoading(true);
-      const data = await getFollowups();
-      setItems(Array.isArray(data) ? data : []);
+      const [fList, pList] = await Promise.all([
+        getFollowups(),
+        getPatients().catch(() => []),
+      ]);
+      setItems(Array.isArray(fList) ? fList : []);
+      setPatients(Array.isArray(pList) ? pList : []);
     } catch (e) {
       toast.error(e?.response?.data?.message || "Could not load follow-ups");
     } finally {
@@ -65,9 +90,49 @@ export default function Followup() {
     load();
   }, []);
 
+  useEffect(() => {
+    const paramPid = searchParams.get("patientId");
+    if (paramPid) {
+      setForm((prev) => ({ ...prev, patientId: paramPid }));
+      setModalOpen(true);
+    }
+  }, [searchParams]);
+
   const changeTab = (key) => {
     setTab(key);
     setSearchParams(key === "dueToday" ? {} : { tab: key });
+  };
+
+  const handleSaveFollowup = async () => {
+    if (!form.patientId) return toast.error("Select a patient");
+    if (!form.followUpDate) return toast.error("Select a follow-up date");
+
+    try {
+      setSaving(true);
+      await createFollowup({
+        patientId: Number(form.patientId),
+        followUpDate: form.followUpDate,
+        nextFollowUpDate: form.nextFollowUpDate || form.followUpDate,
+        reason: form.reason || "Routine follow-up",
+        notes: form.notes,
+        status: form.status,
+      });
+      toast.success("Follow-up scheduled successfully");
+      setModalOpen(false);
+      setForm({
+        patientId: "",
+        followUpDate: today,
+        nextFollowUpDate: plusDays(7),
+        reason: "",
+        notes: "",
+        status: "Scheduled",
+      });
+      load();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Could not schedule follow-up");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const buckets = useMemo(() => {
@@ -128,7 +193,18 @@ export default function Followup() {
     completed: buckets.completed.length,
   };
 
-  const visible = buckets[tab] || [];
+  const visible = useMemo(() => {
+    const raw = buckets[tab] || [];
+    if (!query.trim()) return raw;
+    const q = query.toLowerCase();
+    return raw.filter(
+      (f) =>
+        (f.patientName || "").toLowerCase().includes(q) ||
+        (f.reason || "").toLowerCase().includes(q) ||
+        (f.notes || "").toLowerCase().includes(q) ||
+        (f.ownerName || "").toLowerCase().includes(q)
+    );
+  }, [buckets, tab, query]);
 
   const done = async (f) => {
     try {
@@ -287,17 +363,31 @@ export default function Followup() {
         />
       </div>
 
-      <div className="filter-row">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => changeTab(t.key)}
-            className={`filter-chip ${tab === t.key ? "active" : ""}`}
-          >
-            {t.label} ({counts[t.key]})
-          </button>
-        ))}
+      <div className="table-toolbar">
+        <div className="table-search">
+          <SearchBar
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by pet name, reason or parent..."
+          />
+        </div>
+
+        <div className="filter-row">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => changeTab(t.key)}
+              className={`filter-chip ${tab === t.key ? "active" : ""}`}
+            >
+              {t.label} ({counts[t.key]})
+            </button>
+          ))}
+
+          <Button icon={FiPlus} onClick={() => setModalOpen(true)}>
+            Schedule Follow-up
+          </Button>
+        </div>
       </div>
 
       <div className="table-card">
@@ -308,7 +398,11 @@ export default function Followup() {
             style={{ cursor: "pointer" }}
             onClick={() => navigate(`/patients/${f.patientId}`)}
           >
-            <div className="row-avatar" style={{ width: 40, height: 40 }}>
+            <div
+              className="row-avatar"
+              style={{ width: 40, height: 40 }}
+              title="Open Patient Profile"
+            >
               🐾
             </div>
 
@@ -349,6 +443,20 @@ export default function Followup() {
                 ? "Reminder sent"
                 : "Scheduled"}
             </Badge>
+
+            {/* Consult Shortcut Button */}
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ padding: "6px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/prescriptions?patientId=${f.patientId}`);
+              }}
+              title="Start Consultation"
+            >
+              <FaPrescriptionBottleAlt size={12} /> Consult
+            </button>
 
             {tab === "completed" ? (
               <button
@@ -417,6 +525,83 @@ export default function Followup() {
           </p>
         )}
       </div>
+
+      {/* SCHEDULE FOLLOW-UP MODAL */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Schedule Follow-up"
+        subtitle="Schedule a follow-up visit for a patient"
+      >
+        <div className="form-grid-2">
+          <Field label="Patient" className="col-span-2">
+            <Select
+              value={form.patientId}
+              onChange={(e) => setForm({ ...form, patientId: e.target.value })}
+            >
+              <option value="">Select a patient</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {p.breed || p.species} · {p.ownerName || ""}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Follow-up Date">
+            <Input
+              type="date"
+              value={form.followUpDate}
+              onChange={(e) => setForm({ ...form, followUpDate: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Next Follow-up Due">
+            <Input
+              type="date"
+              value={form.nextFollowUpDate}
+              onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Reason" className="col-span-2">
+            <Input
+              value={form.reason}
+              onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              placeholder="e.g. Post-surgery checkup, dressing change"
+              autoFocus
+            />
+          </Field>
+
+          <Field label="Status">
+            <Select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
+              <option value="Scheduled">Scheduled</option>
+              <option value="Completed">Completed</option>
+            </Select>
+          </Field>
+
+          <Field label="Clinical Notes" className="col-span-2">
+            <Textarea
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder="Clinical observation or advice for the parent"
+            />
+          </Field>
+        </div>
+
+        <div className="modal-actions">
+          <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveFollowup} disabled={saving}>
+            {saving ? "Saving..." : "Schedule Follow-up"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

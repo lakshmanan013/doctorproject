@@ -38,13 +38,24 @@ public class InternalDoctorStatusController {
     private final DoctorProfileService doctorProfileService;
     private final UserRepository userRepository;
     private final AdminIntegrationProperties properties;
+    private final doctor.backend.service.ZippyCrmSyncService zippyCrmSyncService;
 
     public InternalDoctorStatusController(AuthService authService, DoctorProfileService doctorProfileService,
-            UserRepository userRepository, AdminIntegrationProperties properties) {
+            UserRepository userRepository, AdminIntegrationProperties properties,
+            doctor.backend.service.ZippyCrmSyncService zippyCrmSyncService) {
         this.authService = authService;
         this.doctorProfileService = doctorProfileService;
         this.userRepository = userRepository;
         this.properties = properties;
+        this.zippyCrmSyncService = zippyCrmSyncService;
+    }
+
+    @PostMapping("/sync-zippy")
+    public ResponseEntity<String> syncZippy(
+            @RequestHeader(value = SECRET_HEADER, required = false) String secret) {
+        checkSecret(secret);
+        zippyCrmSyncService.syncAll();
+        return ResponseEntity.ok("Zippy CRM full synchronization completed.");
     }
 
     @PostMapping("/status")
@@ -54,6 +65,30 @@ public class InternalDoctorStatusController {
         checkSecret(secret);
 
         authService.updateApprovalStatus(request.getEmail(), request.getStatus(), request.getReason());
+
+        return ResponseEntity.ok().build();
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/delete")
+    public ResponseEntity<Void> delete(
+            @RequestHeader(value = SECRET_HEADER, required = false) String secret,
+            @org.springframework.web.bind.annotation.RequestParam("email") String email) {
+        checkSecret(secret);
+        authService.deleteAccount(email);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Called by Zippy CRM when an executive adds a new doctor.
+     * The account is created with PENDING status and will appear in admin list.
+     */
+    @PostMapping("/executive-add")
+    public ResponseEntity<Void> executiveAdd(
+            @RequestHeader(value = SECRET_HEADER, required = false) String secret,
+            @Valid @RequestBody doctor.backend.dto.auth.ExecutiveDoctorAddRequest request) {
+        checkSecret(secret);
+
+        authService.createPendingExecutiveAccount(request);
 
         return ResponseEntity.ok().build();
     }

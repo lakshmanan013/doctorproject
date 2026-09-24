@@ -27,19 +27,22 @@ public class FollowUpService {
     private final AppointmentRepository appointmentRepository;
     private final NotificationService notificationService;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public FollowUpService(
             FollowUpRepository followUpRepository,
             PatientRepository patientRepository,
             AppointmentRepository appointmentRepository,
             NotificationService notificationService,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
 
         this.followUpRepository = followUpRepository;
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.notificationService = notificationService;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -149,6 +152,8 @@ public class FollowUpService {
 
         FollowUp savedFollowUp =
                 followUpRepository.save(followUp);
+
+        zippyCrmSyncService.syncFollowUp(savedFollowUp);
 
         // Let the doctor know a check-in has been scheduled, without
         // blocking the follow-up itself if this fails for any reason.
@@ -504,6 +509,8 @@ public class FollowUpService {
 
         FollowUp updatedFollowUp =
                 followUpRepository.save(followUp);
+
+        zippyCrmSyncService.syncFollowUp(updatedFollowUp);
 
         return mapToResponse(updatedFollowUp);
     }

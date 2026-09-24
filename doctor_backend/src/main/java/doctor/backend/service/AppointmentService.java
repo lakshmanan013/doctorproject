@@ -21,15 +21,18 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ZippyCrmSyncService zippyCrmSyncService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ZippyCrmSyncService zippyCrmSyncService) {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippyCrmSyncService = zippyCrmSyncService;
     }
 
     // =====================================================
@@ -83,6 +86,8 @@ public class AppointmentService {
 
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
+
+        zippyCrmSyncService.syncAppointment(savedAppointment);
 
         return mapToResponse(savedAppointment);
     }
@@ -275,6 +280,8 @@ public class AppointmentService {
 
         Appointment updatedAppointment =
                 appointmentRepository.save(appointment);
+
+        zippyCrmSyncService.syncAppointment(updatedAppointment);
 
         return mapToResponse(updatedAppointment);
     }
