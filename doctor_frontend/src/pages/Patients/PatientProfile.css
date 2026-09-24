@@ -1,8 +1,51 @@
-/* Patient profile styles aligned with standard application UI tokens */
+/* ============================================================================
+   PATIENT PROFILE - STANDARD PAGE ALIGNED STYLES
+   ============================================================================ */
+
+/* Owner Summary Card */
 .patient-profile-owner-box {
-  padding: 12px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  background: var(--surface-hover, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
   min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-theme="dark"] .patient-profile-owner-box {
+  background: #0f172a;
+}
+
+/* Vitals / Summary Grid */
+.patient-profile-vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.patient-profile-vitals-grid .vital-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Record row note quote */
+.profile-quote-note {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  background: var(--surface-hover, #f8fafc);
+  border-left: 3px solid var(--primary, #0284c7);
+  padding: 6px 12px;
+  border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+  margin-top: 6px;
+}
+
+[data-theme="dark"] .profile-quote-note {
+  background: #1e293b;
+  color: #cbd5e1;
 }

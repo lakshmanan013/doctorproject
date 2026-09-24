@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiArrowLeft,
-  FiPlus,
   FiCalendar,
   FiClock,
   FiActivity,
@@ -352,17 +351,18 @@ export default function PatientProfile() {
       {/* PATIENT & PARENT INFO PANEL */}
       <div className="panel">
         <div className="cell-primary" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          {/* Pet Info */}
           <div className="flex-row" style={{ gap: 16, alignItems: "center" }}>
             <div
               className="row-avatar"
-              style={{ width: 56, height: 56, fontSize: 28 }}
+              style={{ width: 52, height: 52, fontSize: 26 }}
             >
               {patient.icon || "🐾"}
             </div>
 
             <div>
-              <div className="flex-row" style={{ gap: 8, alignItems: "center" }}>
-                <h2 className="panel-title" style={{ fontSize: 22, margin: 0 }}>
+              <div className="flex-row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <h2 className="panel-title" style={{ fontSize: 20, margin: 0 }}>
                   {patient.name || "Unnamed patient"}
                 </h2>
                 {patient.petId && (
@@ -373,7 +373,7 @@ export default function PatientProfile() {
                 </Badge>
               </div>
 
-              <p className="panel-subtitle" style={{ marginTop: 4 }}>
+              <p className="panel-subtitle" style={{ marginTop: 3 }}>
                 {[patient.species, patient.breed, patient.gender, patient.weight ? `${patient.weight} kg` : null]
                   .filter(Boolean)
                   .join(" · ") || "Pet Patient"}
@@ -383,13 +383,13 @@ export default function PatientProfile() {
 
           {/* PARENT / OWNER SUMMARY */}
           <div className="patient-profile-owner-box">
-            <p className="eyebrow" style={{ marginBottom: 4 }}>
+            <p className="eyebrow" style={{ marginBottom: 3 }}>
               Parent (Owner) Details
             </p>
             <p className="cell-title" style={{ fontSize: 14 }}>
               {patient.ownerName || "—"}
             </p>
-            <div className="cell-sub" style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
+            <div className="cell-sub" style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 3 }}>
               {patient.ownerPhone && (
                 <span className="flex-row" style={{ gap: 6, alignItems: "center" }}>
                   <FiPhone size={12} /> {patient.ownerPhone}
@@ -410,27 +410,20 @@ export default function PatientProfile() {
         </div>
 
         {/* DETAILS GRID */}
-        <div
-          className="rx-preview-grid"
-          style={{
-            marginTop: 20,
-            paddingTop: 16,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          <div>
+        <div className="patient-profile-vitals-grid">
+          <div className="vital-item">
             <p className="eyebrow">Date of Birth</p>
             <p className="cell-title">{patient.dateOfBirth || "—"}</p>
           </div>
-          <div>
+          <div className="vital-item">
             <p className="eyebrow">Weight</p>
             <p className="cell-title">{patient.weight != null ? `${patient.weight} kg` : "—"}</p>
           </div>
-          <div>
+          <div className="vital-item">
             <p className="eyebrow">Gender</p>
             <p className="cell-title">{patient.gender || "—"}</p>
           </div>
-          <div>
+          <div className="vital-item">
             <p className="eyebrow">Medical Alerts</p>
             <p className="cell-title" style={{ color: patient.medicalAlerts ? "#e11d48" : "inherit" }}>
               {patient.medicalAlerts || "None"}
@@ -507,9 +500,9 @@ export default function PatientProfile() {
                     </p>
                   )}
                   {r.notes && (
-                    <p className="row-desc" style={{ fontStyle: "italic" }}>
+                    <div className="profile-quote-note">
                       <strong>Notes:</strong> {r.notes}
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -563,9 +556,9 @@ export default function PatientProfile() {
                     </div>
                   )}
                   {rx.instructions && (
-                    <p className="row-desc" style={{ marginTop: 6 }}>
+                    <div className="profile-quote-note">
                       <strong>Instructions:</strong> {rx.instructions}
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
