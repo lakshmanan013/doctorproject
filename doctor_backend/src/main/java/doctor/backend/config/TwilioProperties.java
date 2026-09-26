@@ -12,11 +12,7 @@ public class TwilioProperties {
     private String smsFrom;
     private String whatsappFrom;
 
-    // Only needed when accountSid above is an API Key SID (starts with
-    // "SK") rather than a classic Account SID (starts with "AC"). Twilio's
-    // API keys authenticate a request but don't identify which account it
-    // belongs to, so the Java SDK needs the real Account SID (found on the
-    // Twilio Console dashboard, starts with "AC") passed separately.
+ 
     private String parentAccountSid;
 
     public boolean isApiKey() {

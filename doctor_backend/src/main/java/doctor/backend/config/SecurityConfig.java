@@ -53,15 +53,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Only auth (login/register/forgot-password) and the
-                        // internal admin-backend callbacks (protected by their own
-                        // shared-secret header, not a doctor JWT) are public.
-                        // Every other endpoint requires a valid doctor JWT so a
-                        // request can never reach a controller without an
-                        // authenticated doctor attached to it.
-                        // /me returns the logged-in doctor's own record, so it must
-                        // require a valid token even though the rest of /api/auth/**
-                        // (login/register/forgot-password) stays public.
+                      
                         .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/internal/**").permitAll()
