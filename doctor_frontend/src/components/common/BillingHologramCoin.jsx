@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./BillingHologramCoin.css";
 
-/**
- * BillingHologramCoin
- * Interactive holographic pedestal illustration with the original 3D Gold Indian Rupee (₹) coin.
- * The money symbol rotates dynamically in 3D whenever the billing amount increases.
- */
+
 export default function BillingHologramCoin({ amount = 0, size = 110 }) {
   const [isRotating, setIsRotating] = useState(false);
   const [increasedDiff, setIncreasedDiff] = useState(0);

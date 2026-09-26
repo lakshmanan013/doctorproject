@@ -1,10 +1,7 @@
 import { useState } from "react";
 import "./MiniPieChart.css";
 
-// A small, dependency-free donut chart for comparing a couple of values
-// (e.g. Completed vs Cancelled, Collected vs Due). Each slice in `slices`
-// should be `{ label, value, color }`. `formatValue` controls the number
-// shown in the legend and center tooltip.
+
 export default function MiniPieChart({ slices, formatValue = (v) => v }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 

@@ -1,14 +1,6 @@
 import { useState } from "react";
 import "./AppointmentsTrendChart.css";
 
-// Responsive line chart for appointment counts, one point per day, built
-// from real appointment records (no static/fake data — the caller passes
-// `data` = [{ date: "YYYY-MM-DD", count }], already grouped from the
-// appointments the dashboard fetched from the backend).
-//
-// The SVG uses a fixed logical viewBox and scales to 100% of its
-// container's width via CSS, so it stays responsive and never needs
-// horizontal scrolling regardless of how many days are plotted.
 export default function AppointmentsTrendChart({ data, formatDateLabel }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
@@ -42,7 +34,6 @@ export default function AppointmentsTrendChart({ data, formatDateLabel }) {
 
   const hovered = hoveredIndex != null ? points[hoveredIndex] : null;
 
-  // Skip some x-axis labels if there are many days, so they don't overlap.
   const labelEvery = Math.max(1, Math.ceil(points.length / 8));
 
   if (!points.length) {
@@ -78,7 +69,7 @@ export default function AppointmentsTrendChart({ data, formatDateLabel }) {
 
           {points.map((p, index) => (
             <g key={p.date}>
-              {/* wide invisible hit target for easier hover */}
+              {}
               <rect
                 x={p.x - (plotW / Math.max(points.length - 1, 1)) / 2}
                 y={padTop}

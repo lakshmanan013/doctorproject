@@ -11,47 +11,43 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(ADMIN_KEY)
+    setToken(null)
+    setAdmin(null)
+  }, [])
+
   useEffect(() => {
     const storedToken = localStorage.getItem(TOKEN_KEY)
     const storedAdmin = localStorage.getItem(ADMIN_KEY)
-    if (storedToken && storedAdmin) {
+    if (storedToken && storedToken !== 'demo-admin-jwt-token' && storedAdmin) {
       setToken(storedToken)
       try {
         setAdmin(JSON.parse(storedAdmin))
       } catch {
         setAdmin(null)
       }
+    } else if (storedToken === 'demo-admin-jwt-token') {
+      logout()
     }
     setLoading(false)
-  }, [])
+
+    const handleAuthExpired = () => {
+      logout()
+    }
+
+    window.addEventListener('adminAuthExpired', handleAuthExpired)
+    return () => window.removeEventListener('adminAuthExpired', handleAuthExpired)
+  }, [logout])
 
   const login = useCallback(async (email, password) => {
-    try {
-      const data = await api.login(email, password)
-      localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(ADMIN_KEY, JSON.stringify(data.admin))
-      setToken(data.token)
-      setAdmin(data.admin)
-      return data.admin
-    } catch (err) {
-      if (email === 'admin@zenve.in' && (password === 'Admin@123' || password === 'admin123' || password === 'admin' || !password || password === 'zenve2024')) {
-        const demoAdmin = { id: 'admin-demo-1', fullName: 'Zenve Admin', email: 'admin@zenve.in', role: 'admin' }
-        const demoToken = 'demo-admin-jwt-token'
-        localStorage.setItem(TOKEN_KEY, demoToken)
-        localStorage.setItem(ADMIN_KEY, JSON.stringify(demoAdmin))
-        setToken(demoToken)
-        setAdmin(demoAdmin)
-        return demoAdmin
-      }
-      throw err
-    }
-  }, [])
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(ADMIN_KEY)
-    setToken(null)
-    setAdmin(null)
+    const data = await api.login(email, password)
+    localStorage.setItem(TOKEN_KEY, data.token)
+    localStorage.setItem(ADMIN_KEY, JSON.stringify(data.admin))
+    setToken(data.token)
+    setAdmin(data.admin)
+    return data.admin
   }, [])
 
   return (

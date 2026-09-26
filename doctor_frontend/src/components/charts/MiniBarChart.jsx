@@ -1,10 +1,6 @@
 import { useState } from "react";
 import "./MiniBarChart.css";
 
-// A small, dependency-free bar chart for comparing two values
-// (e.g. Completed vs Cancelled, Collected vs Due). `hoverColor` sets the
-// accent color bars turn on hover; `formatValue` controls the label shown
-// above each bar and in the tooltip.
 export default function MiniBarChart({ bars, hoverColor, formatValue = (v) => v }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const max = Math.max(1, ...bars.map((b) => Number(b.value) || 0));

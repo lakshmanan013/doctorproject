@@ -1,6 +1,8 @@
 package doctor.backend.service;
 
+import doctor.backend.dto.auth.DoctorImageSyncRequest;
 import doctor.backend.entity.DoctorProfile;
+import doctor.backend.entity.User;
 import doctor.backend.repository.DoctorProfileRepository;
 import doctor.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -37,18 +39,43 @@ public class DoctorProfileService {
                 .orElseGet(() -> {
                     DoctorProfile newProf = new DoctorProfile();
                     newProf.setUserId(userId);
-
                     return repository.save(newProf);
                 });
 
-        // Ensure images from User table are reflected if not yet on DoctorProfile
-        if (profile.getProfileImage() == null || profile.getProfileImage().isBlank()) {
-            userRepository.findById(userId).ifPresent(user -> {
-                if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
-                    profile.setProfileImage(user.getProfileImage());
-                    repository.save(profile);
-                }
-            });
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            boolean updated = false;
+
+            if ((profile.getProfileImage() == null || profile.getProfileImage().isBlank()) && user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+                profile.setProfileImage(user.getProfileImage());
+                updated = true;
+            }
+            if ((profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()) && user.getClinicInsideImage() != null && !user.getClinicInsideImage().isBlank()) {
+                profile.setClinicInsideImage(user.getClinicInsideImage());
+                updated = true;
+            }
+            if ((profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()) && user.getClinicOutsideImage() != null && !user.getClinicOutsideImage().isBlank()) {
+                profile.setClinicOutsideImage(user.getClinicOutsideImage());
+                updated = true;
+            }
+            if ((profile.getDigitalSignatureImage() == null || profile.getDigitalSignatureImage().isBlank()) && user.getDigitalSignatureImage() != null && !user.getDigitalSignatureImage().isBlank()) {
+                profile.setDigitalSignatureImage(user.getDigitalSignatureImage());
+                updated = true;
+            }
+
+            // If still missing any images, import directly from Zippy CRM pet_management DB
+            if (profile.getProfileImage() == null || profile.getProfileImage().isBlank()
+                    || profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()
+                    || profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()
+                    || profile.getDigitalSignatureImage() == null || profile.getDigitalSignatureImage().isBlank()) {
+                zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
+                DoctorProfile reloaded = repository.findByUserId(userId).orElse(profile);
+                return reloaded;
+            }
+
+            if (updated) {
+                return repository.save(profile);
+            }
         }
 
         return profile;
@@ -157,6 +184,94 @@ public class DoctorProfileService {
         }
 
         return saved;
+    }
+
+    public DoctorProfile updateDoctorImages(DoctorImageSyncRequest req) {
+        if (req == null) return null;
+
+        User doctor = null;
+        if (req.getEmail() != null && !req.getEmail().isBlank()) {
+            doctor = userRepository.findByEmail(req.getEmail().trim().toLowerCase()).orElse(null);
+        }
+        if (doctor == null && req.getPhone() != null && !req.getPhone().isBlank()) {
+            final String p = req.getPhone().trim();
+            doctor = userRepository.findAll().stream()
+                    .filter(u -> u.getPhone() != null && (u.getPhone().equals(p)
+                            || p.endsWith(u.getPhone()) || u.getPhone().endsWith(p)))
+                    .findFirst().orElse(null);
+        }
+
+        if (doctor == null) {
+            return null;
+        }
+
+        final Long docId = doctor.getId();
+        DoctorProfile profile = repository.findByUserId(docId)
+                .orElseGet(() -> {
+                    DoctorProfile newProf = new DoctorProfile();
+                    newProf.setUserId(docId);
+                    return newProf;
+                });
+
+        String docType = req.getDocumentType() != null ? req.getDocumentType().toLowerCase() : "";
+        String imgData = req.getImageData();
+
+        if (imgData != null && !imgData.isBlank()) {
+            if (docType.contains("inside")) {
+                profile.setClinicInsideImage(imgData);
+                doctor.setClinicInsideImage(imgData);
+            } else if (docType.contains("outside")) {
+                profile.setClinicOutsideImage(imgData);
+                doctor.setClinicOutsideImage(imgData);
+            } else if (docType.contains("signature")) {
+                profile.setDigitalSignatureImage(imgData);
+                doctor.setDigitalSignatureImage(imgData);
+            } else {
+                profile.setProfileImage(imgData);
+                doctor.setProfileImage(imgData);
+            }
+        }
+
+        if (req.getProfileImage() != null && !req.getProfileImage().isBlank()) {
+            profile.setProfileImage(req.getProfileImage());
+            doctor.setProfileImage(req.getProfileImage());
+        }
+        if (req.getClinicInsideImage() != null && !req.getClinicInsideImage().isBlank()) {
+            profile.setClinicInsideImage(req.getClinicInsideImage());
+            doctor.setClinicInsideImage(req.getClinicInsideImage());
+        }
+        if (req.getClinicOutsideImage() != null && !req.getClinicOutsideImage().isBlank()) {
+            profile.setClinicOutsideImage(req.getClinicOutsideImage());
+            doctor.setClinicOutsideImage(req.getClinicOutsideImage());
+        }
+        if (req.getDigitalSignatureImage() != null && !req.getDigitalSignatureImage().isBlank()) {
+            profile.setDigitalSignatureImage(req.getDigitalSignatureImage());
+            doctor.setDigitalSignatureImage(req.getDigitalSignatureImage());
+        } else if (req.getSignatureImage() != null && !req.getSignatureImage().isBlank()) {
+            profile.setDigitalSignatureImage(req.getSignatureImage());
+            doctor.setDigitalSignatureImage(req.getSignatureImage());
+        }
+
+        userRepository.save(doctor);
+        DoctorProfile savedProfile = repository.save(profile);
+
+        try {
+            adminApprovalClient.notifyProfileUpdated(
+                    doctor.getEmail(),
+                    savedProfile.getFullName() != null ? savedProfile.getFullName() : doctor.getFullName(),
+                    savedProfile.getPhone() != null ? savedProfile.getPhone() : doctor.getPhone(),
+                    savedProfile.getClinicHospital(),
+                    savedProfile.getQualification(),
+                    savedProfile.getArea(),
+                    savedProfile.getCity(),
+                    savedProfile.getPincode(),
+                    savedProfile.getProfileImage()
+            );
+        } catch (Exception ignored) {
+        }
+
+        zippyCrmSyncService.syncDoctor(savedProfile);
+        return savedProfile;
     }
 
     /**

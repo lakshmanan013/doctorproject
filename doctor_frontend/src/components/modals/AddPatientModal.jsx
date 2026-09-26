@@ -52,10 +52,7 @@ export default function AddPatientModal({
   const [loadingOwners, setLoadingOwners] = useState(false);
   const [newOwner, setNewOwner] = useState(false);
 
-  // =====================================================
-  // UPDATE FORM
-  // =====================================================
-
+  
   const update = (key, value) => {
     setForm((previous) => ({
       ...previous,
@@ -63,9 +60,6 @@ export default function AddPatientModal({
     }));
   };
 
-  // =====================================================
-  // LOAD OWNERS
-  // =====================================================
 
   useEffect(() => {
     if (!open) {
@@ -102,9 +96,6 @@ export default function AddPatientModal({
     loadOwners();
   }, [open]);
 
-  // =====================================================
-  // RESET FORM WHEN MODAL OPENS
-  // =====================================================
 
   useEffect(() => {
     if (open) {
@@ -113,14 +104,9 @@ export default function AddPatientModal({
     }
   }, [open]);
 
-  // =====================================================
-  // CREATE PATIENT
-  // =====================================================
-
+  
   const submit = async () => {
-    // ---------------------------------------------------
-    // VALIDATE PET NAME
-    // ---------------------------------------------------
+  
 
     if (!form.petName.trim()) {
       toast.error(
@@ -130,19 +116,12 @@ export default function AddPatientModal({
       return;
     }
 
-    // ---------------------------------------------------
-    // VALIDATE OWNER
-    // ---------------------------------------------------
-
     let ownerId = form.ownerId
       ? Number(form.ownerId)
       : null;
 
     try {
-      // =================================================
-      // CREATE NEW OWNER
-      // =================================================
-
+   
       if (!ownerId) {
         if (!form.ownerName.trim()) {
           toast.error(
@@ -190,9 +169,7 @@ export default function AddPatientModal({
         ownerId = Number(owner.id);
       }
 
-      // =================================================
-      // CREATE PATIENT
-      // =================================================
+  
 
       const patientPayload = {
         name: form.petName.trim(),
@@ -234,14 +211,12 @@ export default function AddPatientModal({
         patientPayload
       );
 
-      // Send patient to backend
+     
       await onCreate(
         patientPayload
       );
 
-      // =================================================
-      // SUCCESS
-      // =================================================
+ 
 
       toast.success(
         `${form.petName} registered successfully`
@@ -268,9 +243,7 @@ export default function AddPatientModal({
     }
   };
 
-  // =====================================================
-  // RENDER
-  // =====================================================
+
 
   return (
     <Modal
@@ -285,9 +258,6 @@ export default function AddPatientModal({
     >
       <div className="form-grid-2">
 
-        {/* =================================================
-            PET NAME
-        ================================================= */}
 
         <Field label="Pet name">
           <Input
@@ -303,9 +273,7 @@ export default function AddPatientModal({
           />
         </Field>
 
-        {/* =================================================
-            SPECIES
-        ================================================= */}
+      
 
         <Field label="Species">
           <Select
@@ -337,9 +305,7 @@ export default function AddPatientModal({
           </Select>
         </Field>
 
-        {/* =================================================
-            BREED
-        ================================================= */}
+     
 
         <Field label="Breed">
           <Input
@@ -354,9 +320,7 @@ export default function AddPatientModal({
           />
         </Field>
 
-        {/* =================================================
-            SEX
-        ================================================= */}
+     
 
         <Field label="Sex">
           <Select
@@ -378,9 +342,6 @@ export default function AddPatientModal({
           </Select>
         </Field>
 
-        {/* =================================================
-            DATE OF BIRTH
-        ================================================= */}
 
         <Field label="Date of birth">
           <Input
@@ -395,9 +356,7 @@ export default function AddPatientModal({
           />
         </Field>
 
-        {/* =================================================
-            WEIGHT
-        ================================================= */}
+     
 
         <Field label="Weight (kg)">
           <Input
@@ -415,9 +374,6 @@ export default function AddPatientModal({
           />
         </Field>
 
-        {/* =================================================
-            OWNER
-        ================================================= */}
 
         <Field
           label="Owner"

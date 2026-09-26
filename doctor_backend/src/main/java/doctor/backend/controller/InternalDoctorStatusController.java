@@ -2,6 +2,7 @@ package doctor.backend.controller;
 
 import doctor.backend.config.AdminIntegrationProperties;
 import doctor.backend.dto.auth.DoctorAccountCreateRequest;
+import doctor.backend.dto.auth.DoctorImageSyncRequest;
 import doctor.backend.dto.auth.DoctorStatusUpdateRequest;
 import doctor.backend.dto.auth.DoctorVerificationUpdateRequest;
 import doctor.backend.entity.User;
@@ -89,6 +90,20 @@ public class InternalDoctorStatusController {
         checkSecret(secret);
 
         authService.createPendingExecutiveAccount(request);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Called by Zippy CRM or external systems when doctor images are uploaded or updated.
+     */
+    @PostMapping({"/update-images", "/sync-images"})
+    public ResponseEntity<Void> syncImages(
+            @RequestHeader(value = SECRET_HEADER, required = false) String secret,
+            @RequestBody DoctorImageSyncRequest request) {
+        checkSecret(secret);
+
+        doctorProfileService.updateDoctorImages(request);
 
         return ResponseEntity.ok().build();
     }

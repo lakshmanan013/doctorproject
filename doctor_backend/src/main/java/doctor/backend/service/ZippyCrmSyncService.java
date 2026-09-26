@@ -289,10 +289,11 @@ public class ZippyCrmSyncService {
         String userLast10 = userDigitsOnly.length() >= 10 ? userDigitsOnly.substring(userDigitsOnly.length() - 10)
                 : userDigitsOnly;
 
-        String selectSql = "SELECT id FROM doctors WHERE (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
+        String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image FROM doctors WHERE (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (email = ? AND email != '') OR name = ? OR name = ? ORDER BY id ASC LIMIT 1";
         Integer existingId = null;
+        String zippyProfImg = null, zippySigImg = null, zippyInsideImg = null, zippyOutsideImg = null;
 
         try (PreparedStatement checkStmt = conn.prepareStatement(selectSql)) {
             checkStmt.setString(1, phone);
@@ -307,13 +308,59 @@ public class ZippyCrmSyncService {
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next()) {
                     existingId = rs.getInt("id");
+                    zippyProfImg = rs.getString("profile_image");
+                    zippySigImg = rs.getString("signature_image");
+                    try {
+                        zippyInsideImg = rs.getString("clinic_inside_image");
+                        zippyOutsideImg = rs.getString("clinic_outside_image");
+                    } catch (Exception ignored) {}
                 }
             }
         }
 
+        // Bi-directional image synchronization: if Zippy has images but DoctorProfile / User in doctortest doesn't, import them!
+        boolean imported = false;
+        DoctorProfile currentProfile = profile;
+        if (currentProfile == null) {
+            currentProfile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
+        }
+        if (currentProfile != null) {
+            if (zippyProfImg != null && !zippyProfImg.isBlank() && (currentProfile.getProfileImage() == null || currentProfile.getProfileImage().isBlank())) {
+                currentProfile.setProfileImage(zippyProfImg);
+                user.setProfileImage(zippyProfImg);
+                imported = true;
+            }
+            if (zippySigImg != null && !zippySigImg.isBlank() && (currentProfile.getDigitalSignatureImage() == null || currentProfile.getDigitalSignatureImage().isBlank())) {
+                currentProfile.setDigitalSignatureImage(zippySigImg);
+                user.setDigitalSignatureImage(zippySigImg);
+                imported = true;
+            }
+            if (zippyInsideImg != null && !zippyInsideImg.isBlank() && (currentProfile.getClinicInsideImage() == null || currentProfile.getClinicInsideImage().isBlank())) {
+                currentProfile.setClinicInsideImage(zippyInsideImg);
+                user.setClinicInsideImage(zippyInsideImg);
+                imported = true;
+            }
+            if (zippyOutsideImg != null && !zippyOutsideImg.isBlank() && (currentProfile.getClinicOutsideImage() == null || currentProfile.getClinicOutsideImage().isBlank())) {
+                currentProfile.setClinicOutsideImage(zippyOutsideImg);
+                user.setClinicOutsideImage(zippyOutsideImg);
+                imported = true;
+            }
+            if (imported) {
+                userRepository.save(user);
+                doctorProfileRepository.save(currentProfile);
+            }
+        }
+
+        String profImgToSend = currentProfile != null && currentProfile.getProfileImage() != null ? currentProfile.getProfileImage() : user.getProfileImage();
+        String sigImgToSend = currentProfile != null && currentProfile.getDigitalSignatureImage() != null ? currentProfile.getDigitalSignatureImage() : user.getDigitalSignatureImage();
+        String insideImgToSend = currentProfile != null && currentProfile.getClinicInsideImage() != null ? currentProfile.getClinicInsideImage() : user.getClinicInsideImage();
+        String outsideImgToSend = currentProfile != null && currentProfile.getClinicOutsideImage() != null ? currentProfile.getClinicOutsideImage() : user.getClinicOutsideImage();
+
         if (existingId != null) {
             String updateSql = "UPDATE doctors SET name = ?, qualification = ?, specializations = ?, phone = ?, "
-                    + "city = ?, pincode = ?, experience_years = ?, consultation_fee = ?, verification_status = ?, is_active = ?, email = ? "
+                    + "city = ?, pincode = ?, experience_years = ?, consultation_fee = ?, verification_status = ?, is_active = ?, email = ?, "
+                    + "profile_image = COALESCE(?, profile_image), signature_image = COALESCE(?, signature_image), "
+                    + "clinic_inside_image = COALESCE(?, clinic_inside_image), clinic_outside_image = COALESCE(?, clinic_outside_image) "
                     + "WHERE id = ?";
             try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
                 updateStmt.setString(1, name);
@@ -327,14 +374,18 @@ public class ZippyCrmSyncService {
                 updateStmt.setString(9, verificationStatus);
                 updateStmt.setBoolean(10, isActive);
                 updateStmt.setString(11, email);
-                updateStmt.setInt(12, existingId);
+                updateStmt.setString(12, profImgToSend);
+                updateStmt.setString(13, sigImgToSend);
+                updateStmt.setString(14, insideImgToSend);
+                updateStmt.setString(15, outsideImgToSend);
+                updateStmt.setInt(16, existingId);
                 updateStmt.executeUpdate();
             }
             return existingId;
         } else {
             String insertSql = "INSERT INTO doctors (name, qualification, specializations, phone, city, pincode, "
-                    + "experience_years, consultation_fee, verification_status, is_active, email) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    + "experience_years, consultation_fee, verification_status, is_active, email, profile_image, signature_image, clinic_inside_image, clinic_outside_image) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
                 insertStmt.setString(1, name);
                 insertStmt.setString(2, qualification);
@@ -347,6 +398,10 @@ public class ZippyCrmSyncService {
                 insertStmt.setString(9, verificationStatus);
                 insertStmt.setBoolean(10, isActive);
                 insertStmt.setString(11, email);
+                insertStmt.setString(12, profImgToSend);
+                insertStmt.setString(13, sigImgToSend);
+                insertStmt.setString(14, insideImgToSend);
+                insertStmt.setString(15, outsideImgToSend);
                 insertStmt.executeUpdate();
                 try (ResultSet rs = insertStmt.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -356,6 +411,97 @@ public class ZippyCrmSyncService {
             }
         }
         return null;
+    }
+
+    public void importDoctorImagesFromZippy(User user, DoctorProfile profile) {
+        if (user == null || !properties.isEnabled()) return;
+        try (Connection conn = getConnection()) {
+            String phone = (profile != null && profile.getPhone() != null && !profile.getPhone().isBlank())
+                    ? profile.getPhone().trim()
+                    : (user.getPhone() != null ? user.getPhone().trim() : "");
+            String email = user.getEmail() != null ? user.getEmail().trim() : "";
+            String digitsOnly = phone.replaceAll("[^0-9]", "");
+            String last10 = digitsOnly.length() >= 10 ? digitsOnly.substring(digitsOnly.length() - 10) : digitsOnly;
+
+            String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image FROM doctors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') ORDER BY id ASC LIMIT 1";
+            Integer docId = null;
+            String profImg = null, sigImg = null, insideImg = null, outsideImg = null;
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setString(1, email);
+                ps.setString(2, phone);
+                ps.setString(3, "%" + last10);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        docId = rs.getInt("id");
+                        profImg = rs.getString("profile_image");
+                        sigImg = rs.getString("signature_image");
+                        try {
+                            insideImg = rs.getString("clinic_inside_image");
+                            outsideImg = rs.getString("clinic_outside_image");
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            // Also check doctor_documents in pet_management if any image is still null
+            if (docId != null && (profImg == null || sigImg == null || insideImg == null || outsideImg == null)) {
+                String docSql = "SELECT document_type, file_data, content_type FROM doctor_documents WHERE doctor_id = ?";
+                try (PreparedStatement psDoc = conn.prepareStatement(docSql)) {
+                    psDoc.setInt(1, docId);
+                    try (ResultSet rsDoc = psDoc.executeQuery()) {
+                        while (rsDoc.next()) {
+                            String dtype = rsDoc.getString("document_type") != null ? rsDoc.getString("document_type").toLowerCase() : "";
+                            byte[] bytes = rsDoc.getBytes("file_data");
+                            String ctype = rsDoc.getString("content_type");
+                            if (bytes != null && bytes.length > 0) {
+                                String mime = (ctype != null && ctype.contains("image")) ? ctype : "image/jpeg";
+                                String b64 = "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
+                                if (dtype.contains("profile") && profImg == null) profImg = b64;
+                                else if (dtype.contains("signature") && sigImg == null) sigImg = b64;
+                                else if (dtype.contains("inside") && insideImg == null) insideImg = b64;
+                                else if (dtype.contains("outside") && outsideImg == null) outsideImg = b64;
+                            }
+                        }
+                    }
+                }
+            }
+
+            boolean updated = false;
+            DoctorProfile prof = profile != null ? profile : doctorProfileRepository.findByUserId(user.getId()).orElseGet(() -> {
+                DoctorProfile np = new DoctorProfile();
+                np.setUserId(user.getId());
+                return np;
+            });
+
+            if (profImg != null && !profImg.isBlank() && (prof.getProfileImage() == null || prof.getProfileImage().isBlank())) {
+                prof.setProfileImage(profImg);
+                user.setProfileImage(profImg);
+                updated = true;
+            }
+            if (sigImg != null && !sigImg.isBlank() && (prof.getDigitalSignatureImage() == null || prof.getDigitalSignatureImage().isBlank())) {
+                prof.setDigitalSignatureImage(sigImg);
+                user.setDigitalSignatureImage(sigImg);
+                updated = true;
+            }
+            if (insideImg != null && !insideImg.isBlank() && (prof.getClinicInsideImage() == null || prof.getClinicInsideImage().isBlank())) {
+                prof.setClinicInsideImage(insideImg);
+                user.setClinicInsideImage(insideImg);
+                updated = true;
+            }
+            if (outsideImg != null && !outsideImg.isBlank() && (prof.getClinicOutsideImage() == null || prof.getClinicOutsideImage().isBlank())) {
+                prof.setClinicOutsideImage(outsideImg);
+                user.setClinicOutsideImage(outsideImg);
+                updated = true;
+            }
+
+            if (updated) {
+                userRepository.save(user);
+                doctorProfileRepository.save(prof);
+                log.info("Successfully imported images from Zippy CRM pet_management into doctortest for {}", user.getEmail());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to import doctor images from Zippy CRM: {}", e.getMessage());
+        }
     }
 
     public Integer getZippyDoctorId(Connection conn, Long doctorUserId) throws SQLException {

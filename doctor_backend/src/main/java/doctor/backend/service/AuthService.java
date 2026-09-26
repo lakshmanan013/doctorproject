@@ -122,7 +122,7 @@ public class AuthService {
         zippyCrmSyncService.syncDoctor(saved, profile);
 
         // No token on purpose: registering does not log the doctor in.
-        return new AuthResponse(
+        AuthResponse res = new AuthResponse(
                 saved.getId(),
                 saved.getFullName(),
                 saved.getEmail(),
@@ -132,6 +132,11 @@ public class AuthService {
                 saved.getApprovalStatus(),
                 "Your account has been created and is pending admin approval. " +
                         "You'll be able to log in once an admin approves your registration.");
+        res.setProfileImage(saved.getProfileImage());
+        res.setClinicInsideImage(saved.getClinicInsideImage());
+        res.setClinicOutsideImage(saved.getClinicOutsideImage());
+        res.setDigitalSignatureImage(saved.getDigitalSignatureImage());
+        return res;
     }
 
     // =====================================================
@@ -212,6 +217,21 @@ public class AuthService {
         user.setActive(true);
         user.setApprovalStatus("PENDING");
 
+        if (request.getProfileImage() != null && !request.getProfileImage().isBlank()) {
+            user.setProfileImage(request.getProfileImage());
+        }
+        if (request.getClinicInsideImage() != null && !request.getClinicInsideImage().isBlank()) {
+            user.setClinicInsideImage(request.getClinicInsideImage());
+        }
+        if (request.getClinicOutsideImage() != null && !request.getClinicOutsideImage().isBlank()) {
+            user.setClinicOutsideImage(request.getClinicOutsideImage());
+        }
+        String sig = request.getDigitalSignatureImage() != null && !request.getDigitalSignatureImage().isBlank()
+                ? request.getDigitalSignatureImage() : request.getSignatureImage();
+        if (sig != null && !sig.isBlank()) {
+            user.setDigitalSignatureImage(sig);
+        }
+
         User saved = userRepository.save(user);
 
         DoctorProfile profile = new DoctorProfile();
@@ -225,6 +245,11 @@ public class AuthService {
         if (request.getConsultationFee() != null) profile.setConsultationFee(request.getConsultationFee());
         if (request.getPincode() != null) profile.setPincode(request.getPincode());
         if (request.getCity() != null) profile.setCity(request.getCity());
+
+        if (user.getProfileImage() != null) profile.setProfileImage(user.getProfileImage());
+        if (user.getClinicInsideImage() != null) profile.setClinicInsideImage(user.getClinicInsideImage());
+        if (user.getClinicOutsideImage() != null) profile.setClinicOutsideImage(user.getClinicOutsideImage());
+        if (user.getDigitalSignatureImage() != null) profile.setDigitalSignatureImage(user.getDigitalSignatureImage());
 
         DoctorProfile savedProfile = doctorProfileRepository.save(profile);
 
@@ -252,6 +277,9 @@ public class AuthService {
         user.setApprovalStatus(status);
         user.setRejectionReason(reason);
         userRepository.save(user);
+
+        DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
+        zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
     }
 
     // =====================================================
@@ -298,7 +326,13 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
         String token = jwtService.generateToken(extraClaims, userDetails);
 
-        return new AuthResponse(
+        if (user.getProfileImage() == null || user.getClinicInsideImage() == null || user.getClinicOutsideImage() == null || user.getDigitalSignatureImage() == null) {
+            DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
+            zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
+            user = userRepository.findById(user.getId()).orElse(user);
+        }
+
+        AuthResponse res = new AuthResponse(
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
@@ -307,16 +341,15 @@ public class AuthService {
                 token,
                 user.getApprovalStatus(),
                 null);
+        res.setProfileImage(user.getProfileImage());
+        res.setClinicInsideImage(user.getClinicInsideImage());
+        res.setClinicOutsideImage(user.getClinicOutsideImage());
+        res.setDigitalSignatureImage(user.getDigitalSignatureImage());
+        return res;
     }
 
     // =====================================================
-    // FORGOT PASSWORD — step 1: email a 6-digit OTP
-    //
-    // Generates a cryptographically-random 6-digit numeric OTP, saves
-    // it with a 10-minute expiry, and emails it to the user. Also returns
-    // a single-use sessionToken so the frontend can bind the subsequent
-    // verify-otp call to this request; on its own it can't be used to
-    // reset anything.
+    // FORGOT PASSWORD
     // =====================================================
 
     public ForgotPasswordResponse forgotPassword(String email) {
@@ -339,15 +372,6 @@ public class AuthService {
 
         return new ForgotPasswordResponse("An OTP has been sent to your email address.", sessionToken);
     }
-
-    // =====================================================
-    // FORGOT PASSWORD — step 2: verify the OTP
-    //
-    // Checks that the submitted OTP matches what we emailed and hasn't
-    // expired. On success, marks otpVerified=true and issues a FRESH
-    // resetToken that the final step (POST /api/auth/reset-password) will
-    // accept. The OTP is cleared so it can't be reused.
-    // =====================================================
 
     public VerifyOtpResponse verifyOtp(String email, String otp, String resetToken) {
         String normalized = email.trim().toLowerCase();
@@ -380,13 +404,6 @@ public class AuthService {
 
         return new VerifyOtpResponse(true, "OTP verified successfully.", verifiedToken);
     }
-
-    // =====================================================
-    // FORGOT PASSWORD — step 3: set the new password
-    //
-    // Only accepts the resetToken issued by a successful verifyOtp()
-    // call, so an attacker can't skip straight from step 1 to here.
-    // =====================================================
 
     public MessageResponse resetPassword(String email, String resetToken, String newPassword) {
         String normalized = email.trim().toLowerCase();
@@ -422,12 +439,17 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Account not found"));
 
-        return new AuthResponse(
+        AuthResponse res = new AuthResponse(
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole(),
                 null);
+        res.setProfileImage(user.getProfileImage());
+        res.setClinicInsideImage(user.getClinicInsideImage());
+        res.setClinicOutsideImage(user.getClinicOutsideImage());
+        res.setDigitalSignatureImage(user.getDigitalSignatureImage());
+        return res;
     }
 }

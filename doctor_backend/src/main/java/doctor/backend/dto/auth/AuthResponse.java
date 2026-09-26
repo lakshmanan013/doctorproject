@@ -15,6 +15,11 @@ public class AuthResponse {
     private String approvalStatus;
     private String message;
 
+    private String profileImage;
+    private String clinicInsideImage;
+    private String clinicOutsideImage;
+    private String digitalSignatureImage;
+
     public AuthResponse() {
     }
 
@@ -104,5 +109,37 @@ public class AuthResponse {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getClinicInsideImage() {
+        return clinicInsideImage;
+    }
+
+    public void setClinicInsideImage(String clinicInsideImage) {
+        this.clinicInsideImage = clinicInsideImage;
+    }
+
+    public String getClinicOutsideImage() {
+        return clinicOutsideImage;
+    }
+
+    public void setClinicOutsideImage(String clinicOutsideImage) {
+        this.clinicOutsideImage = clinicOutsideImage;
+    }
+
+    public String getDigitalSignatureImage() {
+        return digitalSignatureImage;
+    }
+
+    public void setDigitalSignatureImage(String digitalSignatureImage) {
+        this.digitalSignatureImage = digitalSignatureImage;
     }
 }

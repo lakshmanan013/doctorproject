@@ -10,9 +10,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 const EMPTY = { patientId: "", appointmentDate: new Date().toISOString().slice(0, 10), appointmentTime: "10:00", appointmentType: "In Clinic", reason: "", status: "Confirmed", notes: "", doctorName: "" };
 
-// `appointment` (optional): pass an existing appointment to edit it instead
-// of creating a new one. The modal prefills the form from it and calls
-// updateAppointment on save.
+
 export default function NewVisitModal({ open, onClose, onCreated, onUpdated, appointment }) {
   const isEdit = Boolean(appointment);
   const { doctor: authDoctor } = useAuth();

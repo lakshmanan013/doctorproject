@@ -19,6 +19,12 @@ async function request(path, { method = 'GET', body, token } = {}) {
   }
 
   if (!res.ok) {
+    if ((res.status === 401 || res.status === 403) && token) {
+      localStorage.removeItem('zenve_admin_token')
+      localStorage.removeItem('zenve_admin_profile')
+      window.dispatchEvent(new Event('adminAuthExpired'))
+    }
+
     const error = new Error(
       (data && data.message) || `Request failed (${res.status})`
     )

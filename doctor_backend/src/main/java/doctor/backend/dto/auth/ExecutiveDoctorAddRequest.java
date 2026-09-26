@@ -21,6 +21,12 @@ public class ExecutiveDoctorAddRequest {
     private Integer pincode;
     private String city;
 
+    private String profileImage;
+    private String signatureImage;
+    private String digitalSignatureImage;
+    private String clinicInsideImage;
+    private String clinicOutsideImage;
+
     public String getFullName() {
         return fullName;
     }
@@ -99,5 +105,45 @@ public class ExecutiveDoctorAddRequest {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getSignatureImage() {
+        return signatureImage;
+    }
+
+    public void setSignatureImage(String signatureImage) {
+        this.signatureImage = signatureImage;
+    }
+
+    public String getDigitalSignatureImage() {
+        return digitalSignatureImage != null && !digitalSignatureImage.isBlank() ? digitalSignatureImage : signatureImage;
+    }
+
+    public void setDigitalSignatureImage(String digitalSignatureImage) {
+        this.digitalSignatureImage = digitalSignatureImage;
+    }
+
+    public String getClinicInsideImage() {
+        return clinicInsideImage;
+    }
+
+    public void setClinicInsideImage(String clinicInsideImage) {
+        this.clinicInsideImage = clinicInsideImage;
+    }
+
+    public String getClinicOutsideImage() {
+        return clinicOutsideImage;
+    }
+
+    public void setClinicOutsideImage(String clinicOutsideImage) {
+        this.clinicOutsideImage = clinicOutsideImage;
     }
 }

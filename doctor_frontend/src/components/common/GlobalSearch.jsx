@@ -15,24 +15,10 @@ export default function GlobalSearch() {
 
   const debouncedQuery = useDebounce(query, 200);
 
-  /*
-   * Global search results.
-   *
-   * useSearch is responsible for searching:
-   * - Pet name
-   * - Pet ID
-   * - Owner
-   * - Breed
-   * - Medical records
-   * - Prescriptions
-   * etc.
-   */
+
   const results = useSearch(debouncedQuery);
 
-  // =====================================================
-  // CLOSE WHEN CLICKING OUTSIDE
-  // =====================================================
-
+  
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -56,17 +42,11 @@ export default function GlobalSearch() {
     };
   }, []);
 
-  // =====================================================
-  // RESET ACTIVE RESULT
-  // =====================================================
+
 
   useEffect(() => {
     setActiveIndex(-1);
   }, [debouncedQuery]);
-
-  // =====================================================
-  // OPEN RESULT
-  // =====================================================
 
   function goTo(result) {
     if (!result?.path) {
@@ -80,10 +60,7 @@ export default function GlobalSearch() {
     setActiveIndex(-1);
   }
 
-  // =====================================================
-  // KEYBOARD NAVIGATION
-  // =====================================================
-
+  
   function handleKeyDown(event) {
     // ESC
     if (event.key === "Escape") {
@@ -211,9 +188,6 @@ export default function GlobalSearch() {
         </button>
       )}
 
-      {/* =================================================
-          SEARCH RESULTS
-      ================================================= */}
 
       {showPanel && (
         <div className="search-results">

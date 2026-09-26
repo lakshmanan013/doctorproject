@@ -66,9 +66,7 @@ export default function Navbar() {
 
   const meta = PAGE_META[pathname];
 
-  // =====================================================
-  // LOAD DOCTOR PROFILE
-  // =====================================================
+
 
   const loadDoctorProfile = async () => {
     try {
@@ -95,10 +93,7 @@ export default function Navbar() {
     }
   };
 
-  // =====================================================
-  // LOAD DOCTOR ON START
-  // AND WHEN PROFILE IS UPDATED
-  // =====================================================
+
 
   useEffect(() => {
     loadDoctorProfile();
@@ -124,9 +119,6 @@ export default function Navbar() {
     };
   }, [authDoctor?.email]);
 
-  // =====================================================
-  // LOAD PATIENT COUNT
-  // =====================================================
 
   useEffect(() => {
     if (pathname !== "/patients") {
@@ -172,9 +164,6 @@ export default function Navbar() {
     };
   }, [pathname]);
 
-  // =====================================================
-  // LOAD APPOINTMENTS COUNT
-  // =====================================================
 
   useEffect(() => {
     if (pathname !== "/appointments") {
@@ -226,36 +215,25 @@ export default function Navbar() {
     };
   }, [pathname]);
 
-  // =====================================================
-  // DOCTOR NAME
-  // =====================================================
+
 
   const doctorName =
     doctor?.fullName?.trim() ||
     authDoctor?.fullName?.trim() ||
     "Doctor";
 
-  // =====================================================
-  // CLINIC NAME
-  // =====================================================
-
   const clinicName =
     doctor?.clinicHospital?.trim() ||
     authDoctor?.clinicHospital?.trim() ||
     "Clinic";
 
-  // =====================================================
-  // NAVBAR TITLE
-  // =====================================================
 
   const title = isDashboard
     ? `${currentGreeting}, ${doctorName}`
     : meta?.title ||
       "Patients Profile";
 
-  // =====================================================
-  // NAVBAR SUBTITLE
-  // =====================================================
+
 
   const subtitle = isDashboard
     ? clinicName
@@ -273,9 +251,6 @@ export default function Navbar() {
           } across clinic, video and field`
         : meta?.subtitle || "";
 
-  // =====================================================
-  // RENDER
-  // =====================================================
 
   return (
     <>
@@ -346,9 +321,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* =========================================== */}
-      {/* NEW VISIT MODAL                            */}
-      {/* =========================================== */}
 
       <NewVisitModal
         open={newVisitOpen}

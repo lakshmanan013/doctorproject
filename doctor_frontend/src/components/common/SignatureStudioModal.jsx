@@ -22,12 +22,7 @@ import {
 import Button from "../ui/Button";
 import "./SignatureStudioModal.css";
 
-/**
- * SignatureStudioModal
- * Full-screen popup modal rendered via React Portal.
- * Interactive studio for paper signature auto-detection, rotation, cropping,
- * shadow removal, and digital ink conversion.
- */
+
 export default function SignatureStudioModal({
   isOpen,
   imageSource,
@@ -62,7 +57,7 @@ export default function SignatureStudioModal({
   // Dragging / Resizing crop box state
   const dragRef = useRef({
     isDragging: false,
-    dragType: null, // "move" | "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w"
+    dragType: null,
     startX: 0,
     startY: 0,
     initialCrop: null,
@@ -218,7 +213,7 @@ export default function SignatureStudioModal({
     setStrokeBoost(0);
   };
 
-  // ================= CROP DRAG / RESIZE HANDLERS =================
+
   const handlePointerDown = (e, dragType) => {
     e.stopPropagation();
     e.preventDefault();

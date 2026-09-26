@@ -11,12 +11,7 @@ import toast from "react-hot-toast";
 import SignatureStudioModal from "./SignatureStudioModal";
 import "./ImageUploadBox.css";
 
-/**
- * ImageUploadBox
- * Handles image file selection, interactive signature digitization studio
- * (auto-detect, crop, rotate, shadow removal), standard image compression,
- * preview, and removal.
- */
+
 export default function ImageUploadBox({
   label = "",
   value = "",
@@ -67,7 +62,7 @@ export default function ImageUploadBox({
       return;
     }
 
-    // Standard non-signature image compression via Canvas
+
     setProcessing(true);
     try {
       const reader = new FileReader();
@@ -145,7 +140,6 @@ export default function ImageUploadBox({
 
   const handleZoneClick = (e) => {
     if (processing) return;
-    // Only launch upload dialog if no image is currently present
     if (!value && fileInputRef.current) {
       fileInputRef.current.value = "";
       fileInputRef.current.click();
