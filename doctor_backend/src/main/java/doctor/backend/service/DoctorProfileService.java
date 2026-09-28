@@ -62,6 +62,10 @@ public class DoctorProfileService {
                 profile.setDigitalSignatureImage(user.getDigitalSignatureImage());
                 updated = true;
             }
+            if ((profile.getSecondarySignatureImage() == null || profile.getSecondarySignatureImage().isBlank()) && user.getSecondarySignatureImage() != null && !user.getSecondarySignatureImage().isBlank()) {
+                profile.setSecondarySignatureImage(user.getSecondarySignatureImage());
+                updated = true;
+            }
 
             // If still missing any images, import directly from Zippy CRM pet_management DB
             if (profile.getProfileImage() == null || profile.getProfileImage().isBlank()
@@ -145,6 +149,8 @@ public class DoctorProfileService {
         existing.setClinicInsideImage(profile.getClinicInsideImage());
         existing.setClinicOutsideImage(profile.getClinicOutsideImage());
         existing.setDigitalSignatureImage(profile.getDigitalSignatureImage());
+        existing.setSecondarySignatureImage(profile.getSecondarySignatureImage());
+        existing.setSecondarySignatureName(profile.getSecondarySignatureName());
 
         DoctorProfile saved = repository.save(existing);
 
@@ -154,6 +160,7 @@ public class DoctorProfileService {
             user.setClinicInsideImage(profile.getClinicInsideImage());
             user.setClinicOutsideImage(profile.getClinicOutsideImage());
             user.setDigitalSignatureImage(profile.getDigitalSignatureImage());
+            user.setSecondarySignatureImage(profile.getSecondarySignatureImage());
             if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
                 user.setFullName(profile.getFullName());
             }

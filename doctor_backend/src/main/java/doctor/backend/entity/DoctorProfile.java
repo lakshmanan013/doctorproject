@@ -72,6 +72,12 @@ public class DoctorProfile {
     @Column(columnDefinition = "LONGTEXT")
     private String digitalSignatureImage;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String secondarySignatureImage;
+
+    private String secondarySignatureName;
+
     // =========================
     // Verification flags
     // Set by the Zenve admin backend when an admin clicks "verify" on the
@@ -296,5 +302,21 @@ public class DoctorProfile {
 
     public void setStateCouncilSyncVerified(boolean stateCouncilSyncVerified) {
         this.stateCouncilSyncVerified = stateCouncilSyncVerified;
+    }
+
+    public String getSecondarySignatureImage() {
+        return secondarySignatureImage;
+    }
+
+    public void setSecondarySignatureImage(String secondarySignatureImage) {
+        this.secondarySignatureImage = secondarySignatureImage;
+    }
+
+    public String getSecondarySignatureName() {
+        return secondarySignatureName;
+    }
+
+    public void setSecondarySignatureName(String secondarySignatureName) {
+        this.secondarySignatureName = secondarySignatureName;
     }
 }

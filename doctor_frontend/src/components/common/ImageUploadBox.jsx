@@ -6,6 +6,7 @@ import {
   FiLoader,
   FiEdit2,
   FiFeather,
+  FiScissors,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import SignatureStudioModal from "./SignatureStudioModal";
@@ -207,11 +208,11 @@ export default function ImageUploadBox({
                 <button
                   type="button"
                   className="img-action-btn edit-sig-btn"
-                  title="Edit & Recrop in Studio"
-                  aria-label="Edit in Studio"
+                  title="Remove Background & Recolor in Studio"
+                  aria-label="Remove Background in Studio"
                   onClick={handleOpenExistingInStudio}
                 >
-                  <FiEdit2 size={13} /> Edit
+                  <FiScissors size={13} /> Remove BG
                 </button>
               )}
               <button
@@ -245,12 +246,12 @@ export default function ImageUploadBox({
             </div>
             <div className="img-prompt-text">
               <span className="upload-cta">
-                {isSig ? "Upload paper signature" : "Click to upload"}
+                {isSig ? "Upload signature photo" : "Click to upload"}
               </span>{" "}
-              {isSig ? "photo (auto-crop & rotate)" : "or drag & drop"}
+              {isSig ? "(auto background removal)" : "or drag & drop"}
             </div>
             <span className="img-helper-sub">
-              {isSig ? "Sign on white paper & upload photo" : helperText}
+              {isSig ? "Sign on paper, photo auto-cropped & background removed" : helperText}
             </span>
           </div>
         )}
@@ -260,6 +261,7 @@ export default function ImageUploadBox({
       {isSig && studioOpen && (
         <SignatureStudioModal
           isOpen={studioOpen}
+          initialTab="upload"
           imageSource={pendingSignatureSource}
           onClose={() => {
             setStudioOpen(false);

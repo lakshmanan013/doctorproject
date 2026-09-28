@@ -6,7 +6,9 @@
 }
 
 @media (max-width: 1100px) {
-  .settings-layout { grid-template-columns: 1fr; }
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .settings-heading {
@@ -387,6 +389,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -592,11 +595,479 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
   .video-consult-mode-right {
     align-self: flex-end;
     margin-top: 8px;
   }
 }
 
+/* ==========================================================
+   OFFICIAL DIGITAL SIGNATURES & PRESCRIPTION SIGN-OFF
+========================================================== */
+.doc-signature-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
+.doc-sig-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
+.doc-sig-panel-subtitle {
+  font-size: 0.83rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.45;
+}
+
+.doc-sig-status-badge-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.doc-sig-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.doc-sig-status-badge.verified {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.doc-sig-status-badge.active {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.doc-sig-status-badge.pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+/* Dual Signature Slots Grid */
+.doc-dual-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 960px) {
+  .doc-dual-signatures-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.doc-sig-slot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.doc-sig-slot-card.primary-slot {
+  border-top: 3.5px solid #2563eb;
+}
+
+.doc-sig-slot-card.secondary-slot {
+  border-top: 3.5px solid #9333ea;
+  background: #fafafa;
+}
+
+.doc-sig-slot-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.doc-sig-slot-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-sig-slot-tag {
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.doc-sig-slot-tag.primary {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.doc-sig-slot-tag.secondary {
+  background: #faf5ff;
+  color: #7e22ce;
+}
+
+.doc-sig-slot-title {
+  margin: 4px 0 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.doc-sig-slot-desc {
+  margin: 0;
+  font-size: 0.77rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.doc-sig-slot-status.active {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+/* Slot Preview Box */
+.doc-sig-slot-preview-box {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.doc-sig-slot-preview-img {
+  max-width: 90%;
+  max-height: 84px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  filter: contrast(1.05);
+}
+
+.doc-sig-slot-overlay {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.doc-sig-btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-sig-btn-mini:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.doc-sig-btn-mini.danger {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.doc-sig-btn-mini.danger:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.doc-sig-btn-mini.highlight {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #86efac;
+  font-weight: 700;
+}
+
+.doc-sig-btn-mini.highlight:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
+/* Quick Actions Toolbar below preview */
+.doc-sig-quick-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0 2px;
+}
+
+.doc-sig-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-sig-quick-btn:hover {
+  background: #ffffff;
+  color: #0284c7;
+  border-color: #93c5fd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.doc-sig-quick-btn.studio {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+  font-weight: 700;
+}
+
+.doc-sig-quick-btn.studio:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+/* Slot Empty Zone */
+.doc-sig-slot-empty-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 14px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #fcfcfd;
+  gap: 12px;
+}
+
+.doc-sig-slot-empty-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.doc-sig-empty-icon.primary {
+  color: #2563eb;
+}
+
+.doc-sig-empty-icon.secondary {
+  color: #9333ea;
+}
+
+.doc-sig-empty-main {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.doc-sig-empty-sub {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.doc-sig-slot-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.doc-sig-slot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-sig-slot-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.doc-sig-slot-btn.highlight {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.doc-sig-slot-btn.highlight:hover {
+  background: #1d4ed8;
+}
+
+.doc-sig-slot-btn.highlight-secondary {
+  background: #9333ea;
+  color: #ffffff;
+  border-color: #9333ea;
+  box-shadow: 0 2px 6px rgba(147, 51, 234, 0.2);
+}
+
+.doc-sig-slot-btn.highlight-secondary:hover {
+  background: #7e22ce;
+}
+
+/* Slot Metadata Field */
+.doc-sig-slot-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doc-sig-meta-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-sig-input-with-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doc-sig-autofill-btn {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-sig-autofill-btn:hover {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+/* Prescription Mode Selector Card */
+.doc-rx-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.doc-rx-mode-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.doc-rx-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-rx-mode-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-rx-mode-pill:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.doc-rx-mode-pill.active {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.doc-rx-mode-pill input {
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+/* Prescription Preference Wrap */
+.doc-sig-preference-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}

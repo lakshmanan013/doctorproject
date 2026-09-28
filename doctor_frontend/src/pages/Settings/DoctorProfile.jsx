@@ -13,6 +13,16 @@ import {
   FiNavigation,
   FiRefreshCw,
   FiVideo,
+  FiFeather,
+  FiType,
+  FiUploadCloud,
+  FiDownload,
+  FiPhone,
+  FiSliders,
+  FiFileText,
+  FiScissors,
+  FiDroplet,
+  FiSlash,
 } from "react-icons/fi";
 
 import Input, {
@@ -22,6 +32,8 @@ import Input, {
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import ImageUploadBox from "../../components/common/ImageUploadBox";
+import SignatureStudioModal from "../../components/common/SignatureStudioModal";
+import { downloadSignaturePng, removeSignatureBackground } from "../../utils/signatureProcessor";
 
 import {
   getDoctorProfile,
@@ -52,6 +64,9 @@ const EMPTY = {
   clinicInsideImage: "",
   clinicOutsideImage: "",
   digitalSignatureImage: "",
+  secondarySignatureImage: "",
+  secondarySignatureName: "",
+  prescriptionSignatureMode: "primary",
 };
 
 const VERIFICATION_ITEMS = [
@@ -78,6 +93,9 @@ export default function DoctorProfile() {
   const profileFileInputRef = useRef(null);
   const clinicInsideInputRef = useRef(null);
   const clinicOutsideInputRef = useRef(null);
+  const primarySigFileInputRef = useRef(null);
+  const secondarySigFileInputRef = useRef(null);
+
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,6 +107,113 @@ export default function DoctorProfile() {
     digitalSignatureVerified: false,
     stateCouncilSyncVerified: false,
   });
+
+  // Digital signature studio modal state & target
+  const [signatureStudioOpen, setSignatureStudioOpen] = useState(false);
+  const [signatureStudioTab, setSignatureStudioTab] = useState("draw");
+  const [signatureTarget, setSignatureTarget] = useState("primary"); // "primary" | "secondary"
+  const [customStudioSource, setCustomStudioSource] = useState(null);
+
+  const openSignatureStudio = (tab = "draw", target = "primary", source = null) => {
+    setSignatureTarget(target);
+    setSignatureStudioTab(tab);
+    setCustomStudioSource(source);
+    setSignatureStudioOpen(true);
+  };
+
+  const handleSignatureApplied = (dataUrl) => {
+    setSignatureStudioOpen(false);
+    setCustomStudioSource(null);
+    if (signatureTarget === "secondary") {
+      autoSaveField("secondarySignatureImage", dataUrl);
+      toast.success("Secondary signature saved successfully!");
+    } else {
+      autoSaveField("digitalSignatureImage", dataUrl);
+      toast.success("Primary digital signature saved successfully!");
+    }
+  };
+
+  const handleRemoveSignature = (target = "primary") => {
+    if (target === "secondary") {
+      autoSaveField("secondarySignatureImage", "");
+      toast.success("Secondary signature removed");
+    } else {
+      autoSaveField("digitalSignatureImage", "");
+      toast.success("Primary digital signature removed");
+    }
+  };
+
+  const handleDownloadSignature = (target = "primary") => {
+    const dataUrl = target === "secondary" ? form.secondarySignatureImage : form.digitalSignatureImage;
+    if (!dataUrl) return;
+    const nameSlug = form.fullName ? form.fullName.toLowerCase().replace(/[^a-z0-9]+/g, "_") : "doctor";
+    const filename = target === "secondary" ? `${nameSlug}_secondary_signature.png` : `${nameSlug}_digital_signature.png`;
+    downloadSignaturePng(dataUrl, filename);
+    toast.success("Signature downloaded");
+  };
+
+  // Instant 1-click Auto Remove Background from existing signature
+  const handleQuickRemoveBackground = async (target = "primary") => {
+    const existing = target === "secondary" ? form.secondarySignatureImage : form.digitalSignatureImage;
+    if (!existing) return;
+    try {
+      toast.loading("Removing paper background...", { id: "bg-remove" });
+      const transparentDataUrl = await removeSignatureBackground(existing);
+      if (target === "secondary") {
+        autoSaveField("secondarySignatureImage", transparentDataUrl);
+      } else {
+        autoSaveField("digitalSignatureImage", transparentDataUrl);
+      }
+      toast.success("Background removed! Transparent signature saved.", { id: "bg-remove" });
+    } catch (err) {
+      console.error("Quick background removal failed:", err);
+      toast.error("Opening studio to refine background...", { id: "bg-remove" });
+      openSignatureStudio("upload", target, existing);
+    }
+  };
+
+  // Instant 1-click Remove Colour (Monochrome Pure Black)
+  const handleQuickRemoveColor = async (target = "primary") => {
+    const existing = target === "secondary" ? form.secondarySignatureImage : form.digitalSignatureImage;
+    if (!existing) return;
+    try {
+      toast.loading("Stripping color to monochrome black...", { id: "color-remove" });
+      const monoDataUrl = await removeSignatureBackground(existing, { removeColor: true });
+      if (target === "secondary") {
+        autoSaveField("secondarySignatureImage", monoDataUrl);
+      } else {
+        autoSaveField("digitalSignatureImage", monoDataUrl);
+      }
+      toast.success("Converted to pure black & white signature!", { id: "color-remove" });
+    } catch (err) {
+      console.error("Quick color removal failed:", err);
+      toast.error("Opening studio for color adjustment...", { id: "color-remove" });
+      openSignatureStudio("upload", target, existing);
+    }
+  };
+
+  const handleDirectSignatureFile = (e, target = "primary") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (PNG, JPG, WebP)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      // Auto-open Signature Studio in upload mode so background removal is immediately applied and previewed!
+      openSignatureStudio("upload", target, dataUrl);
+      toast.success("Image loaded! Background automatically removed. Tweak settings & save.");
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read image file");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   // ==========================================
   // LOCATION AUTO-FETCH & VERIFY
@@ -254,6 +379,8 @@ export default function DoctorProfile() {
               clinicInsideImage: updated.clinicInsideImage || "",
               clinicOutsideImage: updated.clinicOutsideImage || "",
               digitalSignatureImage: updated.digitalSignatureImage || "",
+              secondarySignatureImage: updated.secondarySignatureImage || "",
+              secondarySignatureName: updated.secondarySignatureName?.trim() || "",
             };
 
             updateDoctorProfile(profile)
@@ -315,6 +442,16 @@ export default function DoctorProfile() {
     setForm((current) => {
       const updated = { ...current, [key]: value };
 
+      if (key === "secondarySignatureImage") {
+        try { localStorage.setItem("doc_secondary_sig_img", value || ""); } catch (_) {}
+      }
+      if (key === "secondarySignatureName") {
+        try { localStorage.setItem("doc_secondary_sig_name", value || ""); } catch (_) {}
+      }
+      if (key === "prescriptionSignatureMode") {
+        try { localStorage.setItem("doc_rx_sig_mode", value || "primary"); } catch (_) {}
+      }
+
       // Construct backend profile payload
       const profile = {
         fullName: updated.fullName?.trim() || "",
@@ -337,6 +474,8 @@ export default function DoctorProfile() {
         clinicInsideImage: updated.clinicInsideImage || "",
         clinicOutsideImage: updated.clinicOutsideImage || "",
         digitalSignatureImage: updated.digitalSignatureImage || "",
+        secondarySignatureImage: updated.secondarySignatureImage || "",
+        secondarySignatureName: updated.secondarySignatureName?.trim() || "",
       };
 
       // Persist directly to backend database
@@ -345,6 +484,7 @@ export default function DoctorProfile() {
           if (key === "profileImage") {
             window.dispatchEvent(new CustomEvent("doctorProfileUpdated", { detail: { profileImage: value } }));
           }
+          window.dispatchEvent(new Event("doctorProfileUpdated"));
         })
         .catch((err) => {
           console.error(`Failed to auto-save ${key}:`, err);
@@ -468,6 +608,9 @@ export default function DoctorProfile() {
           clinicInsideImage: data?.clinicInsideImage ?? "",
           clinicOutsideImage: data?.clinicOutsideImage ?? "",
           digitalSignatureImage: data?.digitalSignatureImage ?? "",
+          secondarySignatureImage: data?.secondarySignatureImage || localStorage.getItem("doc_secondary_sig_img") || "",
+          secondarySignatureName: data?.secondarySignatureName || localStorage.getItem("doc_secondary_sig_name") || "",
+          prescriptionSignatureMode: localStorage.getItem("doc_rx_sig_mode") === "secondary" ? "secondary" : "primary",
         });
 
         setVerifications({
@@ -527,6 +670,8 @@ export default function DoctorProfile() {
         clinicInsideImage: form.clinicInsideImage,
         clinicOutsideImage: form.clinicOutsideImage,
         digitalSignatureImage: form.digitalSignatureImage,
+        secondarySignatureImage: form.secondarySignatureImage,
+        secondarySignatureName: form.secondarySignatureName?.trim() || "",
       };
 
       const saved = await updateDoctorProfile(profile);
@@ -552,6 +697,8 @@ export default function DoctorProfile() {
         clinicInsideImage: saved?.clinicInsideImage ?? prev.clinicInsideImage,
         clinicOutsideImage: saved?.clinicOutsideImage ?? prev.clinicOutsideImage,
         digitalSignatureImage: saved?.digitalSignatureImage ?? prev.digitalSignatureImage,
+        secondarySignatureImage: saved?.secondarySignatureImage ?? prev.secondarySignatureImage,
+        secondarySignatureName: saved?.secondarySignatureName ?? prev.secondarySignatureName,
       }));
 
       toast.success("Doctor profile saved successfully");
@@ -870,11 +1017,11 @@ export default function DoctorProfile() {
           </div>
         </div>
 
-        {/* CONTACT & DIGITAL SIGNATURE */}
+        {/* CONTACT DETAILS */}
         <div className="panel">
           <h3 className="settings-heading">
-            <FiShield className="settings-icon" />
-            Contact & digital signature
+            <FiPhone className="settings-icon" />
+            Contact details
           </h3>
 
           <div className="form-grid-2">
@@ -894,26 +1041,427 @@ export default function DoctorProfile() {
               />
             </Field>
           </div>
+        </div>
 
-          {/* DIGITAL SIGNATURE: IMAGE UPLOAD INSTEAD OF TEXT */}
-          <div style={{ marginTop: 16, maxWidth: 360 }}>
-            <ImageUploadBox
-              label="Digital signature (Upload signature image)"
-              value={form.digitalSignatureImage}
-              onChange={(val) => {
-                autoSaveField("digitalSignatureImage", val);
-                if (val) {
-                  toast.success("Digital signature saved");
-                } else {
-                  toast.success("Digital signature removed");
-                }
-              }}
-              placeholderIcon={<FiEdit3 size={18} />}
-              helperText="Sign on white paper & upload photo"
-              shape="signature"
-              isSignature={true}
-              height={84}
-            />
+        {/* OFFICIAL DIGITAL SIGNATURES & PRESCRIPTION SIGN-OFF */}
+        <div className="panel doc-signature-panel">
+          <div className="doc-sig-panel-header">
+            <div>
+              <h3 className="settings-heading" style={{ marginBottom: 4 }}>
+                <FiFeather className="settings-icon" />
+                Digital signatures & prescription sign-off
+              </h3>
+              <p className="doc-sig-panel-subtitle">
+                Manage your primary and secondary digital signatures. Upload signature files, draw with a digital pen, or type with cursive calligraphy fonts for prescriptions, certificates, and clinical notes.
+              </p>
+            </div>
+            <div className="doc-sig-status-badge-wrap">
+              {verifications.digitalSignatureVerified ? (
+                <span className="doc-sig-status-badge verified">
+                  <FiCheckCircle size={13} /> Council Verified
+                </span>
+              ) : (form.digitalSignatureImage || form.secondarySignatureImage) ? (
+                <span className="doc-sig-status-badge active">
+                  <FiCheckCircle size={13} /> Signatures Active
+                </span>
+              ) : (
+                <span className="doc-sig-status-badge pending">
+                  Signature Not Configured
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* TWO SIGNATURE UPLOAD SLOTS: PRIMARY & SECONDARY */}
+          <div className="doc-dual-signatures-grid">
+            {/* ========================================================= */}
+            {/* SIGNATURE OPTION 1: PRIMARY DIGITAL SIGNATURE             */}
+            {/* ========================================================= */}
+            <div className="doc-sig-slot-card primary-slot">
+              <div className="doc-sig-slot-header">
+                <div className="doc-sig-slot-title-group">
+                  <span className="doc-sig-slot-tag primary">Signature Option 1</span>
+                  <h4 className="doc-sig-slot-title">Primary Digital Signature</h4>
+                  <p className="doc-sig-slot-desc">Official full signature used for patient prescriptions and medical certificates</p>
+                </div>
+                {form.digitalSignatureImage && (
+                  <span className="doc-sig-slot-status active">Active</span>
+                )}
+              </div>
+
+              {/* Direct file input for primary signature */}
+              <input
+                ref={primarySigFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleDirectSignatureFile(e, "primary")}
+              />
+
+              {form.digitalSignatureImage ? (
+                <>
+                  <div className="doc-sig-slot-preview-box">
+                    <div className="sig-ledger-grid" />
+                    <img
+                      src={form.digitalSignatureImage}
+                      alt="Primary Signature"
+                      className="doc-sig-slot-preview-img"
+                    />
+                    <div className="doc-sig-slot-overlay">
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini highlight"
+                        onClick={() => openSignatureStudio("upload", "primary", form.digitalSignatureImage)}
+                        title="Remove Background, Recolor or Crop in Studio"
+                      >
+                        <FiScissors size={13} /> Studio Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => openSignatureStudio("draw", "primary")}
+                        title="Redraw with Pen"
+                      >
+                        <FiEdit3 size={13} /> Draw
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => openSignatureStudio("type", "primary")}
+                        title="Type Cursive Font"
+                      >
+                        <FiType size={13} /> Font
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => primarySigFileInputRef.current?.click()}
+                        title="Upload New File"
+                      >
+                        <FiUploadCloud size={13} /> Replace
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => handleDownloadSignature("primary")}
+                        title="Download Transparent PNG"
+                      >
+                        <FiDownload size={13} /> Save
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini danger"
+                        onClick={() => handleRemoveSignature("primary")}
+                        title="Remove Signature"
+                      >
+                        <FiTrash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 1-Click Quick Actions Toolbar */}
+                  <div className="doc-sig-quick-actions-row">
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn"
+                      onClick={() => handleQuickRemoveBackground("primary")}
+                      title="Automatically strip paper background to transparent"
+                    >
+                      <FiScissors size={12} /> Auto Remove BG
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn"
+                      onClick={() => handleQuickRemoveColor("primary")}
+                      title="Convert to pure high-contrast black & white signature"
+                    >
+                      <FiSlash size={12} /> Remove Colour (B&W)
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn studio"
+                      onClick={() => openSignatureStudio("upload", "primary", form.digitalSignatureImage)}
+                      title="Open full studio with color picker and sliders"
+                    >
+                      <FiSliders size={12} /> Studio Editor
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="doc-sig-slot-empty-zone">
+                  <div className="doc-sig-slot-empty-prompt">
+                    <FiFeather size={28} className="doc-sig-empty-icon primary" />
+                    <span className="doc-sig-empty-main">Upload Primary Signature</span>
+                    <span className="doc-sig-empty-sub">Choose any method below to upload or create:</span>
+                  </div>
+                  <div className="doc-sig-slot-action-row">
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn highlight"
+                      onClick={() => primarySigFileInputRef.current?.click()}
+                      title="Upload signature photo with automatic background removal"
+                    >
+                      <FiUploadCloud size={14} /> Upload & Remove BG
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("upload", "primary")}
+                      title="Open Studio scanner & background remover"
+                    >
+                      <FiScissors size={14} /> Studio Scan
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("draw", "primary")}
+                    >
+                      <FiEdit3 size={14} /> Draw Pad
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("type", "primary")}
+                    >
+                      <FiType size={14} /> Type Font
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Printed Signatory Name Field */}
+              <div className="doc-sig-slot-meta-field">
+                <label className="doc-sig-meta-label">Printed Signatory Name / Title</label>
+                <div className="doc-sig-input-with-chip">
+                  <Input
+                    type="text"
+                    placeholder="e.g. Dr. Jane Doe, M.V.Sc (Vet Surgery)"
+                    value={form.signature}
+                    onChange={(e) => {
+                      update("signature", e.target.value);
+                      autoSaveField("signature", e.target.value);
+                    }}
+                  />
+                  {form.fullName && (
+                    <button
+                      type="button"
+                      className="doc-sig-autofill-btn"
+                      onClick={() => {
+                        const autoVal = `${form.fullName.toLowerCase().startsWith("dr") ? form.fullName : `Dr. ${form.fullName}`}${form.qualification ? `, ${form.qualification}` : ""}`;
+                        update("signature", autoVal);
+                        autoSaveField("signature", autoVal);
+                        toast.success("Updated from profile");
+                      }}
+                    >
+                      Auto-fill
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ========================================================= */}
+            {/* SIGNATURE OPTION 2: SECONDARY SIGNATURE / INITIALS        */}
+            {/* ========================================================= */}
+            <div className="doc-sig-slot-card secondary-slot">
+              <div className="doc-sig-slot-header">
+                <div className="doc-sig-slot-title-group">
+                  <span className="doc-sig-slot-tag secondary">Signature Option 2 (New)</span>
+                  <h4 className="doc-sig-slot-title">Secondary Signature / Initials / Stamp</h4>
+                  <p className="doc-sig-slot-desc">Short signature, doctor initials, clinic rubber stamp, or alternate sign-off</p>
+                </div>
+                {form.secondarySignatureImage && (
+                  <span className="doc-sig-slot-status active">Active</span>
+                )}
+              </div>
+
+              {/* Direct file input for secondary signature */}
+              <input
+                ref={secondarySigFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleDirectSignatureFile(e, "secondary")}
+              />
+
+              {form.secondarySignatureImage ? (
+                <>
+                  <div className="doc-sig-slot-preview-box">
+                    <div className="sig-ledger-grid" />
+                    <img
+                      src={form.secondarySignatureImage}
+                      alt="Secondary Signature"
+                      className="doc-sig-slot-preview-img"
+                    />
+                    <div className="doc-sig-slot-overlay">
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini highlight"
+                        onClick={() => openSignatureStudio("upload", "secondary", form.secondarySignatureImage)}
+                        title="Remove Background, Recolor or Crop in Studio"
+                      >
+                        <FiScissors size={13} /> Studio Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => openSignatureStudio("draw", "secondary")}
+                        title="Redraw with Pen"
+                      >
+                        <FiEdit3 size={13} /> Draw
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => openSignatureStudio("type", "secondary")}
+                        title="Type Cursive Font"
+                      >
+                        <FiType size={13} /> Font
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => secondarySigFileInputRef.current?.click()}
+                        title="Upload New File"
+                      >
+                        <FiUploadCloud size={13} /> Replace
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini"
+                        onClick={() => handleDownloadSignature("secondary")}
+                        title="Download PNG"
+                      >
+                        <FiDownload size={13} /> Save
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-btn-mini danger"
+                        onClick={() => handleRemoveSignature("secondary")}
+                        title="Remove Signature"
+                      >
+                        <FiTrash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 1-Click Quick Actions Toolbar */}
+                  <div className="doc-sig-quick-actions-row">
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn"
+                      onClick={() => handleQuickRemoveBackground("secondary")}
+                      title="Automatically strip paper background to transparent"
+                    >
+                      <FiScissors size={12} /> Auto Remove BG
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn"
+                      onClick={() => handleQuickRemoveColor("secondary")}
+                      title="Convert to pure high-contrast black & white signature"
+                    >
+                      <FiSlash size={12} /> Remove Colour (B&W)
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-quick-btn studio"
+                      onClick={() => openSignatureStudio("upload", "secondary", form.secondarySignatureImage)}
+                      title="Open full studio with color picker and sliders"
+                    >
+                      <FiSliders size={12} /> Studio Editor
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="doc-sig-slot-empty-zone">
+                  <div className="doc-sig-slot-empty-prompt">
+                    <FiEdit3 size={28} className="doc-sig-empty-icon secondary" />
+                    <span className="doc-sig-empty-main">Upload Secondary Signature</span>
+                    <span className="doc-sig-empty-sub">Upload short initials, seal, stamp or alternate signature:</span>
+                  </div>
+                  <div className="doc-sig-slot-action-row">
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn highlight-secondary"
+                      onClick={() => secondarySigFileInputRef.current?.click()}
+                      title="Upload signature photo with automatic background removal"
+                    >
+                      <FiUploadCloud size={14} /> Upload & Remove BG
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("upload", "secondary")}
+                      title="Open Studio scanner & background remover"
+                    >
+                      <FiScissors size={14} /> Studio Scan
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("draw", "secondary")}
+                    >
+                      <FiEdit3 size={14} /> Draw Pad
+                    </button>
+                    <button
+                      type="button"
+                      className="doc-sig-slot-btn"
+                      onClick={() => openSignatureStudio("type", "secondary")}
+                    >
+                      <FiType size={14} /> Type Font
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Secondary Signatory Label / Title */}
+              <div className="doc-sig-slot-meta-field">
+                <label className="doc-sig-meta-label">Secondary Signatory Label / Initials</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Dr. Initials / Official Seal / Attending Vet"
+                  value={form.secondarySignatureName}
+                  onChange={(e) => {
+                    update("secondarySignatureName", e.target.value);
+                    autoSaveField("secondarySignatureName", e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* PRESCRIPTION SIGNATURE PREFERENCE */}
+          <div className="doc-sig-preference-wrap">
+            <div className="doc-rx-mode-card">
+              <label className="doc-sig-meta-label">Prescription Sign-off Preference</label>
+              <p className="doc-rx-mode-sub">Choose which signature appears on generated patient prescriptions:</p>
+              
+              <div className="doc-rx-mode-options">
+                <label className={`doc-rx-mode-pill ${form.prescriptionSignatureMode === "primary" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="prescriptionSignatureMode"
+                    value="primary"
+                    checked={form.prescriptionSignatureMode === "primary"}
+                    onChange={() => autoSaveField("prescriptionSignatureMode", "primary")}
+                  />
+                  <span>Primary Signature Only</span>
+                </label>
+
+                <label className={`doc-rx-mode-pill ${form.prescriptionSignatureMode === "secondary" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="prescriptionSignatureMode"
+                    value="secondary"
+                    checked={form.prescriptionSignatureMode === "secondary"}
+                    onChange={() => autoSaveField("prescriptionSignatureMode", "secondary")}
+                  />
+                  <span>Secondary Signature / Stamp Only</span>
+                </label>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -1112,6 +1660,30 @@ export default function DoctorProfile() {
           </button>
         </div>
       </div>
+
+      {/* FULL-FEATURED DIGITAL SIGNATURE STUDIO MODAL */}
+      {signatureStudioOpen && (
+        <SignatureStudioModal
+          isOpen={signatureStudioOpen}
+          initialTab={signatureStudioTab}
+          imageSource={
+            customStudioSource ||
+            (signatureTarget === "secondary"
+              ? form.secondarySignatureImage
+              : form.digitalSignatureImage)
+          }
+          doctorName={
+            signatureTarget === "secondary"
+              ? form.secondarySignatureName || form.fullName
+              : form.fullName
+          }
+          onClose={() => {
+            setSignatureStudioOpen(false);
+            setCustomStudioSource(null);
+          }}
+          onApply={handleSignatureApplied}
+        />
+      )}
     </div>
   );
 }

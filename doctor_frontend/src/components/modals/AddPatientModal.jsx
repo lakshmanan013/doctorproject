@@ -255,6 +255,7 @@ export default function AddPatientModal({
       }
       title="Register new patient"
       subtitle="Patient and owner information is saved to the backend."
+      width="modal-lg"
     >
       <div className="form-grid-2">
 
@@ -500,44 +501,46 @@ export default function AddPatientModal({
               />
             </Field>
 
-            <Field label="City">
-              <Input
-                value={form.ownerCity}
-                onChange={(e) =>
-                  update(
-                    "ownerCity",
-                    e.target.value
-                  )
-                }
-                placeholder="Enter city"
-              />
-            </Field>
+            <div className="col-span-2 form-grid-3">
+              <Field label="City">
+                <Input
+                  value={form.ownerCity}
+                  onChange={(e) =>
+                    update(
+                      "ownerCity",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Enter city"
+                />
+              </Field>
 
-            <Field label="State">
-              <Input
-                value={form.ownerState}
-                onChange={(e) =>
-                  update(
-                    "ownerState",
-                    e.target.value
-                  )
-                }
-                placeholder="Enter state"
-              />
-            </Field>
+              <Field label="State">
+                <Input
+                  value={form.ownerState}
+                  onChange={(e) =>
+                    update(
+                      "ownerState",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Enter state"
+                />
+              </Field>
 
-            <Field label="Pincode">
-              <Input
-                value={form.ownerPincode}
-                onChange={(e) =>
-                  update(
-                    "ownerPincode",
-                    e.target.value
-                  )
-                }
-                placeholder="Enter pincode"
-              />
-            </Field>
+              <Field label="Pincode">
+                <Input
+                  value={form.ownerPincode}
+                  onChange={(e) =>
+                    update(
+                      "ownerPincode",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Enter pincode"
+                />
+              </Field>
+            </div>
           </>
         )}
 

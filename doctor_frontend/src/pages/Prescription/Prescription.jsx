@@ -62,6 +62,11 @@ export default function Prescription() {
   const speechBaseNotesRef = useRef("");
   const latestNotesRef = useRef(notes);
   const { doctor } = useDoctorProfile();
+  const rxSigMode = typeof window !== "undefined" && localStorage.getItem("doc_rx_sig_mode") === "secondary" ? "secondary" : "primary";
+  const primarySig = doctor?.digitalSignatureImage;
+  const secondarySig = doctor?.secondarySignatureImage || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_img") : "");
+  const primaryDoctorName = doctor?.digitalSignatureName || (doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Doctor's Signature");
+  const secondaryDoctorName = doctor?.secondarySignatureName || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_name") : "") || "Secondary Signatory";
 
   const patient = patients.find(p => String(p.id) === String(patientId));
   const notesWithPetFood = useCallback((customNotes = null) => {
@@ -878,19 +883,74 @@ export default function Prescription() {
                   This is Zenve-generated prescription is a valid legal medical document.
                 </p>
               </div>
-              <div className="rx-preview-sign-line">
-                {doctor?.digitalSignatureImage ? (
-                  <img
-                    src={doctor.digitalSignatureImage}
-                    alt="Doctor Signature"
-                    className="rx-digital-signature-img"
-                  />
+              <div className="rx-preview-signatures-wrap">
+                {rxSigMode === "both" && (primarySig || secondarySig) ? (
+                  <div className="rx-preview-dual-signs">
+                    <div className="rx-preview-sign-line mini">
+                      {primarySig ? (
+                        <img
+                          src={primarySig}
+                          alt="Primary Signature"
+                          className="rx-digital-signature-img"
+                        />
+                      ) : (
+                        <div className="rx-signature-placeholder-space" />
+                      )}
+                      <div className="rx-sign-line-bar" />
+                      <span className="rx-sign-name">{primaryDoctorName}</span>
+                      <span className="rx-sign-title">Authorized Signatory</span>
+                      {doctor?.councilRegistration && (
+                        <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
+                      )}
+                    </div>
+                    <div className="rx-preview-sign-line mini">
+                      {secondarySig ? (
+                        <img
+                          src={secondarySig}
+                          alt="Secondary Signature"
+                          className="rx-digital-signature-img"
+                        />
+                      ) : (
+                        <div className="rx-signature-placeholder-space" />
+                      )}
+                      <div className="rx-sign-line-bar" />
+                      <span className="rx-sign-name">{secondaryDoctorName}</span>
+                      <span className="rx-sign-title">Official Seal / Stamp</span>
+                    </div>
+                  </div>
+                ) : rxSigMode === "secondary" && secondarySig ? (
+                  <div className="rx-preview-sign-line">
+                    <img
+                      src={secondarySig}
+                      alt="Doctor Signature"
+                      className="rx-digital-signature-img"
+                    />
+                    <div className="rx-sign-line-bar" />
+                    <span className="rx-sign-name">{secondaryDoctorName}</span>
+                    <span className="rx-sign-title">Authorized Signatory · Seal/Stamp</span>
+                    {doctor?.councilRegistration && (
+                      <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
+                    )}
+                  </div>
                 ) : (
-                  <div className="rx-signature-placeholder-space" />
+                  <div className="rx-preview-sign-line">
+                    {primarySig ? (
+                      <img
+                        src={primarySig}
+                        alt="Doctor Signature"
+                        className="rx-digital-signature-img"
+                      />
+                    ) : (
+                      <div className="rx-signature-placeholder-space" />
+                    )}
+                    <div className="rx-sign-line-bar" />
+                    <span className="rx-sign-name">{primaryDoctorName}</span>
+                    <span className="rx-sign-title">Authorized Signatory · Registered Vet</span>
+                    {doctor?.councilRegistration && (
+                      <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
+                    )}
+                  </div>
                 )}
-                <div className="rx-sign-line-bar" />
-                <span className="rx-sign-name">{doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Doctor's Signature"}</span>
-                <span className="rx-sign-title">Authorized Signatory · Registered Vet</span>
               </div>
             </div>
           </div>

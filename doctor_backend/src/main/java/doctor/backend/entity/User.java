@@ -81,6 +81,10 @@ public class User {
     @Column(columnDefinition = "LONGTEXT")
     private String digitalSignatureImage;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String secondarySignatureImage;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -256,6 +260,14 @@ public class User {
 
     public void setDigitalSignatureImage(String digitalSignatureImage) {
         this.digitalSignatureImage = digitalSignatureImage;
+    }
+
+    public String getSecondarySignatureImage() {
+        return secondarySignatureImage;
+    }
+
+    public void setSecondarySignatureImage(String secondarySignatureImage) {
+        this.secondarySignatureImage = secondarySignatureImage;
     }
 
     public LocalDateTime getCreatedAt() {

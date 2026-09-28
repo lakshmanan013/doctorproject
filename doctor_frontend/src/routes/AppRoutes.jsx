@@ -20,10 +20,17 @@ import Inventory from "../pages/Inventory/Inventory";
 import Equips from "../pages/Equips/Equips";
 import Billing from "../pages/Billing/Billing";
 import DoctorProfile from "../pages/Settings/DoctorProfile";
+import VideoConsultation from "../pages/VideoConsultation/VideoConsultation";
+
+import PetParentRoom from "../pages/VideoConsultation/PetParentRoom";
 
 function AppRoutes() {
   return (
     <Routes>
+      {/* -------------------- PUBLIC TELEHEALTH ROOM (PET PARENT ACCESS) -------------------- */}
+      <Route path="/join-call/:roomCode" element={<PetParentRoom />} />
+      <Route path="/telehealth/:roomCode" element={<PetParentRoom />} />
+
       {/* -------------------- PUBLIC (AUTH) ROUTES -------------------- */}
 
       <Route
@@ -73,6 +80,8 @@ function AppRoutes() {
       >
         <Route path="/" element={<Dashboard />} />
         <Route path="/appointments" element={<AppointmentPage />} />
+        <Route path="/video-consultation" element={<VideoConsultation />} />
+        <Route path="/video-consultant" element={<VideoConsultation />} />
         <Route path="/patients" element={<Patients />} />
         <Route path="/patients/:id" element={<PatientProfile />} />
         <Route path="/prescriptions" element={<Prescription />} />
