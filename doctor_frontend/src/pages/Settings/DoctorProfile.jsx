@@ -1067,7 +1067,7 @@ export default function DoctorProfile() {
             <div className="location-verify-title-wrap">
               <h3 className="settings-heading" style={{ marginBottom: 2 }}>
                 <FiMapPin className="settings-icon" />
-                Location verification
+                Location Verification
               </h3>
               <p className="panel-subtitle" style={{ marginBottom: 0 }}>
                 GPS practice location verification
