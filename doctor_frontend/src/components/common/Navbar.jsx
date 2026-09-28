@@ -30,7 +30,7 @@ function greeting() {
   return "Good Evening";
 }
 
-export default function Navbar() {
+export default function Navbar({ onToggleSidebar, isSidebarOpen }) {
   const { pathname } = useLocation();
   const { doctor: authDoctor } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -257,7 +257,13 @@ export default function Navbar() {
       <header className="navbar">
         {/* LEFT SIDE */}
         <div className="navbar-left">
-          <button type="button" className="navbar-toggle-btn" aria-label="Toggle menu">
+          <button
+            type="button"
+            className="navbar-toggle-btn"
+            aria-label="Toggle menu"
+            aria-expanded={isSidebarOpen}
+            onClick={onToggleSidebar}
+          >
             <Menu size={20} />
           </button>
 

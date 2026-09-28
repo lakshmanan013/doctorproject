@@ -328,11 +328,75 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+.sidebar-mobile-close-btn {
+  display: none;
+}
+
+/* Mobile backdrop */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 16, 38, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 998;
+  animation: sidebarFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sidebarFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+body.mobile-drawer-open {
+  overflow: hidden !important;
+}
+
+/* Responsive Drawer for Tablet & Mobile */
 @media (max-width: 1024px) {
   .sidebar {
-    width: 80px;
-    min-width: 80px;
-    padding: 20px 12px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    max-width: 86vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 999;
+    transform: translateX(-105%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    box-shadow: none;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.65), 0 0 20px rgba(99, 102, 241, 0.25);
+  }
+
+  .logo-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .sidebar-mobile-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .sidebar-mobile-close-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: scale(1.05);
   }
 
   .logo span,
@@ -342,21 +406,21 @@
   .sidebar-pet-text,
   .doctor-info,
   .logout-btn span {
-    display: none;
+    display: block;
   }
 
   .menu {
-    justify-content: center;
-    padding: 10px;
+    justify-content: space-between;
+    padding: 10px 14px;
   }
 
   .sidebar-pet-card {
-    padding: 8px;
-    justify-content: center;
+    padding: 12px 14px;
+    justify-content: space-between;
   }
 
   .doctor-card {
-    justify-content: center;
-    padding: 6px;
+    justify-content: flex-start;
+    padding: 10px 12px;
   }
 }

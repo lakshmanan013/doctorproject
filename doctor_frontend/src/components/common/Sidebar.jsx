@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LogOut, ChevronsUpDown } from "lucide-react";
+import { LogOut, ChevronsUpDown, X } from "lucide-react";
 
 import sidebarItems from "../../constants/sidebar";
 import Logo from "./Logo";
@@ -9,7 +9,7 @@ import { getDoctorProfile } from "../../services/doctorProfileService";
 
 import "./Sidebar.css";
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { logout, doctor: authDoctor } = useAuth();
 
@@ -54,10 +54,18 @@ export default function Sidebar() {
   const doctorInitials = getInitials(doctorName);
 
   return (
-    <aside className="sidebar">
-      {/* LOGO */}
+    <aside className={`sidebar ${isOpen ? "sidebar-open" : ""}`}>
+      {/* LOGO & MOBILE CLOSE BUTTON */}
       <div className="logo-section">
         <Logo />
+        <button
+          type="button"
+          className="sidebar-mobile-close-btn"
+          onClick={onClose}
+          aria-label="Close menu"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* MENU */}
@@ -73,6 +81,7 @@ export default function Sidebar() {
               className={({ isActive }) =>
                 isActive ? "menu active" : "menu"
               }
+              onClick={onClose}
             >
               <div className="menu-content">
                 <Icon size={19} className="menu-icon" />
@@ -104,7 +113,10 @@ export default function Sidebar() {
       <div className="sidebar-doctor-section">
         <div
           className="doctor-card"
-          onClick={() => navigate("/settings")}
+          onClick={() => {
+            navigate("/settings");
+            onClose?.();
+          }}
           title="Open doctor profile"
         >
           <div className="doctor-avatar">
@@ -140,6 +152,7 @@ export default function Sidebar() {
           onClick={() => {
             logout();
             navigate("/login");
+            onClose?.();
           }}
           title="Log out"
         >

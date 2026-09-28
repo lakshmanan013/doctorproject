@@ -311,7 +311,7 @@ h5 {
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  /* .sidebar is fixed/out-of-flow, so reserve its width here */
+  /* .sidebar is fixed/out-of-flow on desktop, so reserve its width */
   margin-left: 270px;
   position: relative;
   z-index: 1;
@@ -319,7 +319,8 @@ h5 {
 
 @media (max-width: 1024px) {
   .app-main {
-    margin-left: 80px;
+    margin-left: 0;
+    width: 100%;
   }
 }
 
@@ -1043,11 +1044,13 @@ h5 {
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
 }
 
@@ -1090,22 +1093,29 @@ tbody tr:hover {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(16, 22, 31, .45);
+  z-index: 1050;
+  background: rgba(16, 22, 31, .55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   overflow-y: auto;
-  padding: 64px 24px 24px;
+  padding: 24px 16px;
 }
 
 .modal {
   width: 100%;
-  max-width: 520px;
+  max-width: 540px;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-pop);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -1475,11 +1485,126 @@ tbody tr:hover {
 }
 
 /* ==========================================================
-   RESPONSIVE SHELL
+   RESPONSIVE SHELL & MULTI-DEVICE SUPPORT
 ========================================================== */
 
+/* Laptops / Compact Desktops (1025px - 1366px) */
+@media (max-width: 1366px) {
+  .app-content-inner {
+    max-width: 100%;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Tablets & Small Laptops (769px - 1024px) */
+@media (max-width: 1024px) {
+  .app-content {
+    padding: 0 20px 24px;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .table-toolbar {
+    gap: 10px;
+  }
+}
+
+/* Mobile Devices & Small Tablets (<= 768px) */
 @media (max-width: 768px) {
   .app-content {
-    padding: 0 16px 24px;
+    padding: 0 12px 20px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px 18px;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4,
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-overlay {
+    padding: 12px 10px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 90dvh;
+    border-radius: 20px 20px 14px 14px;
+  }
+
+  .modal-header {
+    padding: 18px 18px 12px;
+  }
+
+  .modal-title {
+    font-size: 16.5px;
+  }
+
+  .modal-body {
+    padding: 16px 18px 20px;
+  }
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-search {
+    max-width: 100%;
+  }
+
+  .filter-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    font-size: 12.5px;
+  }
+}
+
+/* Small Phone Screens (<= 480px) */
+@media (max-width: 480px) {
+  .app-content {
+    padding: 0 10px 18px;
+  }
+
+  .card {
+    border-radius: var(--radius-lg);
+  }
+
+  .panel-title {
+    font-size: 15.5px;
   }
 }
