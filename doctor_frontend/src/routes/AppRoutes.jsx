@@ -17,6 +17,7 @@ import Prescription from "../pages/Prescription/Prescription";
 import Followup from "../pages/Followups/Followup";
 import Vaccination from "../pages/Vaccinations/Vaccination";
 import Inventory from "../pages/Inventory/Inventory";
+import Equips from "../pages/Equips/Equips";
 import Billing from "../pages/Billing/Billing";
 import DoctorProfile from "../pages/Settings/DoctorProfile";
 
@@ -78,6 +79,7 @@ function AppRoutes() {
         <Route path="/followups" element={<Followup />} />
         <Route path="/vaccinations" element={<Vaccination />} />
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/equips" element={<Equips />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/settings" element={<DoctorProfile />} />
         <Route path="*" element={<Dashboard />} />

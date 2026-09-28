@@ -6,6 +6,7 @@ import {
   Syringe,
   MessageSquare,
   Package,
+  Microscope,
   IndianRupee,
   Settings,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const sidebarItems = [
   { title: "Vaccinations", path: "/vaccinations", icon: Syringe },
   { title: "Follow-ups", path: "/followups", icon: MessageSquare },
   { title: "Inventory", path: "/inventory", icon: Package },
+  { title: "Equips", path: "/equips", icon: Microscope },
   { title: "Billing", path: "/billing", icon: IndianRupee },
   { title: "Settings", path: "/settings", icon: Settings },
 ];

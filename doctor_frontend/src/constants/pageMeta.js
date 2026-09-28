@@ -4,7 +4,8 @@ export const PAGE_META = {
   "/prescriptions": { title: "Digital prescription", subtitle: "Weight-based dosing · Auto-generated PDF · WhatsApp share" },
   "/followups": { title: "Follow-up reminders", subtitle: "Scheduled check-ins · One-tap WhatsApp send · Auto-tracked from prescriptions" },
   "/vaccinations": { title: "Vaccinations", subtitle: "Due now, overdue and completed vaccinations at a glance" },
-  "/inventory": { title: "Medicine inventory", subtitle: "Stock by batch · FEFO dispensing · Expiry & reorder alerts" },
+  "/inventory": { title: "Medicine inventory", subtitle: "Catalog & formulations · Batch dispensing · Expiry tracking" },
+  "/equips": { title: "Clinic Equipment", subtitle: "Diagnostic machines, surgical tools & maintenance tracking" },
   "/billing": { title: "Billing", subtitle: "Invoices, payments and outstanding dues" },
-  "/settings": { title: "Doctor profile", subtitle: "Practice identity, registration and default fees" },
+  "/settings": { title: "Doctor profile", subtitle: "Practice identity and professional registration" },
 };

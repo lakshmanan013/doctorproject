@@ -5,5 +5,7 @@ export const APP = {
 
   COMPANY: "Veterinary Practice OS",
 
+  COMPANY_PHONE: import.meta.env.VITE_COMPANY_PHONE || "919876543210",
+
   COPYRIGHT: `© ${new Date().getFullYear()} Veterinary Practice OS`,
 };

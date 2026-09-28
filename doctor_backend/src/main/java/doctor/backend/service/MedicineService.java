@@ -5,6 +5,7 @@ import doctor.backend.dto.medicine.MedicineResponse;
 import doctor.backend.entity.Medicine;
 import doctor.backend.repository.MedicineRepository;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,13 @@ import java.util.List;
 public class MedicineService {
 
     private final MedicineRepository medicineRepository;
+    private final ObjectProvider<ZippyCrmSyncService> zippySyncProvider;
 
-    public MedicineService(MedicineRepository medicineRepository) {
+    public MedicineService(
+            MedicineRepository medicineRepository,
+            ObjectProvider<ZippyCrmSyncService> zippySyncProvider) {
         this.medicineRepository = medicineRepository;
+        this.zippySyncProvider = zippySyncProvider;
     }
 
     // =====================================================
@@ -70,11 +75,20 @@ public class MedicineService {
     // GET ALL MEDICINES
     // =====================================================
 
-    @Transactional(readOnly = true)
     public List<MedicineResponse> getAllMedicines() {
+
+        if (zippySyncProvider != null) {
+            ZippyCrmSyncService syncService = zippySyncProvider.getIfAvailable();
+            if (syncService != null) {
+                try {
+                    syncService.importProductsFromZippyCrm();
+                } catch (Exception ignored) {}
+            }
+        }
 
         return medicineRepository.findAll()
                 .stream()
+                .filter(m -> m.getName() != null && !"Inactive".equalsIgnoreCase(m.getStatus()) && !m.getName().equalsIgnoreCase("Dolo"))
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -197,10 +211,22 @@ public class MedicineService {
                         )
                 );
 
+        int previousStock = medicine.getStockQuantity() != null ? medicine.getStockQuantity() : 0;
+        int diff = previousStock - quantity;
+
         medicine.setStockQuantity(quantity);
 
         Medicine updatedMedicine =
                 medicineRepository.save(medicine);
+
+        if (diff > 0 && zippySyncProvider != null) {
+            ZippyCrmSyncService sync = zippySyncProvider.getIfAvailable();
+            if (sync != null) {
+                try {
+                    sync.reduceProductStockInZippyCrm(medicine.getName(), diff);
+                } catch (Exception ignored) {}
+            }
+        }
 
         return mapToResponse(updatedMedicine);
     }
@@ -211,14 +237,16 @@ public class MedicineService {
 
     public void deleteMedicine(Long id) {
 
-        if (!medicineRepository.existsById(id)) {
+        Medicine medicine = medicineRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Medicine not found with id: " + id
+                        )
+                );
 
-            throw new RuntimeException(
-                    "Medicine not found with id: " + id
-            );
-        }
-
-        medicineRepository.deleteById(id);
+        medicine.setStatus("Inactive");
+        medicineRepository.save(medicine);
     }
 
     // =====================================================

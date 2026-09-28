@@ -12,6 +12,7 @@ import doctor.backend.repository.MedicineBatchRepository;
 import doctor.backend.repository.MedicineRepository;
 import doctor.backend.repository.StockMovementRepository;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,17 +28,20 @@ public class InventoryService {
     private final MedicineBatchRepository medicineBatchRepository;
     private final StockMovementRepository stockMovementRepository;
     private final NotificationService notificationService;
+    private final ObjectProvider<ZippyCrmSyncService> zippySyncProvider;
 
     public InventoryService(
             MedicineRepository medicineRepository,
             MedicineBatchRepository medicineBatchRepository,
             StockMovementRepository stockMovementRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            ObjectProvider<ZippyCrmSyncService> zippySyncProvider) {
 
         this.medicineRepository = medicineRepository;
         this.medicineBatchRepository = medicineBatchRepository;
         this.stockMovementRepository = stockMovementRepository;
         this.notificationService = notificationService;
+        this.zippySyncProvider = zippySyncProvider;
     }
 
     // =====================================================
@@ -409,25 +413,25 @@ public class InventoryService {
         if (isStockIn(movementType)) {
 
             newStock = previousStock + quantity;
+            medicine.setStockQuantity(newStock);
+            medicineRepository.save(medicine);
 
         }
         // =================================================
-        // STOCK OUT
+        // STOCK OUT (Preserve medicine catalog stock; reduce batches & Zippy inventory)
         // =================================================
         else if (isStockOut(movementType)) {
 
-            if (previousStock < quantity) {
+            newStock = Math.max(0, previousStock - quantity);
 
-                throw new RuntimeException(
-                        "Insufficient medicine stock. "
-                                + "Available: "
-                                + previousStock
-                                + ", Requested: "
-                                + quantity
-                );
+            if (zippySyncProvider != null) {
+                ZippyCrmSyncService sync = zippySyncProvider.getIfAvailable();
+                if (sync != null) {
+                    try {
+                        sync.reduceProductStockInZippyCrm(medicine.getName(), quantity);
+                    } catch (Exception ignored) {}
+                }
             }
-
-            newStock = previousStock - quantity;
 
         }
         // =================================================
@@ -436,11 +440,9 @@ public class InventoryService {
         else {
 
             newStock = quantity;
+            medicine.setStockQuantity(newStock);
+            medicineRepository.save(medicine);
         }
-
-        medicine.setStockQuantity(newStock);
-
-        medicineRepository.save(medicine);
 
         // Flag it for the doctor once stock drops to/under the reorder
         // level, so restocking doesn't rely on someone noticing the
@@ -465,7 +467,7 @@ public class InventoryService {
         }
 
         // =================================================
-        // UPDATE BATCH STOCK
+        // UPDATE BATCH STOCK (FEFO for dispensing)
         // =================================================
 
         if (batch != null) {
@@ -484,19 +486,7 @@ public class InventoryService {
 
             } else if (isStockOut(movementType)) {
 
-                if (previousBatchStock < quantity) {
-
-                    throw new RuntimeException(
-                            "Insufficient batch stock. "
-                                    + "Available: "
-                                    + previousBatchStock
-                                    + ", Requested: "
-                                    + quantity
-                    );
-                }
-
-                newBatchStock =
-                        previousBatchStock - quantity;
+                newBatchStock = Math.max(0, previousBatchStock - quantity);
 
             } else {
 
@@ -504,8 +494,38 @@ public class InventoryService {
             }
 
             batch.setRemainingQuantity(newBatchStock);
+            if (newBatchStock == 0) {
+                batch.setStatus("Depleted");
+            }
 
             medicineBatchRepository.save(batch);
+        } else if (isStockOut(movementType)) {
+            // Deduct from available inventory batches using FEFO (First-Expired, First-Out)
+            List<MedicineBatch> activeBatches = medicineBatchRepository.findByMedicineId(medicine.getId());
+            if (activeBatches != null && !activeBatches.isEmpty()) {
+                activeBatches.sort((a, b) -> {
+                    if (a.getExpiryDate() == null) return 1;
+                    if (b.getExpiryDate() == null) return -1;
+                    return a.getExpiryDate().compareTo(b.getExpiryDate());
+                });
+
+                int remainingToDeduct = quantity;
+                for (MedicineBatch b : activeBatches) {
+                    int bRem = b.getRemainingQuantity() != null ? b.getRemainingQuantity() : (b.getQuantity() != null ? b.getQuantity() : 0);
+                    if (bRem <= 0) continue;
+
+                    int deduct = Math.min(bRem, remainingToDeduct);
+                    int updatedRem = bRem - deduct;
+                    b.setRemainingQuantity(updatedRem);
+                    if (updatedRem == 0) {
+                        b.setStatus("Depleted");
+                    }
+                    medicineBatchRepository.save(b);
+
+                    remainingToDeduct -= deduct;
+                    if (remainingToDeduct <= 0) break;
+                }
+            }
         }
 
         // =================================================

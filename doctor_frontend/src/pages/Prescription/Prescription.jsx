@@ -611,15 +611,11 @@ export default function Prescription() {
               <div key={m.id} className="rx-med-row">
                 <Select value={m.medicineId} onChange={e => updateMed(m.id, "medicineId", e.target.value)}>
                   <option value="">Select medicine from inventory</option>
-                  {allMeds.map(x => {
-                    const stock = x.stockQuantity ?? 0;
-                    const stockTag = stock <= 0 ? " [Out of Stock]" : stock <= (x.reorderLevel ?? 5) ? ` [Low: ${stock}]` : ` [Stock: ${stock}]`;
-                    return (
-                      <option key={x.id} value={x.id}>
-                        {x.name} {x.strength || ""}{x.dosageForm ? ` (${x.dosageForm})` : ""}{stockTag}
-                      </option>
-                    );
-                  })}
+                  {allMeds.map(x => (
+                    <option key={x.id} value={x.id}>
+                      {x.name} {x.strength || ""}{x.dosageForm ? ` (${x.dosageForm})` : ""}
+                    </option>
+                  ))}
                 </Select>
                 <Input placeholder="Dose" value={m.dosage} onChange={e => updateMed(m.id, "dosage", e.target.value)} />
                 <Input placeholder="Frequency" value={m.frequency} onChange={e => updateMed(m.id, "frequency", e.target.value)} />

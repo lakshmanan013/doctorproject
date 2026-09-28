@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -30,6 +32,8 @@ public class ZippyCrmSyncService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final VaccinationRepository vaccinationRepository;
     private final FollowUpRepository followUpRepository;
+    private final MedicineRepository medicineRepository;
+    private final MedicineBatchRepository medicineBatchRepository;
 
     public ZippyCrmSyncService(
             ZippyCrmProperties properties,
@@ -41,7 +45,9 @@ public class ZippyCrmSyncService {
             PrescriptionRepository prescriptionRepository,
             MedicalRecordRepository medicalRecordRepository,
             VaccinationRepository vaccinationRepository,
-            FollowUpRepository followUpRepository) {
+            FollowUpRepository followUpRepository,
+            MedicineRepository medicineRepository,
+            MedicineBatchRepository medicineBatchRepository) {
         this.properties = properties;
         this.userRepository = userRepository;
         this.doctorProfileRepository = doctorProfileRepository;
@@ -52,6 +58,8 @@ public class ZippyCrmSyncService {
         this.medicalRecordRepository = medicalRecordRepository;
         this.vaccinationRepository = vaccinationRepository;
         this.followUpRepository = followUpRepository;
+        this.medicineRepository = medicineRepository;
+        this.medicineBatchRepository = medicineBatchRepository;
     }
 
     @PostConstruct
@@ -75,10 +83,9 @@ public class ZippyCrmSyncService {
             stmt.executeUpdate("DELETE FROM payments WHERE order_id IS NOT NULL");
             stmt.executeUpdate("DELETE FROM order_items");
             stmt.executeUpdate("DELETE FROM orders");
-            stmt.executeUpdate("DELETE FROM products");
             stmt.executeUpdate("DELETE FROM seller_stores WHERE business_name LIKE 'Zenve%' OR business_name = 'Zenve Doctor Clinic'");
             stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
-            log.info("Cleaned up legacy orders, order_items, products, payments, and seller stores from Zippy CRM pet_management database.");
+            log.info("Cleaned up legacy commerce orders and payments from Zippy CRM pet_management database.");
         } catch (Exception e) {
             log.warn("Could not clean legacy commerce tables in Zippy CRM: {}", e.getMessage());
         }
@@ -90,6 +97,13 @@ public class ZippyCrmSyncService {
         }
 
         log.info("Starting comprehensive sync of Doctor Portal to Zippy CRM (pet_management)...");
+
+        // 0. Import Products from Zippy CRM into Doctor Website Inventory
+        try {
+            importProductsFromZippyCrm();
+        } catch (Exception e) {
+            log.warn("Error importing products from Zippy CRM: {}", e.getMessage());
+        }
 
         // 1. Sync Doctors
         try {
@@ -1100,6 +1114,298 @@ public class ZippyCrmSyncService {
         } catch (SQLException e) {
             log.warn("Direct DB sync to Zippy CRM follow-ups failed: {}", e.getMessage());
         }
+    }
+
+    // =========================================================================
+    // 10. PRODUCT / INVENTORY SYNC FROM ZIPPY CRM
+    // =========================================================================
+
+    public void importProductsFromZippyCrm() {
+        if (!properties.isEnabled()) {
+            return;
+        }
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData meta = conn.getMetaData();
+
+            // 1. Check for 'products' table in Zippy CRM pet_management database
+            boolean productsTableExists = false;
+            try (ResultSet rs = meta.getTables(null, null, "products", null)) {
+                if (rs.next()) {
+                    productsTableExists = true;
+                }
+            }
+
+            if (!productsTableExists) {
+                log.info("Zippy CRM products table does not exist in pet_management database.");
+                return;
+            }
+
+            boolean inventoryTableExists = false;
+            try (ResultSet rs = meta.getTables(null, null, "inventory", null)) {
+                if (rs.next()) {
+                    inventoryTableExists = true;
+                }
+            }
+
+            Set<String> columnNames = new HashSet<>();
+            try (ResultSet rs = meta.getColumns(null, null, "products", null)) {
+                while (rs.next()) {
+                    columnNames.add(rs.getString("COLUMN_NAME").toLowerCase());
+                }
+            }
+
+            String selectSql;
+            if (inventoryTableExists) {
+                selectSql = "SELECT p.*, i.available_quantity AS inv_available_quantity, i.reorder_level AS inv_reorder_level "
+                          + "FROM products p LEFT JOIN inventory i ON i.product_id = p.id";
+            } else {
+                selectSql = "SELECT * FROM products";
+            }
+
+            int count = 0;
+            Set<String> zippyProductNames = new HashSet<>();
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(selectSql)) {
+                while (rs.next()) {
+                    String name = getStringFromRs(rs, columnNames, "name", "title", "product_name");
+                    if (name == null || name.isBlank()) {
+                        continue;
+                    }
+
+                    zippyProductNames.add(name.trim().toLowerCase());
+
+                    String category = getStringFromRs(rs, columnNames, "category", "category_name", "type");
+                    if (category == null || category.isBlank()) {
+                        category = "General";
+                    }
+
+                    String brand = getStringFromRs(rs, columnNames, "brand", "manufacturer", "vendor");
+                    if (brand == null || brand.isBlank()) {
+                        brand = "Zippy Pharmacy";
+                    }
+
+                    String description = getStringFromRs(rs, columnNames, "description", "short_description", "details");
+                    String dosageForm = getStringFromRs(rs, columnNames, "dosage_form", "form");
+                    if (dosageForm == null || dosageForm.isBlank()) {
+                        dosageForm = "Tablets";
+                    }
+
+                    String strength = getStringFromRs(rs, columnNames, "strength", "power");
+                    String unit = getStringFromRs(rs, columnNames, "unit", "pack_unit");
+                    if (unit == null || unit.isBlank()) {
+                        unit = "units";
+                    }
+
+                    Double price = getDoubleFromRs(rs, columnNames, "price", "mrp", "cost");
+                    if (price == null) {
+                        price = 0.0;
+                    }
+
+                    Integer stock = null;
+                    if (inventoryTableExists) {
+                        try {
+                            Object invStock = rs.getObject("inv_available_quantity");
+                            if (invStock != null) {
+                                stock = ((Number) invStock).intValue();
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    if (stock == null) {
+                        stock = getIntFromRs(rs, columnNames, "stock_quantity", "stock", "quantity", "inventory");
+                    }
+                    if (stock == null) {
+                        stock = 0;
+                    }
+
+                    Integer reorder = null;
+                    if (inventoryTableExists) {
+                        try {
+                            Object invReorder = rs.getObject("inv_reorder_level");
+                            if (invReorder != null) {
+                                reorder = ((Number) invReorder).intValue();
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    if (reorder == null) {
+                        reorder = getIntFromRs(rs, columnNames, "reorder_level", "min_stock", "alert_level");
+                    }
+                    if (reorder == null) {
+                        reorder = 10;
+                    }
+
+                    String status = getStringFromRs(rs, columnNames, "status");
+                    if (status == null || status.isBlank()) {
+                        status = stock > 0 ? "Active" : "Low stock";
+                    }
+
+                    // Save or update in doctortest.medicines
+                    Medicine medicine = medicineRepository.findByNameIgnoreCase(name.trim()).orElseGet(() -> {
+                        Medicine m = new Medicine();
+                        m.setName(name.trim());
+                        return m;
+                    });
+
+                    medicine.setCategory(category.trim());
+                    medicine.setManufacturer(brand.trim());
+                    if (description != null) medicine.setDescription(description.trim());
+                    medicine.setDosageForm(dosageForm.trim());
+                    if (strength != null) medicine.setStrength(strength.trim());
+                    medicine.setUnit(unit.trim());
+                    medicine.setPrice(price);
+                    medicine.setStockQuantity(stock);
+                    medicine.setReorderLevel(reorder);
+                    medicine.setStatus(status);
+
+                    Medicine savedMed = medicineRepository.save(medicine);
+
+                    // Synchronize inventory batch stock with Zippy CRM product stock
+                    if (medicineBatchRepository != null) {
+                        List<MedicineBatch> batches = medicineBatchRepository.findByMedicineId(savedMed.getId());
+                        if (batches.isEmpty()) {
+                            if (stock > 0) {
+                                MedicineBatch batch = new MedicineBatch();
+                                batch.setMedicine(savedMed);
+                                batch.setBatchNumber("ZIP-" + (savedMed.getId() != null ? savedMed.getId() : "001") + "-B1");
+                                batch.setManufacturingDate(LocalDate.now());
+                                batch.setExpiryDate(LocalDate.now().plusMonths(12));
+                                batch.setQuantity(stock);
+                                batch.setRemainingQuantity(stock);
+                                batch.setPurchasePrice(price * 0.7);
+                                batch.setSellingPrice(price);
+                                batch.setStatus("Active");
+                                medicineBatchRepository.save(batch);
+                            }
+                        } else {
+                            MedicineBatch targetBatch = batches.stream()
+                                    .filter(b -> b.getBatchNumber() != null && b.getBatchNumber().startsWith("ZIP-"))
+                                    .findFirst()
+                                    .orElse(batches.get(0));
+
+                            targetBatch.setQuantity(stock);
+                            targetBatch.setRemainingQuantity(stock);
+                            targetBatch.setStatus(stock > 0 ? "Active" : "Depleted");
+                            medicineBatchRepository.save(targetBatch);
+                        }
+                    }
+
+                    count++;
+                }
+            }
+
+            // Deactivate any local medicine not present in Zippy CRM database (without violating foreign key constraints on past prescriptions)
+            if (!zippyProductNames.isEmpty()) {
+                List<Medicine> localMedicines = medicineRepository.findAll();
+                for (Medicine localMed : localMedicines) {
+                    if (localMed.getName() != null && !zippyProductNames.contains(localMed.getName().trim().toLowerCase())) {
+                        if (!"Inactive".equalsIgnoreCase(localMed.getStatus())) {
+                            localMed.setStatus("Inactive");
+                            localMed.setStockQuantity(0);
+                            medicineRepository.save(localMed);
+                            log.info("Marked local medicine not in Zippy CRM as Inactive: {}", localMed.getName());
+                        }
+                    }
+                }
+            }
+
+            log.info("Successfully fetched and synchronized {} inventory product(s) from Zippy CRM into Doctor Portal inventory.", count);
+
+        } catch (SQLException e) {
+            log.warn("Could not import products from Zippy CRM: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Reduces the stock quantity of a product/medicine directly in Zippy CRM's pet_management database
+     * when it is distributed or prescribed in the Doctor Portal.
+     */
+    public void reduceProductStockInZippyCrm(String medicineName, int quantityToReduce) {
+        if (!properties.isEnabled() || medicineName == null || medicineName.isBlank() || quantityToReduce <= 0) {
+            return;
+        }
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData meta = conn.getMetaData();
+            boolean productsTableExists = false;
+            try (ResultSet rs = meta.getTables(null, null, "products", null)) {
+                if (rs.next()) {
+                    productsTableExists = true;
+                }
+            }
+
+            if (!productsTableExists) {
+                log.warn("Zippy CRM products table not found in pet_management database.");
+                return;
+            }
+
+            boolean inventoryTableExists = false;
+            try (ResultSet rs = meta.getTables(null, null, "inventory", null)) {
+                if (rs.next()) {
+                    inventoryTableExists = true;
+                }
+            }
+
+            String trimmedName = medicineName.trim();
+
+            // 1. Reduce in Zippy CRM 'inventory' table (available_quantity)
+            if (inventoryTableExists) {
+                String updateInvSql = "UPDATE inventory i "
+                        + "JOIN products p ON i.product_id = p.id "
+                        + "SET i.available_quantity = GREATEST(0, i.available_quantity - ?) "
+                        + "WHERE LOWER(TRIM(p.name)) = LOWER(?) "
+                        + "OR LOWER(?) LIKE CONCAT('%', LOWER(TRIM(p.name)), '%') "
+                        + "OR LOWER(TRIM(p.name)) LIKE CONCAT('%', LOWER(?), '%')";
+                try (PreparedStatement ps = conn.prepareStatement(updateInvSql)) {
+                    ps.setInt(1, quantityToReduce);
+                    ps.setString(2, trimmedName);
+                    ps.setString(3, trimmedName);
+                    ps.setString(4, trimmedName);
+                    int updatedInvRows = ps.executeUpdate();
+                    log.info("Reduced Zippy CRM inventory available_quantity by {} for product '{}' (rows: {})",
+                            quantityToReduce, medicineName, updatedInvRows);
+                } catch (Exception ex) {
+                    log.warn("Could not update Zippy CRM inventory table: {}", ex.getMessage());
+                }
+            }
+
+        } catch (SQLException e) {
+            log.warn("Could not reduce product stock in Zippy CRM for '{}': {}", medicineName, e.getMessage());
+        }
+    }
+
+    private String getStringFromRs(ResultSet rs, Set<String> availableCols, String... candidates) {
+        for (String col : candidates) {
+            if (availableCols.contains(col.toLowerCase())) {
+                try {
+                    String val = rs.getString(col);
+                    if (val != null && !val.isBlank()) return val;
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private Double getDoubleFromRs(ResultSet rs, Set<String> availableCols, String... candidates) {
+        for (String col : candidates) {
+            if (availableCols.contains(col.toLowerCase())) {
+                try {
+                    double val = rs.getDouble(col);
+                    if (!rs.wasNull()) return val;
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private Integer getIntFromRs(ResultSet rs, Set<String> availableCols, String... candidates) {
+        for (String col : candidates) {
+            if (availableCols.contains(col.toLowerCase())) {
+                try {
+                    int val = rs.getInt(col);
+                    if (!rs.wasNull()) return val;
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
     }
 
     private Connection getConnection() throws SQLException {
