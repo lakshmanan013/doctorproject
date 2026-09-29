@@ -110,21 +110,20 @@ export default function DoctorProfile() {
 
   // Digital signature studio modal state & target
   const [signatureStudioOpen, setSignatureStudioOpen] = useState(false);
-  const [signatureStudioTab, setSignatureStudioTab] = useState("draw");
   const [signatureTarget, setSignatureTarget] = useState("primary"); // "primary" | "secondary"
   const [customStudioSource, setCustomStudioSource] = useState(null);
 
-  const openSignatureStudio = (tab = "draw", target = "primary", source = null) => {
+  const openSignatureStudio = (target = "primary", source = null) => {
     setSignatureTarget(target);
-    setSignatureStudioTab(tab);
     setCustomStudioSource(source);
     setSignatureStudioOpen(true);
   };
 
   const handleSignatureApplied = (dataUrl) => {
+    const target = signatureTarget;
     setSignatureStudioOpen(false);
     setCustomStudioSource(null);
-    if (signatureTarget === "secondary") {
+    if (target === "secondary") {
       autoSaveField("secondarySignatureImage", dataUrl);
       toast.success("Secondary signature saved successfully!");
     } else {
@@ -167,8 +166,8 @@ export default function DoctorProfile() {
       toast.success("Background removed! Transparent signature saved.", { id: "bg-remove" });
     } catch (err) {
       console.error("Quick background removal failed:", err);
-      toast.error("Opening studio to refine background...", { id: "bg-remove" });
-      openSignatureStudio("upload", target, existing);
+      toast.error("Opening editor to refine background...", { id: "bg-remove" });
+      openSignatureStudio(target, existing);
     }
   };
 
@@ -187,8 +186,8 @@ export default function DoctorProfile() {
       toast.success("Converted to pure black & white signature!", { id: "color-remove" });
     } catch (err) {
       console.error("Quick color removal failed:", err);
-      toast.error("Opening studio for color adjustment...", { id: "color-remove" });
-      openSignatureStudio("upload", target, existing);
+      toast.error("Opening editor for color adjustment...", { id: "color-remove" });
+      openSignatureStudio(target, existing);
     }
   };
 
@@ -204,8 +203,8 @@ export default function DoctorProfile() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
-      // Auto-open Signature Studio in upload mode so background removal is immediately applied and previewed!
-      openSignatureStudio("upload", target, dataUrl);
+      // Auto-open Signature Editor with target and image source correctly passed!
+      openSignatureStudio(target, dataUrl);
       toast.success("Image loaded! Background automatically removed. Tweak settings & save.");
     };
     reader.onerror = () => {
@@ -443,13 +442,13 @@ export default function DoctorProfile() {
       const updated = { ...current, [key]: value };
 
       if (key === "secondarySignatureImage") {
-        try { localStorage.setItem("doc_secondary_sig_img", value || ""); } catch (_) {}
+        try { localStorage.setItem("doc_secondary_sig_img", value || ""); } catch (_) { }
       }
       if (key === "secondarySignatureName") {
-        try { localStorage.setItem("doc_secondary_sig_name", value || ""); } catch (_) {}
+        try { localStorage.setItem("doc_secondary_sig_name", value || ""); } catch (_) { }
       }
       if (key === "prescriptionSignatureMode") {
-        try { localStorage.setItem("doc_rx_sig_mode", value || "primary"); } catch (_) {}
+        try { localStorage.setItem("doc_rx_sig_mode", value || "primary"); } catch (_) { }
       }
 
       // Construct backend profile payload
@@ -465,7 +464,9 @@ export default function DoctorProfile() {
         experience: updated.experience === "" || updated.experience == null ? null : Number(updated.experience),
         phone: updated.phone?.trim() || "",
         email: updated.email?.trim() || "",
-        digitalSignatureName: updated.signature?.trim() || "",
+        digitalSignatureName: updated.fullName
+          ? `${updated.fullName.toLowerCase().startsWith("dr") ? updated.fullName : `Dr. ${updated.fullName}`}${updated.qualification ? `, ${updated.qualification}` : ""}`
+          : "",
         consultationFee: updated.consultationFee === "" || updated.consultationFee == null ? null : Number(updated.consultationFee),
         followUpFee: updated.followupFee === "" || updated.followupFee == null ? null : Number(updated.followupFee),
         slotLength: updated.slotLength === "" || updated.slotLength == null ? null : Number(updated.slotLength),
@@ -661,7 +662,9 @@ export default function DoctorProfile() {
         experience: form.experience === "" ? null : Number(form.experience),
         phone: form.phone.trim(),
         email: form.email.trim(),
-        digitalSignatureName: form.signature.trim(),
+        digitalSignatureName: form.fullName
+          ? `${form.fullName.toLowerCase().startsWith("dr") ? form.fullName : `Dr. ${form.fullName}`}${form.qualification ? `, ${form.qualification}` : ""}`
+          : "",
         consultationFee: form.consultationFee === "" ? null : Number(form.consultationFee),
         followUpFee: form.followupFee === "" ? null : Number(form.followupFee),
         slotLength: form.slotLength === "" ? null : Number(form.slotLength),
@@ -671,7 +674,9 @@ export default function DoctorProfile() {
         clinicOutsideImage: form.clinicOutsideImage,
         digitalSignatureImage: form.digitalSignatureImage,
         secondarySignatureImage: form.secondarySignatureImage,
-        secondarySignatureName: form.secondarySignatureName?.trim() || "",
+        secondarySignatureName: form.fullName
+          ? `${form.fullName.toLowerCase().startsWith("dr") ? form.fullName : `Dr. ${form.fullName}`}${form.speciality ? ` · ${form.speciality}` : ""}`
+          : "",
       };
 
       const saved = await updateDoctorProfile(profile);
@@ -1052,7 +1057,7 @@ export default function DoctorProfile() {
                 Digital signatures & prescription sign-off
               </h3>
               <p className="doc-sig-panel-subtitle">
-                Manage your primary and secondary digital signatures. Upload signature files, draw with a digital pen, or type with cursive calligraphy fonts for prescriptions, certificates, and clinical notes.
+                Manage your primary and secondary digital signatures. Upload signature photos, level the axis, remove the paper background, and convert into certified digital ink.
               </p>
             </div>
             <div className="doc-sig-status-badge-wrap">
@@ -1082,7 +1087,7 @@ export default function DoctorProfile() {
                 <div className="doc-sig-slot-title-group">
                   <span className="doc-sig-slot-tag primary">Signature Option 1</span>
                   <h4 className="doc-sig-slot-title">Primary Digital Signature</h4>
-                  <p className="doc-sig-slot-desc">Official full signature used for patient prescriptions and medical certificates</p>
+                  <p className="doc-sig-slot-desc">Official signature used for patient prescriptions and legal clinical documents</p>
                 </div>
                 {form.digitalSignatureImage && (
                   <span className="doc-sig-slot-status active">Active</span>
@@ -1101,7 +1106,6 @@ export default function DoctorProfile() {
               {form.digitalSignatureImage ? (
                 <>
                   <div className="doc-sig-slot-preview-box">
-                    <div className="sig-ledger-grid" />
                     <img
                       src={form.digitalSignatureImage}
                       alt="Primary Signature"
@@ -1111,26 +1115,10 @@ export default function DoctorProfile() {
                       <button
                         type="button"
                         className="doc-sig-btn-mini highlight"
-                        onClick={() => openSignatureStudio("upload", "primary", form.digitalSignatureImage)}
-                        title="Remove Background, Recolor or Crop in Studio"
+                        onClick={() => openSignatureStudio("primary", form.digitalSignatureImage)}
+                        title="Edit, Align Axis, or Adjust Signature"
                       >
-                        <FiScissors size={13} /> Studio Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-sig-btn-mini"
-                        onClick={() => openSignatureStudio("draw", "primary")}
-                        title="Redraw with Pen"
-                      >
-                        <FiEdit3 size={13} /> Draw
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-sig-btn-mini"
-                        onClick={() => openSignatureStudio("type", "primary")}
-                        title="Type Cursive Font"
-                      >
-                        <FiType size={13} /> Font
+                        <FiEdit3 size={13} /> Edit Option
                       </button>
                       <button
                         type="button"
@@ -1180,10 +1168,10 @@ export default function DoctorProfile() {
                     <button
                       type="button"
                       className="doc-sig-quick-btn studio"
-                      onClick={() => openSignatureStudio("upload", "primary", form.digitalSignatureImage)}
-                      title="Open full studio with color picker and sliders"
+                      onClick={() => openSignatureStudio("primary", form.digitalSignatureImage)}
+                      title="Open full alignment and signature edit options"
                     >
-                      <FiSliders size={12} /> Studio Editor
+                      <FiSliders size={12} /> Update Option
                     </button>
                   </div>
                 </>
@@ -1192,7 +1180,7 @@ export default function DoctorProfile() {
                   <div className="doc-sig-slot-empty-prompt">
                     <FiFeather size={28} className="doc-sig-empty-icon primary" />
                     <span className="doc-sig-empty-main">Upload Primary Signature</span>
-                    <span className="doc-sig-empty-sub">Choose any method below to upload or create:</span>
+                    <span className="doc-sig-empty-sub">Upload a photo of your signature from paper or document:</span>
                   </div>
                   <div className="doc-sig-slot-action-row">
                     <button
@@ -1201,74 +1189,30 @@ export default function DoctorProfile() {
                       onClick={() => primarySigFileInputRef.current?.click()}
                       title="Upload signature photo with automatic background removal"
                     >
-                      <FiUploadCloud size={14} /> Upload & Remove BG
+                      <FiUploadCloud size={14} /> Upload Signature Photo
                     </button>
                     <button
                       type="button"
                       className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("upload", "primary")}
-                      title="Open Studio scanner & background remover"
+                      onClick={() => openSignatureStudio("primary")}
+                      title="Open Signature Edit Option"
                     >
-                      <FiScissors size={14} /> Studio Scan
-                    </button>
-                    <button
-                      type="button"
-                      className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("draw", "primary")}
-                    >
-                      <FiEdit3 size={14} /> Draw Pad
-                    </button>
-                    <button
-                      type="button"
-                      className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("type", "primary")}
-                    >
-                      <FiType size={14} /> Type Font
+                      <FiEdit3 size={14} /> Edit Option
                     </button>
                   </div>
                 </div>
               )}
-
-              {/* Printed Signatory Name Field */}
-              <div className="doc-sig-slot-meta-field">
-                <label className="doc-sig-meta-label">Printed Signatory Name / Title</label>
-                <div className="doc-sig-input-with-chip">
-                  <Input
-                    type="text"
-                    placeholder="e.g. Dr. Jane Doe, M.V.Sc (Vet Surgery)"
-                    value={form.signature}
-                    onChange={(e) => {
-                      update("signature", e.target.value);
-                      autoSaveField("signature", e.target.value);
-                    }}
-                  />
-                  {form.fullName && (
-                    <button
-                      type="button"
-                      className="doc-sig-autofill-btn"
-                      onClick={() => {
-                        const autoVal = `${form.fullName.toLowerCase().startsWith("dr") ? form.fullName : `Dr. ${form.fullName}`}${form.qualification ? `, ${form.qualification}` : ""}`;
-                        update("signature", autoVal);
-                        autoSaveField("signature", autoVal);
-                        toast.success("Updated from profile");
-                      }}
-                    >
-                      Auto-fill
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
 
             {/* ========================================================= */}
-            {/* SIGNATURE OPTION 2: SECONDARY SIGNATURE / INITIALS        */}
+            {/* SIGNATURE OPTION 2: SECONDARY SIGNATURE                   */}
             {/* ========================================================= */}
             <div className="doc-sig-slot-card secondary-slot">
               <div className="doc-sig-slot-header">
                 <div className="doc-sig-slot-title-group">
-                  <span className="doc-sig-slot-tag secondary">Signature Option 2 (New)</span>
-                  <h4 className="doc-sig-slot-title">Secondary Signature / Initials / Stamp</h4>
-                  <p className="doc-sig-slot-desc">Short signature, doctor initials, clinic rubber stamp, or alternate sign-off</p>
+                  <span className="doc-sig-slot-tag secondary">Signature Option 2</span>
+                  <h4 className="doc-sig-slot-title">Secondary Signature</h4>
+                  <p className="doc-sig-slot-desc">Alternate or secondary digital signature for prescriptions and reports</p>
                 </div>
                 {form.secondarySignatureImage && (
                   <span className="doc-sig-slot-status active">Active</span>
@@ -1287,7 +1231,6 @@ export default function DoctorProfile() {
               {form.secondarySignatureImage ? (
                 <>
                   <div className="doc-sig-slot-preview-box">
-                    <div className="sig-ledger-grid" />
                     <img
                       src={form.secondarySignatureImage}
                       alt="Secondary Signature"
@@ -1297,26 +1240,10 @@ export default function DoctorProfile() {
                       <button
                         type="button"
                         className="doc-sig-btn-mini highlight"
-                        onClick={() => openSignatureStudio("upload", "secondary", form.secondarySignatureImage)}
-                        title="Remove Background, Recolor or Crop in Studio"
+                        onClick={() => openSignatureStudio("secondary", form.secondarySignatureImage)}
+                        title="Edit, Align Axis, or Adjust Signature"
                       >
-                        <FiScissors size={13} /> Studio Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-sig-btn-mini"
-                        onClick={() => openSignatureStudio("draw", "secondary")}
-                        title="Redraw with Pen"
-                      >
-                        <FiEdit3 size={13} /> Draw
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-sig-btn-mini"
-                        onClick={() => openSignatureStudio("type", "secondary")}
-                        title="Type Cursive Font"
-                      >
-                        <FiType size={13} /> Font
+                        <FiEdit3 size={13} /> Edit Option
                       </button>
                       <button
                         type="button"
@@ -1366,10 +1293,10 @@ export default function DoctorProfile() {
                     <button
                       type="button"
                       className="doc-sig-quick-btn studio"
-                      onClick={() => openSignatureStudio("upload", "secondary", form.secondarySignatureImage)}
-                      title="Open full studio with color picker and sliders"
+                      onClick={() => openSignatureStudio("secondary", form.secondarySignatureImage)}
+                      title="Open full alignment and signature edit options"
                     >
-                      <FiSliders size={12} /> Studio Editor
+                      <FiSliders size={12} /> Update Option
                     </button>
                   </div>
                 </>
@@ -1378,7 +1305,7 @@ export default function DoctorProfile() {
                   <div className="doc-sig-slot-empty-prompt">
                     <FiEdit3 size={28} className="doc-sig-empty-icon secondary" />
                     <span className="doc-sig-empty-main">Upload Secondary Signature</span>
-                    <span className="doc-sig-empty-sub">Upload short initials, seal, stamp or alternate signature:</span>
+                    <span className="doc-sig-empty-sub">Upload secondary or alternate signature photo:</span>
                   </div>
                   <div className="doc-sig-slot-action-row">
                     <button
@@ -1387,47 +1314,19 @@ export default function DoctorProfile() {
                       onClick={() => secondarySigFileInputRef.current?.click()}
                       title="Upload signature photo with automatic background removal"
                     >
-                      <FiUploadCloud size={14} /> Upload & Remove BG
+                      <FiUploadCloud size={14} /> Upload Secondary Signature Photo
                     </button>
                     <button
                       type="button"
                       className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("upload", "secondary")}
-                      title="Open Studio scanner & background remover"
+                      onClick={() => openSignatureStudio("secondary")}
+                      title="Open Signature Edit Option"
                     >
-                      <FiScissors size={14} /> Studio Scan
-                    </button>
-                    <button
-                      type="button"
-                      className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("draw", "secondary")}
-                    >
-                      <FiEdit3 size={14} /> Draw Pad
-                    </button>
-                    <button
-                      type="button"
-                      className="doc-sig-slot-btn"
-                      onClick={() => openSignatureStudio("type", "secondary")}
-                    >
-                      <FiType size={14} /> Type Font
+                      <FiEdit3 size={14} /> Edit Option
                     </button>
                   </div>
                 </div>
               )}
-
-              {/* Secondary Signatory Label / Title */}
-              <div className="doc-sig-slot-meta-field">
-                <label className="doc-sig-meta-label">Secondary Signatory Label / Initials</label>
-                <Input
-                  type="text"
-                  placeholder="e.g. Dr. Initials / Official Seal / Attending Vet"
-                  value={form.secondarySignatureName}
-                  onChange={(e) => {
-                    update("secondarySignatureName", e.target.value);
-                    autoSaveField("secondarySignatureName", e.target.value);
-                  }}
-                />
-              </div>
             </div>
           </div>
 
@@ -1436,17 +1335,17 @@ export default function DoctorProfile() {
             <div className="doc-rx-mode-card">
               <label className="doc-sig-meta-label">Prescription Sign-off Preference</label>
               <p className="doc-rx-mode-sub">Choose which signature appears on generated patient prescriptions:</p>
-              
+
               <div className="doc-rx-mode-options">
-                <label className={`doc-rx-mode-pill ${form.prescriptionSignatureMode === "primary" ? "active" : ""}`}>
+                <label className={`doc-rx-mode-pill ${form.prescriptionSignatureMode !== "secondary" ? "active" : ""}`}>
                   <input
                     type="radio"
                     name="prescriptionSignatureMode"
                     value="primary"
-                    checked={form.prescriptionSignatureMode === "primary"}
+                    checked={form.prescriptionSignatureMode !== "secondary"}
                     onChange={() => autoSaveField("prescriptionSignatureMode", "primary")}
                   />
-                  <span>Primary Signature Only</span>
+                  <span>Primary Signature</span>
                 </label>
 
                 <label className={`doc-rx-mode-pill ${form.prescriptionSignatureMode === "secondary" ? "active" : ""}`}>
@@ -1457,7 +1356,7 @@ export default function DoctorProfile() {
                     checked={form.prescriptionSignatureMode === "secondary"}
                     onChange={() => autoSaveField("prescriptionSignatureMode", "secondary")}
                   />
-                  <span>Secondary Signature / Stamp Only</span>
+                  <span>Secondary Signature</span>
                 </label>
               </div>
             </div>
@@ -1618,7 +1517,7 @@ export default function DoctorProfile() {
                 Location Verification
               </h3>
               <p className="panel-subtitle" style={{ marginBottom: 0 }}>
-                GPS practice location verification
+                GPS Location
               </p>
             </div>
             <Badge variant={isFetchingLocation ? "accent" : (locationVerified || (form.city && form.pincode) || form.area ? "success" : "warning")}>
@@ -1665,7 +1564,6 @@ export default function DoctorProfile() {
       {signatureStudioOpen && (
         <SignatureStudioModal
           isOpen={signatureStudioOpen}
-          initialTab={signatureStudioTab}
           imageSource={
             customStudioSource ||
             (signatureTarget === "secondary"

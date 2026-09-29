@@ -617,14 +617,16 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .doc-sig-panel-subtitle {
-  font-size: 0.83rem;
+  font-size: 0.85rem;
   color: #64748b;
-  margin: 0;
-  max-width: 620px;
-  line-height: 1.45;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  max-width: 640px;
+  line-height: 1.55;
 }
 
 .doc-sig-status-badge-wrap {
@@ -986,28 +988,40 @@
   letter-spacing: 0.04em;
 }
 
-.doc-sig-input-with-chip {
+.doc-sig-fetched-badge {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
-.doc-sig-autofill-btn {
-  align-self: flex-start;
-  padding: 3px 8px;
-  border-radius: 5px;
-  border: 1px solid #bae6fd;
-  background: #f0f9ff;
-  color: #0369a1;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.doc-sig-autofill-btn:hover {
-  background: #e0f2fe;
+.doc-sig-fetched-icon.primary {
   color: #0284c7;
+  flex-shrink: 0;
+}
+
+.doc-sig-fetched-icon.secondary {
+  color: #9333ea;
+  flex-shrink: 0;
+}
+
+.doc-sig-fetched-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1;
+}
+
+.doc-sig-fetched-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 
 /* Prescription Mode Selector Card */

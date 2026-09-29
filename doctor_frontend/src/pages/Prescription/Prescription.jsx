@@ -65,8 +65,8 @@ export default function Prescription() {
   const rxSigMode = typeof window !== "undefined" && localStorage.getItem("doc_rx_sig_mode") === "secondary" ? "secondary" : "primary";
   const primarySig = doctor?.digitalSignatureImage;
   const secondarySig = doctor?.secondarySignatureImage || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_img") : "");
-  const primaryDoctorName = doctor?.digitalSignatureName || (doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Doctor's Signature");
-  const secondaryDoctorName = doctor?.secondarySignatureName || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_name") : "") || "Secondary Signatory";
+  const primaryDoctorName = doctor?.digitalSignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.qualification ? `, ${doctor.qualification}` : ""}` : "Veterinary Doctor");
+  const secondaryDoctorName = doctor?.secondarySignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.speciality ? ` · ${doctor.speciality}` : ""}` : "Attending Veterinary Doctor");
 
   const patient = patients.find(p => String(p.id) === String(patientId));
   const notesWithPetFood = useCallback((customNotes = null) => {
@@ -671,13 +671,12 @@ export default function Prescription() {
               <span className="rx-notes-label-text">Notes</span>
               <div className="rx-notes-controls">
                 <span
-                  className={`rx-char-counter ${
-                    (notes || "").length >= MAX_NOTES_LENGTH
-                      ? "limit-reached"
-                      : (notes || "").length >= MAX_NOTES_LENGTH * 0.85
+                  className={`rx-char-counter ${(notes || "").length >= MAX_NOTES_LENGTH
+                    ? "limit-reached"
+                    : (notes || "").length >= MAX_NOTES_LENGTH * 0.85
                       ? "limit-warning"
                       : ""
-                  }`}
+                    }`}
                   title={`${Math.max(0, MAX_NOTES_LENGTH - (notes || "").length)} characters remaining`}
                 >
                   {(notes || "").length} / {MAX_NOTES_LENGTH} chars
@@ -690,8 +689,8 @@ export default function Prescription() {
                     listening
                       ? "Click to stop listening"
                       : (notes || "").length >= MAX_NOTES_LENGTH
-                      ? "Limit reached - delete text to dictate more"
-                      : "Click to dictate notes"
+                        ? "Limit reached - delete text to dictate more"
+                        : "Click to dictate notes"
                   }
                   disabled={(notes || "").length >= MAX_NOTES_LENGTH && !listening}
                 >
@@ -884,41 +883,7 @@ export default function Prescription() {
                 </p>
               </div>
               <div className="rx-preview-signatures-wrap">
-                {rxSigMode === "both" && (primarySig || secondarySig) ? (
-                  <div className="rx-preview-dual-signs">
-                    <div className="rx-preview-sign-line mini">
-                      {primarySig ? (
-                        <img
-                          src={primarySig}
-                          alt="Primary Signature"
-                          className="rx-digital-signature-img"
-                        />
-                      ) : (
-                        <div className="rx-signature-placeholder-space" />
-                      )}
-                      <div className="rx-sign-line-bar" />
-                      <span className="rx-sign-name">{primaryDoctorName}</span>
-                      <span className="rx-sign-title">Authorized Signatory</span>
-                      {doctor?.councilRegistration && (
-                        <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
-                      )}
-                    </div>
-                    <div className="rx-preview-sign-line mini">
-                      {secondarySig ? (
-                        <img
-                          src={secondarySig}
-                          alt="Secondary Signature"
-                          className="rx-digital-signature-img"
-                        />
-                      ) : (
-                        <div className="rx-signature-placeholder-space" />
-                      )}
-                      <div className="rx-sign-line-bar" />
-                      <span className="rx-sign-name">{secondaryDoctorName}</span>
-                      <span className="rx-sign-title">Official Seal / Stamp</span>
-                    </div>
-                  </div>
-                ) : rxSigMode === "secondary" && secondarySig ? (
+                {rxSigMode === "secondary" && secondarySig ? (
                   <div className="rx-preview-sign-line">
                     <img
                       src={secondarySig}
@@ -927,7 +892,7 @@ export default function Prescription() {
                     />
                     <div className="rx-sign-line-bar" />
                     <span className="rx-sign-name">{secondaryDoctorName}</span>
-                    <span className="rx-sign-title">Authorized Signatory · Seal/Stamp</span>
+                    <span className="rx-sign-title">Secondary Signature</span>
                     {doctor?.councilRegistration && (
                       <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
                     )}
@@ -945,7 +910,7 @@ export default function Prescription() {
                     )}
                     <div className="rx-sign-line-bar" />
                     <span className="rx-sign-name">{primaryDoctorName}</span>
-                    <span className="rx-sign-title">Authorized Signatory · Registered Vet</span>
+                    <span className="rx-sign-title">Authorized Signature · Registered Vet</span>
                     {doctor?.councilRegistration && (
                       <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
                     )}

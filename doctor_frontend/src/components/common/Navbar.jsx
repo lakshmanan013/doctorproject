@@ -93,8 +93,6 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen }) {
     }
   };
 
-
-
   useEffect(() => {
     loadDoctorProfile();
 
@@ -231,24 +229,22 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen }) {
   const title = isDashboard
     ? `${currentGreeting}, ${doctorName}`
     : meta?.title ||
-      "Patients Profile";
+    "Patients Profile";
 
 
 
   const subtitle = isDashboard
     ? clinicName
     : pathname === "/patients"
-      ? `${patientCount} registered ${
-          patientCount === 1
-            ? "pet"
-            : "pets"
-        } across species`
+      ? `${patientCount} registered ${patientCount === 1
+        ? "pet"
+        : "pets"
+      } across species`
       : pathname === "/appointments"
-        ? `Today · ${appointmentCount} ${
-            appointmentCount === 1
-              ? "visit"
-              : "visits"
-          } across clinic, video and field`
+        ? `Today · ${appointmentCount} ${appointmentCount === 1
+          ? "visit"
+          : "visits"
+        } across clinic, video and field`
         : meta?.subtitle || "";
 
 

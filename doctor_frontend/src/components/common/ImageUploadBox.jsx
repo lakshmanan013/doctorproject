@@ -261,7 +261,6 @@ export default function ImageUploadBox({
       {isSig && studioOpen && (
         <SignatureStudioModal
           isOpen={studioOpen}
-          initialTab="upload"
           imageSource={pendingSignatureSource}
           onClose={() => {
             setStudioOpen(false);

@@ -702,29 +702,31 @@ export function generateTypedSignature(
 ) {
   if (!text || !text.trim()) return "";
   const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 300;
+  canvas.width = 1200;
+  canvas.height = 360;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-  if (backgroundMode === "white") {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = colorHex || "#000000";
-  ctx.font = `${slant ? "italic " : ""}68px ${fontCss}`;
+  ctx.font = `${slant ? "italic " : ""}72px ${fontCss}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   ctx.fillText(text.trim(), canvas.width / 2, canvas.height / 2);
 
+  const trimmed = trimCanvasTransparency(canvas, 16);
+
   if (backgroundMode === "white") {
-    return canvas.toDataURL("image/png");
+    const whiteCanvas = document.createElement("canvas");
+    whiteCanvas.width = trimmed.width;
+    whiteCanvas.height = trimmed.height;
+    const wCtx = whiteCanvas.getContext("2d");
+    wCtx.fillStyle = "#ffffff";
+    wCtx.fillRect(0, 0, whiteCanvas.width, whiteCanvas.height);
+    wCtx.drawImage(trimmed, 0, 0);
+    return whiteCanvas.toDataURL("image/png");
   }
 
-  const trimmed = trimCanvasTransparency(canvas, 20);
   return trimmed.toDataURL("image/png");
 }
 
