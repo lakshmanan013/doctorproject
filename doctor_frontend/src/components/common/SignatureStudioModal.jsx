@@ -52,7 +52,7 @@ export default function SignatureStudioModal({
 
   // Common ink color & preview background
   const [inkColor, setInkColor] = useState(initialInkColor);
-  const [previewBg, setPreviewBg] = useState("ledger"); // "ledger" | "rx" | "white" | "dark"
+  const [previewBg, setPreviewBg] = useState("ledger"); // "ledger" | "white" | "dark"
   const [processing, setProcessing] = useState(false);
 
   // Background removal options
@@ -995,14 +995,6 @@ export default function SignatureStudioModal({
                   </button>
                   <button
                     type="button"
-                    className={`sig-bg-pill ${previewBg === "rx" ? "active" : ""}`}
-                    onClick={() => setPreviewBg("rx")}
-                    title="Prescription Pad View"
-                  >
-                    Rx Pad
-                  </button>
-                  <button
-                    type="button"
                     className={`sig-bg-pill ${previewBg === "white" ? "active" : ""}`}
                     onClick={() => setPreviewBg("white")}
                     title="Clean White View"
@@ -1021,11 +1013,6 @@ export default function SignatureStudioModal({
               </div>
 
               <div className={`sig-live-preview-box bg-${previewBg}`}>
-                {previewBg === "rx" && (
-                  <div className="rx-pad-watermark">
-                    <span className="rx-doctor-tag">Verified Doctor Signature</span>
-                  </div>
-                )}
 
                 {activePreviewUrl ? (
                   <img
@@ -1188,7 +1175,7 @@ export default function SignatureStudioModal({
                         : "Remove Colour (Pure Black B&W)"}
                     </strong>
                     <span className="sig-mono-desc">
-                      Strip all pen color hues for official black & white Rx documents
+                      Strip all pen color hues for official black & white documents
                     </span>
                   </div>
                 </div>
