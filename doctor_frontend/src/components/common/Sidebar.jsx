@@ -96,19 +96,6 @@ export default function Sidebar({ isOpen, onClose }) {
         })}
       </nav>
 
-      {/* PET PROMO CARD */}
-      <div className="sidebar-pet-card">
-        <div className="sidebar-pet-text">
-          <p className="sidebar-pet-title">Caring for pets,</p>
-          <p className="sidebar-pet-subtitle">made simple every day.</p>
-        </div>
-        <img
-          src="/illustrations/sidebar-pet-heart.png"
-          alt="Caring for pets heart"
-          className="sidebar-pet-illustration"
-        />
-      </div>
-
       {/* DOCTOR PROFILE CARD */}
       <div className="sidebar-doctor-section">
         <div
