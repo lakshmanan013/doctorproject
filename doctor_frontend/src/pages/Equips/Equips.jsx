@@ -7,7 +7,10 @@ import {
   FiShield,
   FiBox,
   FiTag,
-  FiFileText
+  FiFileText,
+  FiCpu,
+  FiActivity,
+  FiClock
 } from "react-icons/fi";
 import {
   FaFlask,
@@ -338,56 +341,81 @@ export default function Equips() {
         width="modal-lg"
       >
         {selectedModalEquip && (
-          <div className="stack-4">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", paddingBottom: "14px", borderBottom: "1px solid var(--border)" }}>
+          <div className="equip-modal-content">
+            {/* Top Hero & Price Section */}
+            <div className="equip-modal-hero">
               <div>
-                <span className="sidebar-pill-badge" style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", padding: "3px 10px", background: "var(--primary-light)", color: "var(--primary)" }}>
-                  {selectedModalEquip.category}
-                </span>
-                <p className="cell-sub" style={{ marginTop: "8px", fontSize: "13.5px", lineHeight: "1.5" }}>
+                <div className="equip-modal-badges">
+                  <span className="equip-badge-category">
+                    {selectedModalEquip.category}
+                  </span>
+                  <Badge variant={statusVariant[selectedModalEquip.status] || "default"}>
+                    {selectedModalEquip.status}
+                  </Badge>
+                </div>
+                <p className="equip-modal-desc">
                   {selectedModalEquip.description || "High performance veterinary equipment designed for clinical reliability."}
                 </p>
               </div>
 
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <span className="text-faint" style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 600 }}>Estimated Price</span>
-                <p style={{ fontSize: "20px", fontWeight: 800, color: "var(--primary)", margin: "2px 0 6px 0" }}>
+              <div className="equip-price-card">
+                <div className="equip-price-label">Estimated Price</div>
+                <div className="equip-price-val">
                   ₹{Number(selectedModalEquip.price || 0).toLocaleString("en-IN")}
-                </p>
-                <Badge variant={statusVariant[selectedModalEquip.status] || "default"}>
-                  {selectedModalEquip.status}
-                </Badge>
+                </div>
+                <span className="text-faint" style={{ fontSize: "11px" }}>Excl. local taxes</span>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", background: "var(--bg-muted, #f8fafc)", padding: "14px", borderRadius: "var(--radius-md, 8px)", border: "1px solid var(--border)" }}>
-              <div className="invoice-line">
-                <span className="text-faint"><FiTag size={13} /> Manufacturer</span>
-                <span style={{ fontWeight: 600 }}>{selectedModalEquip.brand || "—"}</span>
+            {/* 4 Metadata Cards Grid */}
+            <div className="equip-meta-grid">
+              <div className="equip-meta-card">
+                <div className="equip-meta-card-header">
+                  <FiTag size={13} /> Manufacturer
+                </div>
+                <div className="equip-meta-card-value">
+                  {selectedModalEquip.brand || "—"}
+                </div>
               </div>
-              <div className="invoice-line">
-                <span className="text-faint"><FiFileText size={13} /> Model Number</span>
-                <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{selectedModalEquip.model || "—"}</span>
+
+              <div className="equip-meta-card">
+                <div className="equip-meta-card-header">
+                  <FiFileText size={13} /> Model Number
+                </div>
+                <div className="equip-meta-card-value" style={{ fontFamily: "monospace", fontSize: "12.5px" }}>
+                  {selectedModalEquip.model || "—"}
+                </div>
               </div>
-              <div className="invoice-line">
-                <span className="text-faint"><FiShield size={13} /> Warranty</span>
-                <span style={{ fontWeight: 600 }}>{selectedModalEquip.warranty || "—"}</span>
+
+              <div className="equip-meta-card">
+                <div className="equip-meta-card-header">
+                  <FiShield size={13} /> Warranty
+                </div>
+                <div className="equip-meta-card-value">
+                  {selectedModalEquip.warranty || "Standard"}
+                </div>
               </div>
-              <div className="invoice-line">
-                <span className="text-faint"><FiBox size={13} /> Lead Time</span>
-                <span style={{ fontWeight: 600 }}>{selectedModalEquip.leadTime || "In stock"}</span>
+
+              <div className="equip-meta-card">
+                <div className="equip-meta-card-header">
+                  <FiClock size={13} /> Lead Time
+                </div>
+                <div className="equip-meta-card-value">
+                  {selectedModalEquip.leadTime || "In stock"}
+                </div>
               </div>
             </div>
 
+            {/* Technical Specifications */}
             {selectedModalEquip.specs && selectedModalEquip.specs.length > 0 && (
-              <div style={{ marginTop: "4px" }}>
-                <p className="text-faint" style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", marginBottom: "8px" }}>
-                  Technical Specifications & Key Features
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div>
+                <div className="equip-section-title">
+                  <FiCpu size={14} style={{ color: "var(--primary)" }} /> Technical Specifications & Key Features
+                </div>
+                <div className="equip-specs-list">
                   {selectedModalEquip.specs.map((spec, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: "var(--text-main)" }}>
-                      <FiCheckCircle size={14} style={{ color: "var(--primary)", marginTop: "2px", flexShrink: 0 }} />
+                    <div key={i} className="equip-spec-item">
+                      <FiCheckCircle size={15} className="equip-spec-icon" />
                       <span>{spec}</span>
                     </div>
                   ))}
@@ -395,18 +423,25 @@ export default function Equips() {
               </div>
             )}
 
+            {/* Recommended Clinical Applications */}
             {selectedModalEquip.suitableFor && (
-              <div style={{ background: "var(--primary-light, #f0fdfa)", border: "1px solid rgba(13, 148, 136, 0.2)", padding: "12px", borderRadius: "var(--radius-md, 8px)" }}>
-                <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--primary)", marginBottom: "3px" }}>
-                  Recommended Clinical Applications
-                </p>
-                <p style={{ fontSize: "12.5px", color: "var(--text-main)" }}>
-                  {selectedModalEquip.suitableFor}
-                </p>
+              <div className="equip-clinical-callout">
+                <div className="equip-clinical-icon">
+                  <FiActivity size={18} />
+                </div>
+                <div>
+                  <div className="equip-clinical-title">
+                    Recommended Clinical Applications
+                  </div>
+                  <p className="equip-clinical-text">
+                    {selectedModalEquip.suitableFor}
+                  </p>
+                </div>
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
+            {/* Action Footer */}
+            <div className="equip-modal-footer">
               <Button variant="secondary" onClick={() => setSelectedModalEquip(null)}>
                 Close
               </Button>

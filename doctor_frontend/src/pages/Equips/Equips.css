@@ -5,3 +5,219 @@
 .equips-page-wrapper {
   width: 100%;
 }
+
+/* Equipment Detail Modal Improvements */
+.equip-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.equip-modal-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.equip-modal-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.equip-badge-category {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--primary-light, #EEF2FF);
+  color: var(--primary, #6366F1);
+}
+
+.equip-modal-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 440px;
+}
+
+.equip-price-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  padding: 12px 18px;
+  text-align: right;
+  min-width: 170px;
+  flex-shrink: 0;
+}
+
+.equip-price-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+}
+
+.equip-price-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary, #6366F1);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+}
+
+/* Specs 4-card Grid */
+.equip-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .equip-meta-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.equip-meta-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.equip-meta-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.equip-meta-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.equip-meta-card-header svg {
+  color: var(--primary);
+}
+
+.equip-meta-card-value {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* Technical Specs section */
+.equip-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.equip-specs-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 580px) {
+  .equip-specs-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.equip-spec-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: var(--radius-md, 8px);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.equip-spec-icon {
+  color: #10b981;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Clinical Applications Callout */
+.equip-clinical-callout {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, rgba(59, 130, 246, 0.07) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: var(--radius-lg, 12px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.equip-clinical-icon {
+  color: var(--primary);
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.equip-clinical-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  margin-bottom: 3px;
+}
+
+.equip-clinical-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Modal Footer */
+.equip-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
