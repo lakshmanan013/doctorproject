@@ -181,8 +181,8 @@ export default function VideoConsultation() {
       window.removeEventListener("doctorProfileUpdated", handleProfileUpdate);
       window.removeEventListener("appointmentsUpdated", handleAppointmentsUpdate);
       shouldListenNotesRef.current = false;
-      try { notesRecognitionRef.current?.stop(); } catch {}
-      try { medRecognitionRef.current?.stop(); } catch {}
+      try { notesRecognitionRef.current?.stop(); } catch { }
+      try { medRecognitionRef.current?.stop(); } catch { }
     };
   }, []);
 
@@ -276,7 +276,7 @@ export default function VideoConsultation() {
         remoteMediaStreamRef.current = stream;
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = stream;
-          remoteVideoRef.current.play().catch(() => {});
+          remoteVideoRef.current.play().catch(() => { });
         }
         setRemoteStreamConnected(true);
         toast.success("Pet Parent live camera connected face-to-face!");
@@ -303,7 +303,7 @@ export default function VideoConsultation() {
       if (remoteVideoRef.current.srcObject !== remoteMediaStreamRef.current) {
         remoteVideoRef.current.srcObject = remoteMediaStreamRef.current;
       }
-      remoteVideoRef.current.play().catch(() => {});
+      remoteVideoRef.current.play().catch(() => { });
     }
   }, [remoteStreamConnected, viewLayout]);
 
@@ -383,7 +383,7 @@ export default function VideoConsultation() {
       setNotesSpeechInterim("");
       try {
         notesRecognitionRef.current?.stop();
-      } catch {}
+      } catch { }
       toast("Voice dictation stopped", { icon: "⏹️" });
       return;
     }
@@ -422,7 +422,7 @@ export default function VideoConsultation() {
         try {
           recognition.start();
           return;
-        } catch {}
+        } catch { }
       }
       setIsNotesDictating(false);
       setNotesSpeechInterim("");
@@ -474,7 +474,7 @@ export default function VideoConsultation() {
       setMedVoiceParsed(null);
       try {
         medRecognitionRef.current?.stop();
-      } catch {}
+      } catch { }
       toast("Voice medicine stopped", { icon: "⏹️" });
       return;
     }
@@ -567,7 +567,7 @@ export default function VideoConsultation() {
       setActiveVoiceField(null);
       try {
         medRecognitionRef.current?.stop();
-      } catch {}
+      } catch { }
       return;
     }
 
@@ -816,9 +816,9 @@ export default function VideoConsultation() {
     const completed = allVideo.filter((a) => a.status === "Completed");
 
     return {
-      todayCount: todayVideo.length || 2,
-      completedCount: completed.length || 8,
-      consultFee: profile?.consultationFee || 500,
+      todayCount: todayVideo.length,
+      completedCount: completed.length,
+      consultFee: profile?.consultationFee,
     };
   }, [appointments, todayIso, profile]);
 
@@ -908,11 +908,11 @@ export default function VideoConsultation() {
     shouldListenNotesRef.current = false;
     setIsNotesDictating(false);
     setNotesSpeechInterim("");
-    try { notesRecognitionRef.current?.stop(); } catch {}
+    try { notesRecognitionRef.current?.stop(); } catch { }
     setIsMedVoiceListening(false);
     setMedVoiceInterim("");
     setMedVoiceParsed(null);
-    try { medRecognitionRef.current?.stop(); } catch {}
+    try { medRecognitionRef.current?.stop(); } catch { }
 
     setActiveCall(null);
     setActiveCallRoomCode(null);
@@ -937,10 +937,7 @@ export default function VideoConsultation() {
         <div className="vc-hero-main">
           <div className="vc-hero-badge-wrap">
             <span className="vc-hero-pill">
-              <Sparkles size={13} /> Official Telehealth Portal
-            </span>
-            <span className="vc-encryption-badge">
-              <Shield size={12} /> 256-bit Encrypted WebRTC
+              <Sparkles size={13} /> Zenve Official Telehealth Portal
             </span>
           </div>
 
@@ -1323,7 +1320,7 @@ export default function VideoConsultation() {
                           remoteVideoRef.current = el;
                           if (el && remoteMediaStreamRef.current && el.srcObject !== remoteMediaStreamRef.current) {
                             el.srcObject = remoteMediaStreamRef.current;
-                            el.play().catch(() => {});
+                            el.play().catch(() => { });
                           }
                         }}
                         autoPlay
@@ -1367,7 +1364,7 @@ export default function VideoConsultation() {
                           doctorVideoRef.current = el;
                           if (el && mediaStreamRef.current && el.srcObject !== mediaStreamRef.current) {
                             el.srcObject = mediaStreamRef.current;
-                            el.play().catch(() => {});
+                            el.play().catch(() => { });
                           }
                         }}
                         autoPlay
@@ -1443,7 +1440,7 @@ export default function VideoConsultation() {
                           doctorVideoRef.current = el;
                           if (el && mediaStreamRef.current && el.srcObject !== mediaStreamRef.current) {
                             el.srcObject = mediaStreamRef.current;
-                            el.play().catch(() => {});
+                            el.play().catch(() => { });
                           }
                         }}
                         autoPlay
