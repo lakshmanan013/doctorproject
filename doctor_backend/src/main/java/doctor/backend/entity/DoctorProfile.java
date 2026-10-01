@@ -37,6 +37,8 @@ public class DoctorProfile {
 
     private String clinicHospital;
 
+    private String facilityType;
+
     private String clinicPhone;
 
     private String phone;
@@ -328,5 +330,13 @@ public class DoctorProfile {
 
     public void setSecondarySignatureName(String secondarySignatureName) {
         this.secondarySignatureName = secondarySignatureName;
+    }
+
+    public String getFacilityType() {
+        return facilityType;
+    }
+
+    public void setFacilityType(String facilityType) {
+        this.facilityType = facilityType;
     }
 }

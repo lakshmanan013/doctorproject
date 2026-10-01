@@ -27,6 +27,7 @@ import {
 
 import Input, {
   Field,
+  Select,
 } from "../../components/ui/Input";
 
 import Button from "../../components/ui/Button";
@@ -49,6 +50,7 @@ const EMPTY = {
   speciality: "",
   council: "",
   clinic: "",
+  facilityType: "",
   clinicPhone: "",
   area: "",
   city: "",
@@ -364,6 +366,7 @@ export default function DoctorProfile() {
               speciality: updated.speciality?.trim() || "",
               councilRegistration: updated.council?.trim() || "",
               clinicHospital: updated.clinic?.trim() || "",
+              facilityType: updated.facilityType?.trim() || "",
               clinicPhone: updated.clinicPhone?.trim() || "",
               area: newArea?.trim() || "",
               city: newCity?.trim() || "",
@@ -460,6 +463,7 @@ export default function DoctorProfile() {
         speciality: updated.speciality?.trim() || "",
         councilRegistration: updated.council?.trim() || "",
         clinicHospital: updated.clinic?.trim() || "",
+        facilityType: updated.facilityType?.trim() || "",
         clinicPhone: updated.clinicPhone?.trim() || "",
         area: updated.area?.trim() || "",
         city: updated.city?.trim() || "",
@@ -597,6 +601,7 @@ export default function DoctorProfile() {
           speciality: data?.speciality ?? "",
           council: data?.councilRegistration ?? "",
           clinic: data?.clinicHospital ?? "",
+          facilityType: data?.facilityType ?? "",
           clinicPhone: data?.clinicPhone ?? "",
           area: data?.area ?? "",
           city: data?.city ?? "",
@@ -660,6 +665,7 @@ export default function DoctorProfile() {
         speciality: form.speciality.trim(),
         councilRegistration: form.council.trim(),
         clinicHospital: form.clinic.trim(),
+        facilityType: form.facilityType?.trim() || "",
         clinicPhone: form.clinicPhone.trim(),
         area: form.area.trim(),
         city: form.city.trim(),
@@ -693,6 +699,7 @@ export default function DoctorProfile() {
         speciality: saved?.speciality ?? prev.speciality,
         council: saved?.councilRegistration ?? prev.council,
         clinic: saved?.clinicHospital ?? prev.clinic,
+        facilityType: saved?.facilityType ?? prev.facilityType,
         clinicPhone: saved?.clinicPhone ?? prev.clinicPhone,
         city: saved?.city ?? prev.city,
         pincode: saved?.pincode ?? prev.pincode,
@@ -847,7 +854,7 @@ export default function DoctorProfile() {
               />
             </Field>
 
-            <Field label="Clinic / hospital">
+            <Field label="Clinic / Hospital">
               <Input
                 type="text"
                 placeholder="e.g. Zenve Veterinary Clinic"
@@ -863,6 +870,23 @@ export default function DoctorProfile() {
                 value={form.clinicPhone}
                 onChange={(e) => update("clinicPhone", e.target.value)}
               />
+            </Field>
+
+            <Field label="Facility type">
+              <Select
+                value={form.facilityType}
+                onChange={(e) => update("facilityType", e.target.value)}
+              >
+                <option value="">Select facility type</option>
+                <option value="Clinic">Clinic</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Mobile Clinic / Home Visit">Mobile Clinic / Home Visit</option>
+                <option value="Specialty Referral Center">Specialty Referral Center</option>
+                <option value="Emergency Hospital">Emergency Hospital</option>
+                <option value="Diagnostic Center">Diagnostic Center</option>
+                <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
+                <option value="Other">Other</option>
+              </Select>
             </Field>
 
             <Field label="Experience (years)">
@@ -1045,22 +1069,13 @@ export default function DoctorProfile() {
             Contact details
           </h3>
 
-          <div className="form-grid-3">
+          <div className="form-grid-2">
             <Field label="Personal phone number">
               <Input
                 type="text"
                 placeholder="e.g. +91 98765 43210"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
-              />
-            </Field>
-
-            <Field label="Hospital or Clinic phone number">
-              <Input
-                type="tel"
-                placeholder="e.g. +91 44 2345 6789 / 98765 43210"
-                value={form.clinicPhone}
-                onChange={(e) => update("clinicPhone", e.target.value)}
               />
             </Field>
 

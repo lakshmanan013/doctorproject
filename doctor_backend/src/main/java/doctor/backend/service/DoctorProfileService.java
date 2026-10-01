@@ -110,6 +110,9 @@ public class DoctorProfileService {
         existing.setClinicHospital(
                 profile.getClinicHospital());
 
+        existing.setFacilityType(
+                profile.getFacilityType());
+
         existing.setClinicPhone(
                 profile.getClinicPhone());
 

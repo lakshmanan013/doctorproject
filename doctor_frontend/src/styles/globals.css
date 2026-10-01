@@ -1608,6 +1608,20 @@ tbody tr:hover {
   .form-grid-2,
   .form-grid-3 {
     grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    padding: 9px 12px;
+    font-size: 13.5px;
+    border-radius: var(--radius-sm, 8px);
+  }
+
+  .field-label {
+    margin-bottom: 5px;
+    font-size: 12px;
   }
 
   .modal-overlay {
@@ -1661,8 +1675,17 @@ tbody tr:hover {
     padding: 0 10px 18px;
   }
 
-  .card {
+  .card,
+  .panel {
+    padding: 14px;
     border-radius: var(--radius-lg);
+  }
+
+  .input,
+  .select,
+  .textarea {
+    padding: 8px 11px;
+    font-size: 13px;
   }
 
   .panel-title {
