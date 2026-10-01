@@ -716,13 +716,13 @@ export default function Prescription() {
                 </p>
                 {clinicAddress && (
                   <p className="rx-preview-clinic-address">
-                    <FiMapPin className="rx-header-icon" size={11} />
+                    <FiMapPin className="rx-header-icon" size={10.5} />
                     <span>{clinicAddress}</span>
                   </p>
                 )}
                 {clinicPhoneNumber && (
                   <p className="rx-preview-clinic-phone">
-                    <FiPhone className="rx-header-icon" size={11} />
+                    <FiPhone className="rx-header-icon" size={10.5} />
                     <span>Hospital / Clinic Ph: {clinicPhoneNumber}</span>
                   </p>
                 )}
