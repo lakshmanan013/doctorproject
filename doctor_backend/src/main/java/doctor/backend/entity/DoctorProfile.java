@@ -37,6 +37,8 @@ public class DoctorProfile {
 
     private String clinicHospital;
 
+    private String clinicPhone;
+
     private String phone;
 
     private String email;
@@ -150,6 +152,14 @@ public class DoctorProfile {
 
     public void setClinicHospital(String clinicHospital) {
         this.clinicHospital = clinicHospital;
+    }
+
+    public String getClinicPhone() {
+        return clinicPhone;
+    }
+
+    public void setClinicPhone(String clinicPhone) {
+        this.clinicPhone = clinicPhone;
     }
 
     public String getPhone() {

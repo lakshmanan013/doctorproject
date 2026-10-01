@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiMic, FiMicOff, FiTrash2, FiDownload, FiSend, FiMail, FiMessageSquare, FiPlusCircle } from "react-icons/fi";
+import { FiMic, FiMicOff, FiTrash2, FiDownload, FiSend, FiMail, FiMessageSquare, FiPlusCircle, FiPhone, FiMapPin } from "react-icons/fi";
 import { FaWhatsapp, FaPaw } from "react-icons/fa";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -67,6 +67,12 @@ export default function Prescription() {
   const secondarySig = doctor?.secondarySignatureImage || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_img") : "");
   const primaryDoctorName = doctor?.digitalSignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.qualification ? `, ${doctor.qualification}` : ""}` : "Veterinary Doctor");
   const secondaryDoctorName = doctor?.secondarySignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.speciality ? ` · ${doctor.speciality}` : ""}` : "Attending Veterinary Doctor");
+  const clinicAddress = [
+    doctor?.area,
+    doctor?.city,
+    doctor?.pincode ? `PIN - ${doctor.pincode}` : null
+  ].filter(Boolean).join(", ");
+  const clinicPhoneNumber = doctor?.clinicPhone || doctor?.phone || "";
 
   const patient = patients.find(p => String(p.id) === String(patientId));
   const notesWithPetFood = useCallback((customNotes = null) => {
@@ -364,6 +370,8 @@ export default function Prescription() {
     const prescriptionCode = formatPrescriptionId(savedRx?.id || nextRxId || 1, visitDate);
     return [
       `*${clinicHeader.toUpperCase()}*`,
+      clinicAddress ? `Address: ${clinicAddress}` : null,
+      clinicPhoneNumber ? `Clinic Phone: ${clinicPhoneNumber}` : null,
       `Prescription ID: ${prescriptionCode}`,
       doctorLine ? `Doctor: ${doctorLine}` : null,
       `Date: ${visitDate}`,
@@ -467,8 +475,9 @@ export default function Prescription() {
       `Doctor: ${doctor?.fullName || "Veterinary Doctor"}`,
       doctor?.qualification ? `Qualification: ${doctor.qualification}` : null,
       (doctor?.clinicHospital || doctor?.clinicName) ? `Clinic / Hospital: ${doctor?.clinicHospital || doctor?.clinicName}` : null,
-      (doctor?.city || doctor?.pincode) ? `Location: ${[doctor?.city, doctor?.pincode].filter(Boolean).join(" - ")}` : null,
-      doctor?.phone ? `Doctor Contact: ${doctor.phone}` : null,
+      clinicAddress ? `Clinic Address: ${clinicAddress}` : null,
+      clinicPhoneNumber ? `Hospital / Clinic Phone: ${clinicPhoneNumber}` : null,
+      doctor?.phone && doctor?.phone !== clinicPhoneNumber ? `Doctor Personal Phone: ${doctor.phone}` : null,
       `Date: ${visitDate}`,
       `Visit Type: ${visitType || "OPD Consultation"}`,
       `--------------------------------------------------`,
@@ -732,18 +741,27 @@ export default function Prescription() {
               <div className="rx-preview-mark">
                 <img src="/zenve.png" alt="Zenve logo" className="rx-preview-logo" />
               </div>
-              <div>
+              <div className="rx-preview-brand-info">
                 <p className="rx-preview-clinic">{doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic"}</p>
                 <p className="rx-preview-tagline">
                   {[
                     doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Veterinary Doctor",
                     doctor?.qualification,
                     doctor?.speciality,
-                    doctor?.registrationNumber ? `Reg No: ${doctor.registrationNumber}` : null,
-                    [doctor?.city, doctor?.pincode].filter(Boolean).join(" - "),
-                    doctor?.phoneNumber ? `Ph: ${doctor.phoneNumber}` : null,
                   ].filter(Boolean).join(" · ") || "Veterinary Doctor · Comprehensive Animal Care & Surgery"}
                 </p>
+                {clinicAddress && (
+                  <p className="rx-preview-clinic-address">
+                    <FiMapPin className="rx-header-icon" size={11} />
+                    <span>{clinicAddress}</span>
+                  </p>
+                )}
+                {clinicPhoneNumber && (
+                  <p className="rx-preview-clinic-phone">
+                    <FiPhone className="rx-header-icon" size={11} />
+                    <span>Hospital / Clinic Ph: {clinicPhoneNumber}</span>
+                  </p>
+                )}
               </div>
             </div>
             <div className="rx-preview-doctitle">
@@ -876,10 +894,16 @@ export default function Prescription() {
             <div className="rx-preview-footer">
               <div className="rx-preview-footer-left">
                 <p className="rx-preview-helpline">
-                  Emergency Contact: <strong>{doctor?.phoneNumber || "+91 98765 43210"}</strong>
+                  Hospital / Clinic Helpline: <strong>{clinicPhoneNumber || doctor?.phoneNumber || "+91 98765 43210"}</strong>
                 </p>
+                {clinicAddress && (
+                  <p className="rx-preview-footer-address">
+                    <FiMapPin size={10} style={{ marginRight: 3, verticalAlign: "middle" }} />
+                    <span>{clinicAddress}</span>
+                  </p>
+                )}
                 <p className="rx-preview-footer-note">
-                  This is Zenve-generated prescription is a valid legal medical document.
+                  This Zenve-generated prescription is a valid legal medical document.
                 </p>
               </div>
               <div className="rx-preview-signatures-wrap">
@@ -893,7 +917,7 @@ export default function Prescription() {
                     <div className="rx-sign-line-bar" />
                     <span className="rx-sign-name">{secondaryDoctorName}</span>
                     <span className="rx-sign-title">Secondary Signature</span>
-                    {doctor?.councilRegistration && (
+                    {doctor?.councilRegistration && !/state\s*cou/i.test(doctor.councilRegistration) && (
                       <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
                     )}
                   </div>
@@ -911,7 +935,7 @@ export default function Prescription() {
                     <div className="rx-sign-line-bar" />
                     <span className="rx-sign-name">{primaryDoctorName}</span>
                     <span className="rx-sign-title">Authorized Signature · Registered Vet</span>
-                    {doctor?.councilRegistration && (
+                    {doctor?.councilRegistration && !/state\s*cou/i.test(doctor.councilRegistration) && (
                       <span className="rx-sign-reg">Reg: {doctor.councilRegistration}</span>
                     )}
                   </div>

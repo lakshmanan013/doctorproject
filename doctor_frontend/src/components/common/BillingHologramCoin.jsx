@@ -53,7 +53,7 @@ export default function BillingHologramCoin({ amount = 0, size = 110 }) {
   };
 
   return (
-    <div 
+    <div
       className={`hologram-billing-stage ${isRotating ? "stage-active" : ""}`}
       style={{ width: `${size}px`, height: `${size}px` }}
       onClick={handleCoinClick}

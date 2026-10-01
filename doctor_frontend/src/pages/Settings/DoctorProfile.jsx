@@ -49,6 +49,7 @@ const EMPTY = {
   speciality: "",
   council: "",
   clinic: "",
+  clinicPhone: "",
   area: "",
   city: "",
   pincode: "",
@@ -363,6 +364,7 @@ export default function DoctorProfile() {
               speciality: updated.speciality?.trim() || "",
               councilRegistration: updated.council?.trim() || "",
               clinicHospital: updated.clinic?.trim() || "",
+              clinicPhone: updated.clinicPhone?.trim() || "",
               area: newArea?.trim() || "",
               city: newCity?.trim() || "",
               pincode: newPincode === "" || newPincode == null ? null : Number(newPincode),
@@ -458,6 +460,7 @@ export default function DoctorProfile() {
         speciality: updated.speciality?.trim() || "",
         councilRegistration: updated.council?.trim() || "",
         clinicHospital: updated.clinic?.trim() || "",
+        clinicPhone: updated.clinicPhone?.trim() || "",
         area: updated.area?.trim() || "",
         city: updated.city?.trim() || "",
         pincode: updated.pincode === "" || updated.pincode == null ? null : Number(updated.pincode),
@@ -594,6 +597,7 @@ export default function DoctorProfile() {
           speciality: data?.speciality ?? "",
           council: data?.councilRegistration ?? "",
           clinic: data?.clinicHospital ?? "",
+          clinicPhone: data?.clinicPhone ?? "",
           area: data?.area ?? "",
           city: data?.city ?? "",
           pincode: data?.pincode ?? "",
@@ -656,6 +660,7 @@ export default function DoctorProfile() {
         speciality: form.speciality.trim(),
         councilRegistration: form.council.trim(),
         clinicHospital: form.clinic.trim(),
+        clinicPhone: form.clinicPhone.trim(),
         area: form.area.trim(),
         city: form.city.trim(),
         pincode: form.pincode === "" ? null : Number(form.pincode),
@@ -688,6 +693,7 @@ export default function DoctorProfile() {
         speciality: saved?.speciality ?? prev.speciality,
         council: saved?.councilRegistration ?? prev.council,
         clinic: saved?.clinicHospital ?? prev.clinic,
+        clinicPhone: saved?.clinicPhone ?? prev.clinicPhone,
         city: saved?.city ?? prev.city,
         pincode: saved?.pincode ?? prev.pincode,
         experience: saved?.experience ?? prev.experience,
@@ -844,8 +850,18 @@ export default function DoctorProfile() {
             <Field label="Clinic / hospital">
               <Input
                 type="text"
+                placeholder="e.g. Zenve Veterinary Clinic"
                 value={form.clinic}
                 onChange={(e) => update("clinic", e.target.value)}
+              />
+            </Field>
+
+            <Field label="Hospital or Clinic phone number">
+              <Input
+                type="tel"
+                placeholder="e.g. +91 44 2345 6789 / 98765 43210"
+                value={form.clinicPhone}
+                onChange={(e) => update("clinicPhone", e.target.value)}
               />
             </Field>
 
@@ -1029,18 +1045,29 @@ export default function DoctorProfile() {
             Contact details
           </h3>
 
-          <div className="form-grid-2">
-            <Field label="Phone number">
+          <div className="form-grid-3">
+            <Field label="Personal phone number">
               <Input
                 type="text"
+                placeholder="e.g. +91 98765 43210"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
+              />
+            </Field>
+
+            <Field label="Hospital or Clinic phone number">
+              <Input
+                type="tel"
+                placeholder="e.g. +91 44 2345 6789 / 98765 43210"
+                value={form.clinicPhone}
+                onChange={(e) => update("clinicPhone", e.target.value)}
               />
             </Field>
 
             <Field label="Email address">
               <Input
                 type="email"
+                placeholder="e.g. doctor@example.com"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
               />

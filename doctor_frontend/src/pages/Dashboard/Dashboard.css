@@ -1111,12 +1111,14 @@
   .top-stats-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+
   .bottom-three-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 1024px) {
+
   .middle-dashboard-row,
   .donut-panels-grid,
   .status-visit-row {
@@ -1128,6 +1130,7 @@
   .top-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .status-cards-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1137,9 +1140,11 @@
   .top-stats-grid {
     grid-template-columns: 1fr;
   }
+
   .status-cards-grid {
     grid-template-columns: 1fr;
   }
+
   .collected-content-split {
     grid-template-columns: 1fr;
   }

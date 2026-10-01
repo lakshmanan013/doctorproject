@@ -25,13 +25,11 @@
 .hologram-light-cone {
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    to top,
-    rgba(245, 158, 11, 0.42) 0%,
-    rgba(251, 191, 36, 0.22) 40%,
-    rgba(56, 189, 248, 0.12) 75%,
-    rgba(245, 158, 11, 0) 100%
-  );
+  background: linear-gradient(to top,
+      rgba(245, 158, 11, 0.42) 0%,
+      rgba(251, 191, 36, 0.22) 40%,
+      rgba(56, 189, 248, 0.12) 75%,
+      rgba(245, 158, 11, 0) 100%);
   clip-path: polygon(25% 100%, 75% 100%, 96% 0%, 4% 0%);
   animation: conePulse 3s ease-in-out infinite alternate;
   filter: blur(2px);
@@ -42,6 +40,7 @@
     opacity: 0.65;
     transform: scaleX(0.94);
   }
+
   100% {
     opacity: 1;
     transform: scaleX(1.06);
@@ -60,22 +59,52 @@
   animation: particleRise 2.5s infinite ease-in-out;
 }
 
-.hologram-particle.p1 { left: 28%; bottom: 10%; animation-delay: 0s; }
-.hologram-particle.p2 { left: 68%; bottom: 18%; animation-delay: 0.8s; width: 2.5px; height: 2.5px; background: #38BDF8; box-shadow: 0 0 6px #38BDF8; }
-.hologram-particle.p3 { left: 46%; bottom: 6%; animation-delay: 1.5s; width: 3.5px; height: 3.5px; }
-.hologram-particle.p4 { left: 78%; bottom: 14%; animation-delay: 2.1s; width: 2px; height: 2px; }
+.hologram-particle.p1 {
+  left: 28%;
+  bottom: 10%;
+  animation-delay: 0s;
+}
+
+.hologram-particle.p2 {
+  left: 68%;
+  bottom: 18%;
+  animation-delay: 0.8s;
+  width: 2.5px;
+  height: 2.5px;
+  background: #38BDF8;
+  box-shadow: 0 0 6px #38BDF8;
+}
+
+.hologram-particle.p3 {
+  left: 46%;
+  bottom: 6%;
+  animation-delay: 1.5s;
+  width: 3.5px;
+  height: 3.5px;
+}
+
+.hologram-particle.p4 {
+  left: 78%;
+  bottom: 14%;
+  animation-delay: 2.1s;
+  width: 2px;
+  height: 2px;
+}
 
 @keyframes particleRise {
   0% {
     transform: translateY(0) scale(0.5);
     opacity: 0;
   }
+
   40% {
     opacity: 0.95;
   }
+
   80% {
     opacity: 0.7;
   }
+
   100% {
     transform: translateY(-42px) scale(1.2);
     opacity: 0;
@@ -104,6 +133,7 @@
   0% {
     transform: translateY(0px) rotateX(6deg) rotateY(5deg);
   }
+
   100% {
     transform: translateY(-6px) rotateX(-5deg) rotateY(-6deg);
   }
@@ -119,18 +149,22 @@
     transform: translateY(0px) rotateY(0deg) scale(1);
     filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.5));
   }
+
   20% {
     transform: translateY(-13px) rotateY(360deg) scale(1.18);
     filter: drop-shadow(0 12px 28px rgba(245, 158, 11, 0.9));
   }
+
   60% {
     transform: translateY(-8px) rotateY(720deg) scale(1.1);
     filter: drop-shadow(0 8px 22px rgba(245, 158, 11, 0.7));
   }
+
   85% {
     transform: translateY(-2px) rotateY(1080deg) scale(1.02);
     filter: drop-shadow(0 6px 18px rgba(245, 158, 11, 0.5));
   }
+
   100% {
     transform: translateY(0px) rotateY(1080deg) scale(1);
     filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.4));
@@ -160,16 +194,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg, 
-    #FFF6A9 0%, 
-    #FFD700 20%, 
-    #F59E0B 50%, 
-    #D97706 78%, 
-    #78350F 100%
-  );
+  background: linear-gradient(135deg,
+      #FFF6A9 0%,
+      #FFD700 20%,
+      #F59E0B 50%,
+      #D97706 78%,
+      #78350F 100%);
   border: 2px solid #FFFBEB;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(255, 255, 255, 0.95),
     inset 0 -3px 6px rgba(120, 53, 15, 0.65),
     0 4px 16px rgba(217, 119, 6, 0.5),
@@ -182,14 +214,12 @@
 
 .coin-face.coin-back {
   transform: rotateY(180deg);
-  background: linear-gradient(
-    135deg, 
-    #78350F 0%, 
-    #D97706 22%, 
-    #F59E0B 50%, 
-    #FFD700 80%, 
-    #FFF6A9 100%
-  );
+  background: linear-gradient(135deg,
+      #78350F 0%,
+      #D97706 22%,
+      #F59E0B 50%,
+      #FFD700 80%,
+      #FFF6A9 100%);
 }
 
 .coin-inner-rim {
@@ -197,19 +227,17 @@
   height: 44px;
   border-radius: 50%;
   border: 1.5px dashed rgba(254, 243, 199, 0.85);
-  background: radial-gradient(
-    circle at 35% 35%, 
-    #FFE259 0%, 
-    #FFA751 45%, 
-    #B8860B 75%, 
-    #78350F 100%
-  );
+  background: radial-gradient(circle at 35% 35%,
+      #FFE259 0%,
+      #FFA751 45%,
+      #B8860B 75%,
+      #78350F 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 5px rgba(0, 0, 0, 0.4),
     inset 0 0 8px rgba(254, 243, 199, 0.3);
 }
@@ -220,7 +248,7 @@
   font-size: 27px;
   font-weight: 900;
   color: #FFFDF5;
-  text-shadow: 
+  text-shadow:
     0 1px 0 #FFF6A9,
     0 2px 2px rgba(120, 53, 15, 0.95),
     0 0 12px rgba(255, 255, 255, 0.9);
@@ -236,20 +264,21 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0) 30%,
-    rgba(255, 255, 255, 0.65) 50%,
-    rgba(255, 255, 255, 0) 70%
-  );
+  background: linear-gradient(45deg,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(255, 255, 255, 0.65) 50%,
+      rgba(255, 255, 255, 0) 70%);
   transform: rotate(35deg) translateX(-100%);
   animation: shineLoop 4s infinite ease-in-out;
 }
 
 @keyframes shineLoop {
-  0%, 65% {
+
+  0%,
+  65% {
     transform: rotate(35deg) translateX(-100%);
   }
+
   100% {
     transform: rotate(35deg) translateX(100%);
   }
@@ -279,14 +308,17 @@
     opacity: 0;
     transform: translateY(10px) scale(0.7);
   }
+
   20% {
     opacity: 1;
     transform: translateY(0px) scale(1.08);
   }
+
   75% {
     opacity: 1;
     transform: translateY(-8px) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateY(-16px) scale(0.9);
@@ -316,10 +348,12 @@
 .burst-ring.ring-1 {
   animation: burstWave 1.4s ease-out forwards;
 }
+
 .burst-ring.ring-2 {
   animation: burstWave 1.4s ease-out 0.25s forwards;
   border-color: #FBBF24;
 }
+
 .burst-ring.ring-3 {
   animation: burstWave 1.4s ease-out 0.5s forwards;
   border-color: #38BDF8;
@@ -330,6 +364,7 @@
     transform: scale(0.6);
     opacity: 0.95;
   }
+
   100% {
     transform: scale(2.2);
     opacity: 0;
@@ -362,13 +397,11 @@
   width: 74px;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse at center, 
-    rgba(245, 158, 11, 0.65) 0%, 
-    rgba(251, 191, 36, 0.35) 45%, 
-    rgba(56, 189, 248, 0.15) 75%, 
-    transparent 100%
-  );
+  background: radial-gradient(ellipse at center,
+      rgba(245, 158, 11, 0.65) 0%,
+      rgba(251, 191, 36, 0.35) 45%,
+      rgba(56, 189, 248, 0.15) 75%,
+      transparent 100%);
   filter: blur(3px);
   pointer-events: none;
   animation: neonGlow 2.5s ease-in-out infinite alternate;
@@ -379,6 +412,7 @@
     opacity: 0.55;
     transform: scaleX(0.9);
   }
+
   100% {
     opacity: 1;
     transform: scaleX(1.1);
