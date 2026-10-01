@@ -26,8 +26,6 @@ export const formatPrescriptionId = (id, dateStr) => {
   return `${year}/Z${String(num).padStart(3, "0")}`;
 };
 
-const MAX_NOTES_LENGTH = 2000;
-
 export default function Prescription() {
   const [searchParams] = useSearchParams();
   const [patients, setPatients] = useState([]);
@@ -157,7 +155,7 @@ export default function Prescription() {
     latestNotesRef.current = notes;
   }, [notes]);
 
-  // Voice capture toggle
+  // Voice capture toggle (unlimited continuous speech)
   const toggleVoiceCapture = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -172,11 +170,6 @@ export default function Prescription() {
         recognitionRef.current?.stop();
       } catch { }
       toast("Voice dictation stopped", { icon: "⏹️" });
-      return;
-    }
-
-    if (!listening && (latestNotesRef.current || "").length >= MAX_NOTES_LENGTH) {
-      toast.error(`Notes limit of ${MAX_NOTES_LENGTH} characters reached. Clear or edit text to dictate more.`);
       return;
     }
 
@@ -223,12 +216,6 @@ export default function Prescription() {
     recognition.onend = () => {
       console.log("[SpeechRecognition] Ended. shouldListen:", shouldListenRef.current);
       if (shouldListenRef.current) {
-        if ((latestNotesRef.current || "").length >= MAX_NOTES_LENGTH) {
-          shouldListenRef.current = false;
-          setListening(false);
-          recognitionRef.current = null;
-          return;
-        }
         try {
           speechBaseNotesRef.current = latestNotesRef.current || "";
           recognition.start();
@@ -254,17 +241,7 @@ export default function Prescription() {
 
       const spokenText = (finalText + interimText).trim();
       const base = speechBaseNotesRef.current ? speechBaseNotesRef.current.trim() : "";
-      let combined = base ? (spokenText ? `${base} ${spokenText}` : base) : spokenText;
-
-      if (combined.length >= MAX_NOTES_LENGTH) {
-        combined = combined.slice(0, MAX_NOTES_LENGTH);
-        shouldListenRef.current = false;
-        try {
-          recognitionRef.current?.stop();
-        } catch { }
-        setListening(false);
-        toast(`Notes reached character limit (${MAX_NOTES_LENGTH} chars)`, { icon: "⚠️" });
-      }
+      const combined = base ? (spokenText ? `${base} ${spokenText}` : base) : spokenText;
 
       setNotes(combined);
     };
@@ -671,28 +648,16 @@ export default function Prescription() {
               <span className="rx-notes-label-text">Notes</span>
               <div className="rx-notes-controls">
                 <span
-                  className={`rx-char-counter ${(notes || "").length >= MAX_NOTES_LENGTH
-                    ? "limit-reached"
-                    : (notes || "").length >= MAX_NOTES_LENGTH * 0.85
-                      ? "limit-warning"
-                      : ""
-                    }`}
-                  title={`${Math.max(0, MAX_NOTES_LENGTH - (notes || "").length)} characters remaining`}
+                  className="rx-char-counter"
+                  title={`${(notes || "").length} characters`}
                 >
-                  {(notes || "").length} / {MAX_NOTES_LENGTH} chars
+                  {(notes || "").length} chars
                 </span>
                 <button
                   type="button"
                   onClick={toggleVoiceCapture}
                   className={`rx-voice-chip ${listening ? "listening" : ""}`}
-                  title={
-                    listening
-                      ? "Click to stop listening"
-                      : (notes || "").length >= MAX_NOTES_LENGTH
-                        ? "Limit reached - delete text to dictate more"
-                        : "Click to dictate notes"
-                  }
-                  disabled={(notes || "").length >= MAX_NOTES_LENGTH && !listening}
+                  title={listening ? "Click to stop listening" : "Click to dictate notes (unlimited)"}
                 >
                   {listening ? <FiMicOff /> : <FiMic />}
                   <span>{listening ? "Listening... (Click to stop)" : "Voice dictation"}</span>
@@ -703,10 +668,9 @@ export default function Prescription() {
         >
           <Textarea
             rows={3}
-            maxLength={MAX_NOTES_LENGTH}
-            placeholder={`Type notes or click 'Voice dictation' above to speak (Max ${MAX_NOTES_LENGTH} characters)...`}
+            placeholder="Type notes or click 'Voice dictation' above to speak..."
             value={notes}
-            onChange={e => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
+            onChange={e => setNotes(e.target.value)}
           />
         </Field>
 
