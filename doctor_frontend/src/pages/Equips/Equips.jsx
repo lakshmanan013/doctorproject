@@ -40,7 +40,7 @@ const VENDOR_EQUIPMENT_CATALOG = [
     name: "Mindray DP-50 Vet Ultrasound Scanner",
     brand: "Mindray Medical",
     category: "Diagnostic",
-    price: 285000,
+    price: 280000,
     status: "In stock",
     warranty: "2 Years Warranty",
     model: "DP-50-VET-X2",
