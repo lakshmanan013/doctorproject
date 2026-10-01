@@ -632,7 +632,7 @@ export default function VideoConsultation() {
 
   const handleQuickMedSelect = (med) => {
     setMedicines((prev) => [...prev, med]);
-    toast.success(`Added ${med.name} to Rx draft`);
+    toast.success(`Added ${med.name} to prescription draft`);
   };
 
   // Toggle Video Consultation availability
@@ -1291,7 +1291,7 @@ export default function VideoConsultation() {
                 title={drawerOpen ? "Collapse Clinical Drawer" : "Open Clinical Drawer"}
               >
                 <FileText size={15} />
-                <span>{drawerOpen ? "Hide Drawer" : "Clinical Notes & Rx"}</span>
+                <span>{drawerOpen ? "Hide Drawer" : "Clinical Notes & Prescription"}</span>
               </button>
               <button
                 type="button"
@@ -1525,10 +1525,10 @@ export default function VideoConsultation() {
                     setDrawerOpen(true);
                     setDrawerTab("rx");
                   }}
-                  title="Clinical Notes & Rx"
+                  title="Clinical Notes & Prescription"
                 >
                   <FileText size={19} />
-                  <span className="vc-dock-tooltip">Notes & Rx</span>
+                  <span className="vc-dock-tooltip">Notes & Prescription</span>
                 </button>
 
                 <button
@@ -1576,7 +1576,7 @@ export default function VideoConsultation() {
                     onClick={() => setDrawerTab("rx")}
                   >
                     <FileText size={14} />
-                    <span>Live Notes & Rx</span>
+                    <span>Live Notes & Prescription</span>
                   </button>
                   <button
                     type="button"
@@ -1692,17 +1692,17 @@ export default function VideoConsultation() {
                             type="button"
                             className={`vc-voice-btn med-voice ${isMedVoiceListening ? "listening" : ""}`}
                             onClick={handleToggleSmartMedVoice}
-                            title={isMedVoiceListening ? "Stop Voice Rx" : "Speak complete prescription e.g. 'Add Cefpet 100mg twice daily for 7 days'"}
+                            title={isMedVoiceListening ? "Stop Voice Prescription" : "Speak complete prescription e.g. 'Add Cefpet 100mg twice daily for 7 days'"}
                           >
                             {isMedVoiceListening ? (
                               <>
                                 <span className="vc-voice-live-dot" />
-                                <span>Listening Rx...</span>
+                                <span>Listening Prescription...</span>
                               </>
                             ) : (
                               <>
                                 <Mic size={13} />
-                                <span>Voice Add Rx</span>
+                                <span>Voice Add Prescription</span>
                               </>
                             )}
                           </button>
@@ -1751,7 +1751,7 @@ export default function VideoConsultation() {
                                   onClick={() => handleConfirmVoiceMed(medVoiceParsed)}
                                 >
                                   <Plus size={12} />
-                                  <span>Add to Rx</span>
+                                  <span>Add to Prescription</span>
                                 </button>
                               </div>
                             )}
@@ -1849,7 +1849,7 @@ export default function VideoConsultation() {
                             onClick={handleAddMedicine}
                           >
                             <Plus size={13} />
-                            <span>Add Medicine to Rx</span>
+                            <span>Add Medicine to Prescription</span>
                           </button>
 
                           {/* Quick Common Vet Med Chips */}
@@ -1881,7 +1881,7 @@ export default function VideoConsultation() {
                           title="Open full digital prescription form for this patient"
                         >
                           <FileText size={16} />
-                          <span>Write Digital Prescription (Rx)</span>
+                          <span>Write Digital Prescription</span>
                         </button>
 
                         <button

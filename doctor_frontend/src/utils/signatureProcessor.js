@@ -380,7 +380,7 @@ export async function processSignature({
   const colorPresets = {
     monochrome: { r: 0, g: 0, b: 0 },          // Pure Black / Color Removed
     dark: { r: 15, g: 23, b: 42 },              // Executive Dark Slate
-    blue: { r: 16, g: 52, b: 166 },             // DocuSign / Medical Rx Royal Blue
+    blue: { r: 16, g: 52, b: 166 },             // DocuSign / Medical Royal Blue
     navy: { r: 24, g: 58, b: 120 },             // Deep Navy Blue
     emerald: { r: 4, g: 120, b: 87 },           // Clinical Forest Green
     maroon: { r: 185, g: 28, b: 28 },           // Official Seal Red
