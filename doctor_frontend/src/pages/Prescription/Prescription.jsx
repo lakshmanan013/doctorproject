@@ -706,7 +706,14 @@ export default function Prescription() {
                 <img src="/zenve.png" alt="Zenve logo" className="rx-preview-logo" />
               </div>
               <div className="rx-preview-brand-info">
-                <p className="rx-preview-clinic">{doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic"}</p>
+                <p className="rx-preview-clinic">
+                  {doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic"}
+                  {doctor?.facilityType && (
+                    <span style={{ fontSize: "0.78em", fontWeight: 600, color: "#4f46e5", marginLeft: 6, opacity: 0.9 }}>
+                      ({doctor.facilityType})
+                    </span>
+                  )}
+                </p>
                 <p className="rx-preview-tagline">
                   {[
                     doctor?.fullName ? (doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`) : "Veterinary Doctor",

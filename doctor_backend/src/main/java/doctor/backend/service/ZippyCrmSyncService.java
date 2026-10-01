@@ -303,11 +303,28 @@ public class ZippyCrmSyncService {
         String userLast10 = userDigitsOnly.length() >= 10 ? userDigitsOnly.substring(userDigitsOnly.length() - 10)
                 : userDigitsOnly;
 
-        String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image FROM doctors WHERE (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
+        String clinicName = (profile != null && profile.getClinicHospital() != null && !profile.getClinicHospital().isBlank())
+                ? profile.getClinicHospital().trim()
+                : "";
+
+        String clinicPhone = (profile != null && profile.getClinicPhone() != null && !profile.getClinicPhone().isBlank())
+                ? profile.getClinicPhone().trim()
+                : "";
+
+        String facilityType = (profile != null && profile.getFacilityType() != null && !profile.getFacilityType().isBlank())
+                ? profile.getFacilityType().trim()
+                : "Clinic";
+
+        String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image, "
+                + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type "
+                + "FROM doctors WHERE (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (email = ? AND email != '') OR name = ? OR name = ? ORDER BY id ASC LIMIT 1";
         Integer existingId = null;
         String zippyProfImg = null, zippySigImg = null, zippyInsideImg = null, zippyOutsideImg = null;
+        String zippyClinic = null, zippyPhone = null, zippyFacility = null;
+
+        ensureDoctorColumns(conn);
 
         try (PreparedStatement checkStmt = conn.prepareStatement(selectSql)) {
             checkStmt.setString(1, phone);
@@ -327,12 +344,17 @@ public class ZippyCrmSyncService {
                     try {
                         zippyInsideImg = rs.getString("clinic_inside_image");
                         zippyOutsideImg = rs.getString("clinic_outside_image");
+                        zippyClinic = rs.getString("clinic_name");
+                        if (zippyClinic == null || zippyClinic.isBlank()) zippyClinic = rs.getString("clinic_hospital");
+                        zippyPhone = rs.getString("clinic_phone");
+                        if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
+                        zippyFacility = rs.getString("facility_type");
                     } catch (Exception ignored) {}
                 }
             }
         }
 
-        // Bi-directional image synchronization: if Zippy has images but DoctorProfile / User in doctortest doesn't, import them!
+        // Bi-directional synchronization: if Zippy has clinic / images but DoctorProfile in doctortest doesn't, import them!
         boolean imported = false;
         DoctorProfile currentProfile = profile;
         if (currentProfile == null) {
@@ -359,6 +381,18 @@ public class ZippyCrmSyncService {
                 user.setClinicOutsideImage(zippyOutsideImg);
                 imported = true;
             }
+            if (zippyClinic != null && !zippyClinic.isBlank() && (currentProfile.getClinicHospital() == null || currentProfile.getClinicHospital().isBlank())) {
+                currentProfile.setClinicHospital(zippyClinic);
+                imported = true;
+            }
+            if (zippyPhone != null && !zippyPhone.isBlank() && (currentProfile.getClinicPhone() == null || currentProfile.getClinicPhone().isBlank())) {
+                currentProfile.setClinicPhone(zippyPhone);
+                imported = true;
+            }
+            if (zippyFacility != null && !zippyFacility.isBlank() && (currentProfile.getFacilityType() == null || currentProfile.getFacilityType().isBlank())) {
+                currentProfile.setFacilityType(zippyFacility);
+                imported = true;
+            }
             if (imported) {
                 userRepository.save(user);
                 doctorProfileRepository.save(currentProfile);
@@ -373,6 +407,7 @@ public class ZippyCrmSyncService {
         if (existingId != null) {
             String updateSql = "UPDATE doctors SET name = ?, qualification = ?, specializations = ?, phone = ?, "
                     + "city = ?, pincode = ?, experience_years = ?, consultation_fee = ?, verification_status = ?, is_active = ?, email = ?, "
+                    + "clinic_name = ?, clinic_hospital = ?, clinic_phone = ?, hospital_phone = ?, facility_type = ?, "
                     + "profile_image = COALESCE(?, profile_image), signature_image = COALESCE(?, signature_image), "
                     + "clinic_inside_image = COALESCE(?, clinic_inside_image), clinic_outside_image = COALESCE(?, clinic_outside_image) "
                     + "WHERE id = ?";
@@ -388,18 +423,26 @@ public class ZippyCrmSyncService {
                 updateStmt.setString(9, verificationStatus);
                 updateStmt.setBoolean(10, isActive);
                 updateStmt.setString(11, email);
-                updateStmt.setString(12, profImgToSend);
-                updateStmt.setString(13, sigImgToSend);
-                updateStmt.setString(14, insideImgToSend);
-                updateStmt.setString(15, outsideImgToSend);
-                updateStmt.setInt(16, existingId);
+                updateStmt.setString(12, clinicName);
+                updateStmt.setString(13, clinicName);
+                updateStmt.setString(14, clinicPhone);
+                updateStmt.setString(15, clinicPhone);
+                updateStmt.setString(16, facilityType);
+                updateStmt.setString(17, profImgToSend);
+                updateStmt.setString(18, sigImgToSend);
+                updateStmt.setString(19, insideImgToSend);
+                updateStmt.setString(20, outsideImgToSend);
+                updateStmt.setInt(21, existingId);
                 updateStmt.executeUpdate();
             }
+            syncClinicHospital(conn, clinicName, clinicPhone, facilityType);
             return existingId;
         } else {
             String insertSql = "INSERT INTO doctors (name, qualification, specializations, phone, city, pincode, "
-                    + "experience_years, consultation_fee, verification_status, is_active, email, profile_image, signature_image, clinic_inside_image, clinic_outside_image) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    + "experience_years, consultation_fee, verification_status, is_active, email, "
+                    + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, "
+                    + "profile_image, signature_image, clinic_inside_image, clinic_outside_image) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
                 insertStmt.setString(1, name);
                 insertStmt.setString(2, qualification);
@@ -412,11 +455,17 @@ public class ZippyCrmSyncService {
                 insertStmt.setString(9, verificationStatus);
                 insertStmt.setBoolean(10, isActive);
                 insertStmt.setString(11, email);
-                insertStmt.setString(12, profImgToSend);
-                insertStmt.setString(13, sigImgToSend);
-                insertStmt.setString(14, insideImgToSend);
-                insertStmt.setString(15, outsideImgToSend);
+                insertStmt.setString(12, clinicName);
+                insertStmt.setString(13, clinicName);
+                insertStmt.setString(14, clinicPhone);
+                insertStmt.setString(15, clinicPhone);
+                insertStmt.setString(16, facilityType);
+                insertStmt.setString(17, profImgToSend);
+                insertStmt.setString(18, sigImgToSend);
+                insertStmt.setString(19, insideImgToSend);
+                insertStmt.setString(20, outsideImgToSend);
                 insertStmt.executeUpdate();
+                syncClinicHospital(conn, clinicName, clinicPhone, facilityType);
                 try (ResultSet rs = insertStmt.getGeneratedKeys()) {
                     if (rs.next()) {
                         return rs.getInt(1);
@@ -425,6 +474,65 @@ public class ZippyCrmSyncService {
             }
         }
         return null;
+    }
+
+    private void syncClinicHospital(Connection conn, String clinicName, String clinicPhone, String facilityType) {
+        if (conn == null || clinicName == null || clinicName.isBlank()) {
+            return;
+        }
+        try {
+            String checkSql = "SELECT id FROM clinics_hospitals WHERE name = ? OR (phone = ? AND phone != '') LIMIT 1";
+            Integer existingClinicId = null;
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, clinicName.trim());
+                checkStmt.setString(2, (clinicPhone != null && !clinicPhone.isBlank()) ? clinicPhone.trim() : "__none__");
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        existingClinicId = rs.getInt("id");
+                    }
+                }
+            }
+
+            String facility = (facilityType != null && !facilityType.isBlank()) ? facilityType.trim() : "Clinic";
+            String phone = (clinicPhone != null) ? clinicPhone.trim() : "";
+
+            if (existingClinicId != null) {
+                String updateSql = "UPDATE clinics_hospitals SET name = ?, facility_type = ?, phone = ?, "
+                        + "emergency_available = 1, open_24x7 = 1, verification_status = 'verified', rating = 4.8 "
+                        + "WHERE id = ?";
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setString(1, clinicName.trim());
+                    updateStmt.setString(2, facility);
+                    updateStmt.setString(3, phone);
+                    updateStmt.setInt(4, existingClinicId);
+                    updateStmt.executeUpdate();
+                }
+            } else {
+                String insertSql = "INSERT INTO clinics_hospitals (name, facility_type, phone, emergency_available, open_24x7, verification_status, rating) "
+                        + "VALUES (?, ?, ?, 1, 1, 'verified', 4.8)";
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, clinicName.trim());
+                    insertStmt.setString(2, facility);
+                    insertStmt.setString(3, phone);
+                    insertStmt.executeUpdate();
+                }
+            }
+            log.info("Synced clinic '{}' with facility type '{}' and phone '{}' to clinics_hospitals in Zippy CRM", clinicName, facility, phone);
+        } catch (Exception e) {
+            log.warn("Could not sync clinic to clinics_hospitals in Zippy CRM: {}", e.getMessage());
+        }
+    }
+
+    private void ensureDoctorColumns(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_hospital VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN hospital_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN facility_type VARCHAR(100) NULL"); } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("Could not alter doctors table in Zippy CRM: {}", e.getMessage());
+        }
     }
 
     public void importDoctorImagesFromZippy(User user, DoctorProfile profile) {
@@ -437,9 +545,12 @@ public class ZippyCrmSyncService {
             String digitsOnly = phone.replaceAll("[^0-9]", "");
             String last10 = digitsOnly.length() >= 10 ? digitsOnly.substring(digitsOnly.length() - 10) : digitsOnly;
 
-            String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image FROM doctors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') ORDER BY id ASC LIMIT 1";
+            String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image, "
+                    + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type "
+                    + "FROM doctors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') ORDER BY id ASC LIMIT 1";
             Integer docId = null;
             String profImg = null, sigImg = null, insideImg = null, outsideImg = null;
+            String zippyClinic = null, zippyPhone = null, zippyFacility = null;
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 ps.setString(2, phone);
@@ -452,6 +563,11 @@ public class ZippyCrmSyncService {
                         try {
                             insideImg = rs.getString("clinic_inside_image");
                             outsideImg = rs.getString("clinic_outside_image");
+                            zippyClinic = rs.getString("clinic_name");
+                            if (zippyClinic == null || zippyClinic.isBlank()) zippyClinic = rs.getString("clinic_hospital");
+                            zippyPhone = rs.getString("clinic_phone");
+                            if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
+                            zippyFacility = rs.getString("facility_type");
                         } catch (Exception ignored) {}
                     }
                 }
@@ -505,6 +621,18 @@ public class ZippyCrmSyncService {
             if (outsideImg != null && !outsideImg.isBlank() && (prof.getClinicOutsideImage() == null || prof.getClinicOutsideImage().isBlank())) {
                 prof.setClinicOutsideImage(outsideImg);
                 user.setClinicOutsideImage(outsideImg);
+                updated = true;
+            }
+            if (zippyClinic != null && !zippyClinic.isBlank() && (prof.getClinicHospital() == null || prof.getClinicHospital().isBlank())) {
+                prof.setClinicHospital(zippyClinic);
+                updated = true;
+            }
+            if (zippyPhone != null && !zippyPhone.isBlank() && (prof.getClinicPhone() == null || prof.getClinicPhone().isBlank())) {
+                prof.setClinicPhone(zippyPhone);
+                updated = true;
+            }
+            if (zippyFacility != null && !zippyFacility.isBlank() && (prof.getFacilityType() == null || prof.getFacilityType().isBlank())) {
+                prof.setFacilityType(zippyFacility);
                 updated = true;
             }
 

@@ -701,6 +701,7 @@ export default function DoctorProfile() {
         clinic: saved?.clinicHospital ?? prev.clinic,
         facilityType: saved?.facilityType ?? prev.facilityType,
         clinicPhone: saved?.clinicPhone ?? prev.clinicPhone,
+        area: saved?.area ?? prev.area,
         city: saved?.city ?? prev.city,
         pincode: saved?.pincode ?? prev.pincode,
         experience: saved?.experience ?? prev.experience,
