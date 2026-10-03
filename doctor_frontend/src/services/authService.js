@@ -17,3 +17,7 @@ export const resetPassword = async (payload) => (await api.post("/auth/reset-pas
 export const sendPhoneOtp = async (payload) => (await api.post("/auth/send-phone-otp", payload)).data;
 export const verifyPhoneOtp = async (payload) => (await api.post("/auth/verify-phone-otp", payload)).data;
 
+// 2FA Phone OTP flow for Doctor Login:
+export const verifyLoginOtp = async (payload) => (await api.post("/auth/verify-login-otp", payload)).data;
+export const resendLoginOtp = async (payload) => (await api.post("/auth/resend-login-otp", payload)).data;
+

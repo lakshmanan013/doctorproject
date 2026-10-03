@@ -897,5 +897,67 @@
   cursor: not-allowed;
 }
 
+.auth-2fa-step-container {
+  animation: fadeIn 0.25s ease;
+}
+
+.auth-2fa-badge {
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+
+.auth-phone-otp-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.auth-phone-otp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-phone-resend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.15s ease;
+}
+
+.auth-phone-resend-btn:hover:not(:disabled) {
+  color: #3730a3;
+  text-decoration: underline;
+}
+
+.auth-phone-resend-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.auth-spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 
 

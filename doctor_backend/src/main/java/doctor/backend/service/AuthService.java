@@ -15,6 +15,10 @@ import doctor.backend.repository.UserRepository;
 import doctor.backend.security.CustomUserDetailsService;
 import doctor.backend.security.JwtService;
 import doctor.backend.util.OtpUtil;
+import doctor.backend.dto.auth.VerifyLoginOtpRequest;
+import doctor.backend.dto.auth.ResendLoginOtpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +34,8 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final PasswordEncoder passwordEncoder;
@@ -39,6 +45,7 @@ public class AuthService {
     private final AdminApprovalClient adminApprovalClient;
     private final PasswordResetMailer passwordResetMailer;
     private final ZippyCrmSyncService zippyCrmSyncService;
+    private final MessagingProviderService messagingProviderService;
 
     public AuthService(
             UserRepository userRepository,
@@ -49,7 +56,8 @@ public class AuthService {
             CustomUserDetailsService userDetailsService,
             AdminApprovalClient adminApprovalClient,
             PasswordResetMailer passwordResetMailer,
-            ZippyCrmSyncService zippyCrmSyncService) {
+            ZippyCrmSyncService zippyCrmSyncService,
+            MessagingProviderService messagingProviderService) {
         this.userRepository = userRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.passwordEncoder = passwordEncoder;
@@ -59,6 +67,7 @@ public class AuthService {
         this.adminApprovalClient = adminApprovalClient;
         this.passwordResetMailer = passwordResetMailer;
         this.zippyCrmSyncService = zippyCrmSyncService;
+        this.messagingProviderService = messagingProviderService;
     }
 
     // =====================================================
@@ -284,7 +293,7 @@ public class AuthService {
     }
 
     // =====================================================
-    // LOGIN
+    // LOGIN (Step 1: Validate credentials & dispatch Phone OTP)
     // =====================================================
 
     public AuthResponse login(LoginRequest request) {
@@ -319,12 +328,157 @@ public class AuthService {
             throw new ForbiddenException(message);
         }
 
+        String phone = user.getPhone();
+        if (phone != null && !phone.isBlank()) {
+            // Generate 6-digit login OTP and challenge session token
+            String otp = OtpUtil.generateOtp();
+            String sessionToken = UUID.randomUUID().toString();
+
+            user.setLoginOtp(otp);
+            user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
+            user.setLoginSessionToken(sessionToken);
+            user.setLoginSessionExpiry(LocalDateTime.now().plusMinutes(10));
+            userRepository.save(user);
+
+            String normalizedPhone = phone.replaceAll("[^0-9]", "");
+            String devOtp = null;
+            if (messagingProviderService.isSmsConfigured()) {
+                try {
+                    messagingProviderService.sendOtp(normalizedPhone, otp);
+                    log.info("Sent 2FA login OTP to registered phone {}", normalizedPhone);
+                } catch (Exception ex) {
+                    log.warn("Failed to send 2FA login SMS: {}. Falling back to dev OTP.", ex.getMessage());
+                    devOtp = otp;
+                }
+            } else {
+                devOtp = otp;
+            }
+
+            AuthResponse challengeRes = new AuthResponse();
+            challengeRes.setRequires2Fa(true);
+            challengeRes.setLoginSessionToken(sessionToken);
+            challengeRes.setEmail(user.getEmail());
+            challengeRes.setMaskedPhone(maskPhoneNumber(phone));
+            challengeRes.setMessage("OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
+            challengeRes.setDevOtp(devOtp);
+            return challengeRes;
+        }
+
+        // If user has no phone number, log in directly
+        return issueSuccessAuthResponse(user);
+    }
+
+    // =====================================================
+    // LOGIN STEP 2: VERIFY 2FA PHONE OTP & ISSUE JWT
+    // =====================================================
+
+    public AuthResponse verifyLoginOtp(VerifyLoginOtpRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        String sessionToken = request.getLoginSessionToken() != null ? request.getLoginSessionToken().trim() : "";
+        String otp = request.getOtp() != null ? request.getOtp().trim() : "";
+
+        User user;
+        if (!email.isBlank()) {
+            user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new BadRequestException("User account not found"));
+        } else if (!sessionToken.isBlank()) {
+            user = userRepository.findByLoginSessionToken(sessionToken)
+                    .orElseThrow(() -> new BadRequestException("Invalid or expired login session. Please sign in again."));
+        } else {
+            throw new BadRequestException("Invalid request");
+        }
+
+        if (user.getLoginSessionToken() == null
+                || !user.getLoginSessionToken().equals(sessionToken)
+                || user.getLoginSessionExpiry() == null
+                || user.getLoginSessionExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Login session has expired. Please sign in again.");
+        }
+
+        if (user.getLoginOtp() == null
+                || !user.getLoginOtp().equals(otp)
+                || user.getLoginOtpExpiry() == null
+                || user.getLoginOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Invalid or expired OTP. Please check the code and try again.");
+        }
+
+        // Clear login challenge
+        user.setLoginOtp(null);
+        user.setLoginOtpExpiry(null);
+        user.setLoginSessionToken(null);
+        user.setLoginSessionExpiry(null);
+        userRepository.save(user);
+
+        return issueSuccessAuthResponse(user);
+    }
+
+    // =====================================================
+    // RESEND 2FA LOGIN OTP
+    // =====================================================
+
+    public AuthResponse resendLoginOtp(ResendLoginOtpRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        String sessionToken = request.getLoginSessionToken() != null ? request.getLoginSessionToken().trim() : "";
+
+        User user;
+        if (!email.isBlank()) {
+            user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new BadRequestException("User account not found"));
+        } else if (!sessionToken.isBlank()) {
+            user = userRepository.findByLoginSessionToken(sessionToken)
+                    .orElseThrow(() -> new BadRequestException("Invalid or expired login session. Please sign in again."));
+        } else {
+            throw new BadRequestException("Invalid request");
+        }
+
+        if (user.getLoginSessionToken() == null
+                || !user.getLoginSessionToken().equals(sessionToken)
+                || user.getLoginSessionExpiry() == null
+                || user.getLoginSessionExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Login session has expired. Please sign in again.");
+        }
+
+        String phone = user.getPhone();
+        if (phone == null || phone.isBlank()) {
+            throw new BadRequestException("No registered phone number found for this account.");
+        }
+
+        String otp = OtpUtil.generateOtp();
+        user.setLoginOtp(otp);
+        user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        String normalizedPhone = phone.replaceAll("[^0-9]", "");
+        String devOtp = null;
+        if (messagingProviderService.isSmsConfigured()) {
+            try {
+                messagingProviderService.sendOtp(normalizedPhone, otp);
+                log.info("Resent 2FA login OTP to registered phone {}", normalizedPhone);
+            } catch (Exception ex) {
+                log.warn("Failed to resend SMS: {}. Falling back to dev OTP.", ex.getMessage());
+                devOtp = otp;
+            }
+        } else {
+            devOtp = otp;
+        }
+
+        AuthResponse res = new AuthResponse();
+        res.setRequires2Fa(true);
+        res.setLoginSessionToken(sessionToken);
+        res.setEmail(user.getEmail());
+        res.setMaskedPhone(maskPhoneNumber(phone));
+        res.setMessage("A new OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
+        res.setDevOtp(devOtp);
+        return res;
+    }
+
+    private AuthResponse issueSuccessAuthResponse(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("role", user.getRole());
         extraClaims.put("userId", user.getId());
         extraClaims.put("fullName", user.getFullName());
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(extraClaims, userDetails);
 
         if (user.getProfileImage() == null || user.getClinicInsideImage() == null || user.getClinicOutsideImage() == null || user.getDigitalSignatureImage() == null) {
@@ -347,6 +501,15 @@ public class AuthService {
         res.setClinicOutsideImage(user.getClinicOutsideImage());
         res.setDigitalSignatureImage(user.getDigitalSignatureImage());
         return res;
+    }
+
+    private String maskPhoneNumber(String phone) {
+        if (phone == null || phone.isBlank()) return "";
+        String clean = phone.replaceAll("[^0-9]", "");
+        if (clean.length() <= 4) return clean;
+        int visibleDigits = 4;
+        String lastFour = clean.substring(clean.length() - visibleDigits);
+        return "+91 ******" + lastFour;
     }
 
     // =====================================================

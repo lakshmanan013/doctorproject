@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-
-import { login as loginRequest, register as registerRequest } from "../services/authService";
+import { login as loginRequest, register as registerRequest, verifyLoginOtp as verifyLoginOtpRequest } from "../services/authService";
 
 const TOKEN_KEY = "zenve_doctor_token";
 const USER_KEY = "zenve_doctor_user";
@@ -45,7 +44,20 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (payload) => {
       const data = await loginRequest(payload);
-      persistSession(data);
+      if (data?.token) {
+        persistSession(data);
+      }
+      return data;
+    },
+    [persistSession]
+  );
+
+  const verifyLoginOtp = useCallback(
+    async (payload) => {
+      const data = await verifyLoginOtpRequest(payload);
+      if (data?.token) {
+        persistSession(data);
+      }
       return data;
     },
     [persistSession]
@@ -99,6 +111,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(token),
         initializing,
         login,
+        verifyLoginOtp,
         register,
         logout,
       }}

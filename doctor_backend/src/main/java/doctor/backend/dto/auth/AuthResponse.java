@@ -15,6 +15,12 @@ public class AuthResponse {
     private String approvalStatus;
     private String message;
 
+    // 2FA Login Phone OTP Challenge
+    private boolean requires2Fa = false;
+    private String loginSessionToken;
+    private String maskedPhone;
+    private String devOtp;
+
     private String profileImage;
     private String clinicInsideImage;
     private String clinicOutsideImage;
@@ -109,6 +115,38 @@ public class AuthResponse {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isRequires2Fa() {
+        return requires2Fa;
+    }
+
+    public void setRequires2Fa(boolean requires2Fa) {
+        this.requires2Fa = requires2Fa;
+    }
+
+    public String getLoginSessionToken() {
+        return loginSessionToken;
+    }
+
+    public void setLoginSessionToken(String loginSessionToken) {
+        this.loginSessionToken = loginSessionToken;
+    }
+
+    public String getMaskedPhone() {
+        return maskedPhone;
+    }
+
+    public void setMaskedPhone(String maskedPhone) {
+        this.maskedPhone = maskedPhone;
+    }
+
+    public String getDevOtp() {
+        return devOtp;
+    }
+
+    public void setDevOtp(String devOtp) {
+        this.devOtp = devOtp;
     }
 
     public String getProfileImage() {

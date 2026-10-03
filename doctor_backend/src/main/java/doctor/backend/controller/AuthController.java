@@ -67,12 +67,26 @@ public class AuthController {
     // =====================================================
     // DOCTOR LOGIN
     // POST /api/auth/login
+    // POST /api/auth/verify-login-otp
+    // POST /api/auth/resend-login-otp
     // =====================================================
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
 
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/verify-login-otp")
+    public ResponseEntity<AuthResponse> verifyLoginOtp(@Valid @RequestBody doctor.backend.dto.auth.VerifyLoginOtpRequest request) {
+
+        return ResponseEntity.ok(authService.verifyLoginOtp(request));
+    }
+
+    @PostMapping("/resend-login-otp")
+    public ResponseEntity<AuthResponse> resendLoginOtp(@Valid @RequestBody doctor.backend.dto.auth.ResendLoginOtpRequest request) {
+
+        return ResponseEntity.ok(authService.resendLoginOtp(request));
     }
 
     // =====================================================

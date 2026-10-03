@@ -62,6 +62,18 @@ public class User {
     private boolean otpVerified = false;
 
     // =========================
+    // Login 2FA Phone OTP
+    // =========================
+
+    private String loginSessionToken;
+
+    private LocalDateTime loginSessionExpiry;
+
+    private String loginOtp;
+
+    private LocalDateTime loginOtpExpiry;
+
+    // =========================
     // Image & Upload fields
     // =========================
 
@@ -228,6 +240,38 @@ public class User {
 
     public void setOtpVerified(boolean otpVerified) {
         this.otpVerified = otpVerified;
+    }
+
+    public String getLoginSessionToken() {
+        return loginSessionToken;
+    }
+
+    public void setLoginSessionToken(String loginSessionToken) {
+        this.loginSessionToken = loginSessionToken;
+    }
+
+    public LocalDateTime getLoginSessionExpiry() {
+        return loginSessionExpiry;
+    }
+
+    public void setLoginSessionExpiry(LocalDateTime loginSessionExpiry) {
+        this.loginSessionExpiry = loginSessionExpiry;
+    }
+
+    public String getLoginOtp() {
+        return loginOtp;
+    }
+
+    public void setLoginOtp(String loginOtp) {
+        this.loginOtp = loginOtp;
+    }
+
+    public LocalDateTime getLoginOtpExpiry() {
+        return loginOtpExpiry;
+    }
+
+    public void setLoginOtpExpiry(LocalDateTime loginOtpExpiry) {
+        this.loginOtpExpiry = loginOtpExpiry;
     }
 
     public String getProfileImage() {
