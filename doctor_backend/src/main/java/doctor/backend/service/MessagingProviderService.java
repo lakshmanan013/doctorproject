@@ -9,7 +9,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class MessagingProviderService {
@@ -49,26 +51,8 @@ public class MessagingProviderService {
         log.info("Sending OTP {} to {} via provider [{}]", otp, cleanPhone, provider);
 
         try {
-            switch (provider.toUpperCase()) {
-                case "APITXT":
-                    return sendApiTxtOtp(cleanPhone, otp);
-
-                case "FAST2SMS":
-                    return sendFast2SmsOtp(cleanPhone, otp);
-
-                case "MSG91":
-                    return sendMsg91Otp(cleanPhone, otp);
-
-                case "GENERIC_HTTP":
-                    return sendGenericHttp(properties.getSmsApiUrl(), properties.getSmsApiKey(), Map.of(
-                            "phone", cleanPhone,
-                            "otp", otp,
-                            "type", "OTP",
-                            "message", "Your verification OTP is " + otp
-                    ));
-
-                default:
-                    break;
+            if ("APITXT".equalsIgnoreCase(provider)) {
+                return sendApiTxtOtp(cleanPhone, otp);
             }
         } catch (Exception ex) {
             log.error("Failed to send OTP to {} via {}: {}", cleanPhone, provider, ex.getMessage());
@@ -91,22 +75,8 @@ public class MessagingProviderService {
         log.info("Sending SMS to {} via provider [{}]", cleanPhone, provider);
 
         try {
-            switch (provider.toUpperCase()) {
-                case "APITXT":
-                    return sendApiTxtMessage(cleanPhone, message, "sms");
-
-                case "FAST2SMS":
-                    return sendFast2SmsQuick(cleanPhone, message);
-
-                case "GENERIC_HTTP":
-                    return sendGenericHttp(properties.getSmsApiUrl(), properties.getSmsApiKey(), Map.of(
-                            "phone", cleanPhone,
-                            "message", message,
-                            "type", "SMS"
-                    ));
-
-                default:
-                    break;
+            if ("APITXT".equalsIgnoreCase(provider)) {
+                return sendApiTxtMessage(cleanPhone, message, "sms");
             }
         } catch (Exception ex) {
             log.error("Failed to send SMS to {} via {}: {}", cleanPhone, provider, ex.getMessage());
@@ -118,7 +88,7 @@ public class MessagingProviderService {
     }
 
     // =====================================================
-    // SEND WHATSAPP MESSAGE (Meta Cloud API / APITxT / HTTP Gateway)
+    // SEND WHATSAPP MESSAGE (Meta Cloud API / APITxT / Mock)
     // =====================================================
 
     public String sendWhatsApp(String rawPhone, String message) {
@@ -128,24 +98,10 @@ public class MessagingProviderService {
         log.info("Sending WhatsApp message to {} via provider [{}]", cleanPhone, provider);
 
         try {
-            switch (provider.toUpperCase()) {
-                case "APITXT":
-                    return sendApiTxtMessage(cleanPhone, message, "whatsapp");
-
-                case "META":
-                case "WHATSAPP_CLOUD":
-                    return sendMetaWhatsApp(cleanPhone, message);
-
-                case "GENERIC_HTTP":
-                    return sendGenericHttp(properties.getWhatsappApiUrl(), properties.getWhatsappApiKey(), Map.of(
-                            "phone", cleanPhone,
-                            "message", message,
-                            "type", "WHATSAPP",
-                            "from", properties.getWhatsappFrom()
-                    ));
-
-                default:
-                    break;
+            if ("APITXT".equalsIgnoreCase(provider)) {
+                return sendApiTxtMessage(cleanPhone, message, "whatsapp");
+            } else if ("META".equalsIgnoreCase(provider) || "WHATSAPP_CLOUD".equalsIgnoreCase(provider)) {
+                return sendMetaWhatsApp(cleanPhone, message);
             }
         } catch (Exception ex) {
             log.error("Failed to send WhatsApp to {} via {}: {}", cleanPhone, provider, ex.getMessage());
@@ -207,7 +163,7 @@ public class MessagingProviderService {
     }
 
     // =====================================================
-    // OTHER PROVIDERS
+    // META WHATSAPP CLOUD API IMPLEMENTATION
     // =====================================================
 
     private String sendMetaWhatsApp(String rawPhone, String message) {
@@ -241,88 +197,14 @@ public class MessagingProviderService {
         return "META_WA_" + UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private String sendFast2SmsOtp(String phone, String otp) {
-        String url = properties.getSmsApiUrl() != null && !properties.getSmsApiUrl().isBlank()
-                ? properties.getSmsApiUrl()
-                : "https://www.fast2sms.com/dev/bulkV2";
-
-        String tenDigits = phone.length() > 10 ? phone.substring(phone.length() - 10) : phone;
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("authorization", properties.getSmsApiKey());
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("variables_values", otp);
-        body.put("route", "otp");
-        body.put("numbers", tenDigits);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-
-        log.info("Fast2SMS OTP response: {}", response.getBody());
-        return "FAST2SMS_" + UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String sendFast2SmsQuick(String phone, String message) {
-        String url = properties.getSmsApiUrl() != null && !properties.getSmsApiUrl().isBlank()
-                ? properties.getSmsApiUrl()
-                : "https://www.fast2sms.com/dev/bulkV2";
-
-        String tenDigits = phone.length() > 10 ? phone.substring(phone.length() - 10) : phone;
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("authorization", properties.getSmsApiKey());
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("message", message);
-        body.put("language", "english");
-        body.put("route", "q");
-        body.put("numbers", tenDigits);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-
-        log.info("Fast2SMS Quick SMS response: {}", response.getBody());
-        return "FAST2SMS_" + UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String sendMsg91Otp(String phone, String otp) {
-        String url = "https://api.msg91.com/api/v5/otp?otp=" + otp + "&mobile=" + phone + "&authkey=" + properties.getSmsApiKey();
-        HttpHeaders headers = new HttpHeaders();
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-        log.info("MSG91 OTP response: {}", response.getBody());
-        return "MSG91_" + UUID.randomUUID().toString().substring(0, 8);
-    }
-
-    private String sendGenericHttp(String apiUrl, String apiKey, Map<String, Object> payload) {
-        if (apiUrl == null || apiUrl.isBlank()) {
-            throw new RuntimeException("Generic HTTP messaging API URL is not configured");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        if (apiKey != null && !apiKey.isBlank()) {
-            headers.set("Authorization", apiKey.startsWith("Bearer ") ? apiKey : "Bearer " + apiKey);
-            headers.set("x-api-key", apiKey);
-        }
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-
-        log.info("Generic HTTP Gateway response: {}", response.getBody());
-        return "HTTP_" + UUID.randomUUID().toString().substring(0, 8);
-    }
+    // =====================================================
+    // RESOLVERS
+    // =====================================================
 
     private String resolveSmsProvider() {
         String p = properties.getSmsProvider();
         if (p != null && !p.equalsIgnoreCase("AUTO") && !p.isBlank()) {
             return p;
-        }
-        if (properties.getSmsApiUrl() != null && properties.getSmsApiUrl().contains("apitxt.com")) {
-            return "APITXT";
         }
         if (properties.getSmsApiKey() != null && !properties.getSmsApiKey().isBlank()) {
             return "APITXT";
@@ -341,8 +223,8 @@ public class MessagingProviderService {
         if (properties.getWhatsappApiUrl() != null && properties.getWhatsappApiUrl().contains("apitxt.com")) {
             return "APITXT";
         }
-        if (properties.getWhatsappApiKey() != null && !properties.getWhatsappApiKey().isBlank()) {
-            return "GENERIC_HTTP";
+        if (properties.getSmsApiKey() != null && !properties.getSmsApiKey().isBlank()) {
+            return "APITXT";
         }
         return "MOCK";
     }
