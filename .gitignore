@@ -36,3 +36,11 @@ Thumbs.db
 # Local databases & temp
 data/
 doctor frontend/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
