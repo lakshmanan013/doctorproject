@@ -30,6 +30,16 @@ public class RegisterRequest {
 
     private String digitalSignatureImage;
 
+    private boolean phoneVerified;
+
+    public boolean isPhoneVerified() {
+        return phoneVerified;
+    }
+
+    public void setPhoneVerified(boolean phoneVerified) {
+        this.phoneVerified = phoneVerified;
+    }
+
     public String getFullName() {
         return fullName;
     }

@@ -687,10 +687,215 @@
   margin-bottom: 8px;
 }
 
-@media (max-width: 540px) {
-  .auth-uploads-grid {
-    grid-template-columns: 1fr;
+/* -------------------- PHONE OTP VERIFICATION -------------------- */
+
+.auth-phone-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-phone-field-wrap .input {
+  padding-right: 120px;
+}
+
+.auth-phone-field-wrap.is-verified .input {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+  color: #065f46;
+}
+
+.auth-phone-action-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+  white-space: nowrap;
+}
+
+.auth-phone-action-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.auth-phone-action-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: translateY(-50%);
+}
+
+.auth-phone-verified-tag {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+}
+
+.auth-phone-change-btn {
+  background: none;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-phone-change-btn:hover {
+  color: #3730a3;
+}
+
+.auth-phone-otp-card {
+  margin-top: 10px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  animation: authOtpCardSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authOtpCardSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
+
+.auth-phone-otp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.auth-phone-otp-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-phone-otp-boxes {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.auth-phone-otp-box {
+  width: 100%;
+  height: 44px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.auth-phone-otp-box:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  background: #ffffff;
+}
+
+.auth-phone-otp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-phone-verify-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #10b981;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25);
+}
+
+.auth-phone-verify-btn:hover:not(:disabled) {
+  background: #059669;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+}
+
+.auth-phone-verify-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-phone-resend-text {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.auth-phone-resend-link {
+  color: #4f46e5;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+.auth-phone-resend-link:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 
 

@@ -92,6 +92,7 @@ public class AuthService {
         user.setClinicInsideImage(request.getClinicInsideImage());
         user.setClinicOutsideImage(request.getClinicOutsideImage());
         user.setDigitalSignatureImage(request.getDigitalSignatureImage());
+        user.setPhoneVerified(request.isPhoneVerified());
 
         // Doctor registrations start PENDING. An admin must approve the
         // registration (via the Zenve admin portal) before the doctor

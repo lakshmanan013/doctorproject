@@ -15,14 +15,14 @@ import java.util.List;
 public class WhatsAppService {
 
     private final WhatsAppLogRepository whatsAppLogRepository;
-    private final TwilioSender twilioSender;
+    private final MessagingProviderService messagingProviderService;
 
     public WhatsAppService(
             WhatsAppLogRepository whatsAppLogRepository,
-            TwilioSender twilioSender) {
+            MessagingProviderService messagingProviderService) {
 
         this.whatsAppLogRepository = whatsAppLogRepository;
-        this.twilioSender = twilioSender;
+        this.messagingProviderService = messagingProviderService;
     }
 
     // =====================================================
@@ -72,17 +72,13 @@ public class WhatsAppService {
                         : "Default"
         );
 
-        /*
-         * Attempt a real send via Twilio's WhatsApp API. If no Twilio
-         * account is configured yet, record that honestly instead of a
-         * silent no-op "Pending".
-         */
-        if (!twilioSender.isConfigured()) {
-            log.setStatus("NOT_CONFIGURED");
-            log.setErrorMessage("WhatsApp provider isn't configured on the server yet (no Twilio account set up)");
+        if (!messagingProviderService.isWhatsAppConfigured()) {
+            log.setStatus("SIMULATED");
+            log.setErrorMessage("WhatsApp provider isn't configured yet. Simulating send in development mode.");
+            log.setProviderMessageId("DEV_MOCK_WA");
         } else {
             try {
-                String messageSid = twilioSender.sendWhatsApp(log.getPhoneNumber(), log.getMessage());
+                String messageSid = messagingProviderService.sendWhatsApp(log.getPhoneNumber(), log.getMessage());
                 log.setStatus("SENT");
                 log.setProviderMessageId(messageSid);
             } catch (RuntimeException ex) {

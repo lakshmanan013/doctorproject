@@ -1,5 +1,6 @@
 package doctor.backend.controller;
 
+
 import doctor.backend.dto.auth.AuthResponse;
 import doctor.backend.dto.auth.ForgotPasswordRequest;
 import doctor.backend.dto.auth.ForgotPasswordResponse;
@@ -9,7 +10,12 @@ import doctor.backend.dto.auth.RegisterRequest;
 import doctor.backend.dto.auth.ResetPasswordRequest;
 import doctor.backend.dto.auth.VerifyOtpRequest;
 import doctor.backend.dto.auth.VerifyOtpResponse;
+import doctor.backend.dto.auth.SendPhoneOtpRequest;
+import doctor.backend.dto.auth.SendPhoneOtpResponse;
+import doctor.backend.dto.auth.VerifyPhoneOtpRequest;
+import doctor.backend.dto.auth.VerifyPhoneOtpResponse;
 import doctor.backend.service.AuthService;
+import doctor.backend.service.PhoneOtpService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +28,27 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PhoneOtpService phoneOtpService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PhoneOtpService phoneOtpService) {
         this.authService = authService;
+        this.phoneOtpService = phoneOtpService;
+    }
+
+    // =====================================================
+    // PHONE OTP FOR DOCTOR ACCOUNT CREATION
+    // POST /api/auth/send-phone-otp
+    // POST /api/auth/verify-phone-otp
+    // =====================================================
+
+    @PostMapping("/send-phone-otp")
+    public ResponseEntity<SendPhoneOtpResponse> sendPhoneOtp(@Valid @RequestBody SendPhoneOtpRequest request) {
+        return ResponseEntity.ok(phoneOtpService.sendPhoneOtp(request.getPhone()));
+    }
+
+    @PostMapping("/verify-phone-otp")
+    public ResponseEntity<VerifyPhoneOtpResponse> verifyPhoneOtp(@Valid @RequestBody VerifyPhoneOtpRequest request) {
+        return ResponseEntity.ok(phoneOtpService.verifyPhoneOtp(request.getPhone(), request.getOtp()));
     }
 
     // =====================================================

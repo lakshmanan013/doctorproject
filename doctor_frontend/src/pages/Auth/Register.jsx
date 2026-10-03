@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -10,6 +10,9 @@ import {
   FiEye,
   FiEyeOff,
   FiAlertCircle,
+  FiCheckCircle,
+  FiShield,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import Button from "../../components/ui/Button";
@@ -17,8 +20,12 @@ import { Field } from "../../components/ui/Input";
 import AuthLayout from "../../layouts/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { ROUTES } from "../../constants/routes";
+import { sendPhoneOtp, verifyPhoneOtp } from "../../services/authService";
 
 import "./Auth.css";
+
+const OTP_LENGTH = 6;
+const EMPTY_OTP = Array(OTP_LENGTH).fill("");
 
 export default function Register() {
   const navigate = useNavigate();
@@ -29,10 +36,21 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
+  // Phone OTP States
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otp, setOtp] = useState(EMPTY_OTP);
+  const [timer, setTimer] = useState(0);
+  const otpRefs = useRef([]);
+
   const {
     register,
     handleSubmit,
     watch,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -45,9 +63,133 @@ export default function Register() {
   });
 
   const password = watch("password");
+  const phoneValue = watch("phone");
+
+  // Timer countdown for OTP resend
+  useEffect(() => {
+    let interval = null;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  // Handle Send OTP
+  const handleSendOtp = async () => {
+    const rawPhone = (phoneValue || "").trim();
+    if (!rawPhone || rawPhone.length < 7) {
+      setError("phone", {
+        type: "manual",
+        message: "Please enter a valid phone number before requesting OTP",
+      });
+      return;
+    }
+    clearErrors("phone");
+    setServerError("");
+    setSendingOtp(true);
+
+    try {
+      const data = await sendPhoneOtp({ phone: rawPhone });
+      setPhoneOtpSent(true);
+      setOtp(EMPTY_OTP);
+      setTimer(30);
+      toast.success(data?.message || "OTP sent successfully!");
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
+    } catch (error) {
+      const msg = error?.response?.data?.message || "Could not send OTP. Please try again.";
+      setServerError(msg);
+      toast.error(msg);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Handle OTP digit changes
+  const handleOtpChange = (value, index) => {
+    const cleanValue = value.replace(/\D/g, "").slice(-1);
+    const next = [...otp];
+    next[index] = cleanValue;
+    setOtp(next);
+
+    if (cleanValue && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    if (!pasted) return;
+
+    const next = [...EMPTY_OTP];
+    for (let i = 0; i < pasted.length; i++) {
+      next[i] = pasted[i];
+    }
+    setOtp(next);
+
+    const nextFocusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
+    otpRefs.current[nextFocusIndex]?.focus();
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = async () => {
+    const enteredOtp = otp.join("");
+    if (enteredOtp.length !== OTP_LENGTH) {
+      toast.error("Please enter the complete 6-digit OTP.");
+      return;
+    }
+
+    setServerError("");
+    setVerifyingOtp(true);
+
+    try {
+      const data = await verifyPhoneOtp({
+        phone: (phoneValue || "").trim(),
+        otp: enteredOtp,
+      });
+
+      setPhoneVerified(true);
+      setPhoneOtpSent(false);
+      clearErrors("phone");
+      toast.success(data?.message || "Phone number verified successfully!");
+    } catch (error) {
+      const msg = error?.response?.data?.message || "Invalid or expired OTP.";
+      setServerError(msg);
+      toast.error(msg);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleChangePhone = () => {
+    setPhoneVerified(false);
+    setPhoneOtpSent(false);
+    setOtp(EMPTY_OTP);
+  };
 
   const onSubmit = async (values) => {
     setServerError("");
+
+    if (!phoneVerified) {
+      setError("phone", {
+        type: "manual",
+        message: "Please verify your phone number with OTP first",
+      });
+      setServerError("Please verify your phone number with OTP before submitting.");
+      toast.error("Please verify your phone number with OTP first.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -56,6 +198,7 @@ export default function Register() {
         email: values.email.trim().toLowerCase(),
         phone: values.phone.trim(),
         password: values.password,
+        phoneVerified: true,
       });
 
       if (data?.token) {
@@ -141,14 +284,16 @@ export default function Register() {
           {errors.email && <span className="field-error">{errors.email.message}</span>}
         </Field>
 
+        {/* PHONE NUMBER FIELD WITH EMBEDDED SEND OTP & VERIFY OTP */}
         <Field label="Phone number">
-          <div className="auth-input-wrap">
+          <div className={`auth-input-wrap auth-phone-field-wrap${phoneVerified ? " is-verified" : ""}`}>
             <span className="auth-input-icon">
               <FiPhone size={16} />
             </span>
 
             <input
               type="tel"
+              readOnly={phoneVerified}
               className={`input${errors.phone ? " input-error" : ""}`}
               placeholder="9876543210"
               autoComplete="tel"
@@ -158,10 +303,110 @@ export default function Register() {
                   value: /^[0-9+\-\s]{7,15}$/,
                   message: "Enter a valid phone number",
                 },
+                onChange: () => {
+                  if (phoneVerified) setPhoneVerified(false);
+                },
               })}
             />
+
+            {!phoneVerified ? (
+              <button
+                type="button"
+                className="auth-phone-action-btn"
+                onClick={handleSendOtp}
+                disabled={sendingOtp || (phoneOtpSent && timer > 0)}
+              >
+                {sendingOtp ? (
+                  <>
+                    <FiRefreshCw className="spin" size={13} />
+                    <span>Sending...</span>
+                  </>
+                ) : phoneOtpSent ? (
+                  timer > 0 ? `Resend (${timer}s)` : "Resend OTP"
+                ) : (
+                  "Send OTP"
+                )}
+              </button>
+            ) : (
+              <div className="auth-phone-verified-tag">
+                <span className="auth-verified-badge">
+                  <FiCheckCircle size={13} />
+                  <span>Verified</span>
+                </span>
+                <button
+                  type="button"
+                  className="auth-phone-change-btn"
+                  onClick={handleChangePhone}
+                  title="Change phone number"
+                >
+                  Change
+                </button>
+              </div>
+            )}
           </div>
           {errors.phone && <span className="field-error">{errors.phone.message}</span>}
+
+          {/* OTP INPUT SECTION (Expands when OTP is sent & not yet verified) */}
+          {phoneOtpSent && !phoneVerified && (
+            <div className="auth-phone-otp-card">
+              <div className="auth-phone-otp-header">
+                <span className="auth-phone-otp-title">
+                  <FiShield size={15} color="#4f46e5" />
+                  <span>Enter 6-digit OTP sent to {phoneValue}</span>
+                </span>
+              </div>
+
+              <div className="auth-phone-otp-boxes" onPaste={handleOtpPaste}>
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => (otpRefs.current[index] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(e.target.value, index)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    className="auth-phone-otp-box"
+                    autoFocus={index === 0}
+                  />
+                ))}
+              </div>
+
+              <div className="auth-phone-otp-footer">
+                <button
+                  type="button"
+                  className="auth-phone-verify-btn"
+                  onClick={handleVerifyOtp}
+                  disabled={verifyingOtp || otp.join("").length !== OTP_LENGTH}
+                >
+                  {verifyingOtp ? (
+                    <>
+                      <FiRefreshCw className="spin" size={14} />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle size={14} />
+                      <span>Verify OTP</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="auth-phone-resend-text">
+                  Didn&apos;t receive code?{" "}
+                  <button
+                    type="button"
+                    className="auth-phone-resend-link"
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp || timer > 0}
+                  >
+                    {timer > 0 ? `Resend in ${timer}s` : "Resend OTP"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </Field>
 
         <div className="auth-form-row">
@@ -249,4 +494,3 @@ export default function Register() {
     </AuthLayout>
   );
 }
-

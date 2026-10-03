@@ -12,3 +12,8 @@ export const getCurrentUser = async () => (await api.get("/auth/me")).data;
 export const forgotPassword = async (payload) => (await api.post("/auth/forgot-password", payload)).data;
 export const verifyOtp = async (payload) => (await api.post("/auth/verify-otp", payload)).data;
 export const resetPassword = async (payload) => (await api.post("/auth/reset-password", payload)).data;
+
+// Phone OTP verification flow for Doctor Account Registration:
+export const sendPhoneOtp = async (payload) => (await api.post("/auth/send-phone-otp", payload)).data;
+export const verifyPhoneOtp = async (payload) => (await api.post("/auth/verify-phone-otp", payload)).data;
+

@@ -15,11 +15,11 @@ import java.util.List;
 public class SmsService {
 
     private final SmsLogRepository smsLogRepository;
-    private final TwilioSender twilioSender;
+    private final MessagingProviderService messagingProviderService;
 
-    public SmsService(SmsLogRepository smsLogRepository, TwilioSender twilioSender) {
+    public SmsService(SmsLogRepository smsLogRepository, MessagingProviderService messagingProviderService) {
         this.smsLogRepository = smsLogRepository;
-        this.twilioSender = twilioSender;
+        this.messagingProviderService = messagingProviderService;
     }
 
     // =====================================================
@@ -68,16 +68,13 @@ public class SmsService {
                         : "Default"
         );
 
-        /*
-         * Attempt a real send via Twilio. If no Twilio account is configured
-         * yet, record that honestly instead of a silent no-op "Pending".
-         */
-        if (!twilioSender.isConfigured()) {
-            smsLog.setStatus("NOT_CONFIGURED");
-            smsLog.setErrorMessage("SMS provider isn't configured on the server yet (no Twilio account set up)");
+        if (!messagingProviderService.isSmsConfigured()) {
+            smsLog.setStatus("SIMULATED");
+            smsLog.setErrorMessage("Messaging provider isn't configured yet. Simulating send in development mode.");
+            smsLog.setProviderMessageId("DEV_MOCK_SMS");
         } else {
             try {
-                String messageSid = twilioSender.sendSms(smsLog.getPhoneNumber(), smsLog.getMessage());
+                String messageSid = messagingProviderService.sendSms(smsLog.getPhoneNumber(), smsLog.getMessage());
                 smsLog.setStatus("SENT");
                 smsLog.setProviderMessageId(messageSid);
             } catch (RuntimeException ex) {
