@@ -54,4 +54,12 @@ public class SendPhoneOtpResponse {
     public void setOtp(String otp) {
         this.otp = otp;
     }
+
+    public String getDevOtp() {
+        return otp;
+    }
+
+    public void setDevOtp(String devOtp) {
+        this.otp = devOtp;
+    }
 }

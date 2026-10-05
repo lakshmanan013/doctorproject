@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 public class VerifyLoginOtpRequest {
 
     private String email;
+    private String phone;
 
     @NotBlank(message = "Login session token is required")
     private String loginSessionToken;
@@ -27,6 +28,14 @@ public class VerifyLoginOtpRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getLoginSessionToken() {

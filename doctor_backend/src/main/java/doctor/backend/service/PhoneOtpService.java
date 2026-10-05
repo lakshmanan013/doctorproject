@@ -56,27 +56,17 @@ public class PhoneOtpService {
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(10);
         otpStore.put(normalizedPhone, new OtpEntry(otp, expiry));
 
-        log.info("Generated registration phone OTP for {}: {}", normalizedPhone, otp);
+        log.info("Generated registration phone OTP for {}", normalizedPhone);
 
-        String devOtp = null;
-        if (messagingProviderService.isSmsConfigured()) {
-            try {
-                messagingProviderService.sendOtp(normalizedPhone, otp);
-                log.info("Sent phone verification OTP to {}", normalizedPhone);
-            } catch (Exception ex) {
-                log.warn("Failed to send SMS via configured provider: {}. Falling back to dev OTP in response.", ex.getMessage());
-                devOtp = otp;
-            }
-        } else {
-            // Development mode or provider not configured
-            devOtp = otp;
+        try {
+            messagingProviderService.sendOtp(normalizedPhone, otp);
+            log.info("Sent phone verification OTP to {}", normalizedPhone);
+        } catch (Exception ex) {
+            log.error("Failed to send SMS OTP via provider: {}", ex.getMessage());
+            throw new BadRequestException("Failed to send OTP SMS to your mobile number: " + ex.getMessage());
         }
 
-        String displayMsg = devOtp != null
-                ? "OTP generated successfully. (OTP: " + devOtp + ")"
-                : "OTP sent successfully to your phone number.";
-
-        return new SendPhoneOtpResponse(true, displayMsg, rawPhone.trim(), devOtp);
+        return new SendPhoneOtpResponse(true, "OTP sent successfully to your phone number.", rawPhone.trim(), null);
     }
 
     public VerifyPhoneOtpResponse verifyPhoneOtp(String rawPhone, String enteredOtp) {
@@ -87,7 +77,9 @@ public class PhoneOtpService {
             throw new BadRequestException("OTP has expired or was not requested. Please request a new OTP.");
         }
 
-        if (enteredOtp == null || !entry.otp.equals(enteredOtp.trim())) {
+        boolean matchesOtp = entry.otp != null && entry.otp.equals(enteredOtp != null ? enteredOtp.trim() : "");
+
+        if (enteredOtp == null || !matchesOtp) {
             throw new BadRequestException("Invalid OTP. Please check the 6-digit code and try again.");
         }
 

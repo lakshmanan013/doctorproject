@@ -142,8 +142,8 @@ export default function Register() {
   };
 
   // Handle Verify OTP
-  const handleVerifyOtp = async () => {
-    const enteredOtp = otp.join("");
+  const handleVerifyOtp = async (enteredOtpParam) => {
+    const enteredOtp = (typeof enteredOtpParam === "string" ? enteredOtpParam : otp.join("")).trim();
     if (enteredOtp.length !== OTP_LENGTH) {
       toast.error("Please enter the complete 6-digit OTP.");
       return;

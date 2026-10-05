@@ -18,6 +18,16 @@ export function DoctorProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const loadDoctor = useCallback(async () => {
+    const token =
+      sessionStorage.getItem("zenve_doctor_token") ||
+      localStorage.getItem("zenve_doctor_token");
+
+    if (!token || token === "zenve_demo_token") {
+      setDoctor(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 

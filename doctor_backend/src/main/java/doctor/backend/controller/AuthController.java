@@ -77,6 +77,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @PostMapping("/send-login-phone-otp")
+    public ResponseEntity<AuthResponse> sendLoginPhoneOtp(@Valid @RequestBody doctor.backend.dto.auth.SendLoginPhoneOtpRequest request) {
+
+        return ResponseEntity.ok(authService.sendLoginPhoneOtp(request.getPhone()));
+    }
+
     @PostMapping("/verify-login-otp")
     public ResponseEntity<AuthResponse> verifyLoginOtp(@Valid @RequestBody doctor.backend.dto.auth.VerifyLoginOtpRequest request) {
 

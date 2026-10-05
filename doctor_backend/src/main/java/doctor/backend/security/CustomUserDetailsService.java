@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -20,10 +21,17 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("No account found for email: " + email));
+        if (identifier == null || identifier.isBlank()) {
+            throw new UsernameNotFoundException("Identifier is required");
+        }
+
+        String cleanIdentifier = identifier.trim().toLowerCase();
+        String digitsOnly = identifier.replaceAll("[^0-9]", "");
+
+        User user = findUserByIdentifier(cleanIdentifier, digitsOnly)
+                .orElseThrow(() -> new UsernameNotFoundException("No account found for: " + identifier));
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
@@ -31,5 +39,23 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .disabled(!user.isActive())
                 .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole())))
                 .build();
+    }
+
+    private Optional<User> findUserByIdentifier(String cleanIdentifier, String digitsOnly) {
+        Optional<User> byEmail = userRepository.findByEmail(cleanIdentifier);
+        if (byEmail.isPresent()) {
+            return byEmail;
+        }
+        if (!digitsOnly.isBlank()) {
+            Optional<User> byPhone = userRepository.findByFlexiblePhone(digitsOnly);
+            if (byPhone.isPresent()) {
+                return byPhone;
+            }
+            byPhone = userRepository.findByPhone(digitsOnly);
+            if (byPhone.isPresent()) {
+                return byPhone;
+            }
+        }
+        return userRepository.findByPhone(cleanIdentifier);
     }
 }

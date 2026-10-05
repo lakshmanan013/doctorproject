@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -294,21 +295,28 @@ public class AuthService {
 
     // =====================================================
     // LOGIN (Step 1: Validate credentials & dispatch Phone OTP)
+    // Supports login by Email or Phone number
     // =====================================================
 
     public AuthResponse login(LoginRequest request) {
 
-        String email = request.getEmail().trim().toLowerCase();
+        String identifier = request.getIdentifier();
+        if (identifier == null || identifier.isBlank()) {
+            throw new BadRequestException("Email or phone number is required");
+        }
+
+        String cleanIdentifier = identifier.trim().toLowerCase();
+        String digitsOnly = identifier.replaceAll("[^0-9]", "");
+
+        User user = findUserByIdentifier(cleanIdentifier, digitsOnly)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email/phone or password"));
 
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+                    new UsernamePasswordAuthenticationToken(user.getEmail(), request.getPassword()));
         } catch (BadCredentialsException ex) {
-            throw new BadCredentialsException("Invalid email or password");
+            throw new BadCredentialsException("Invalid email/phone or password");
         }
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
         if (!user.isActive()) {
             throw new ForbiddenException("Your account is deactivated. Please contact support.");
@@ -341,17 +349,12 @@ public class AuthService {
             userRepository.save(user);
 
             String normalizedPhone = phone.replaceAll("[^0-9]", "");
-            String devOtp = null;
-            if (messagingProviderService.isSmsConfigured()) {
-                try {
-                    messagingProviderService.sendOtp(normalizedPhone, otp);
-                    log.info("Sent 2FA login OTP to registered phone {}", normalizedPhone);
-                } catch (Exception ex) {
-                    log.warn("Failed to send 2FA login SMS: {}. Falling back to dev OTP.", ex.getMessage());
-                    devOtp = otp;
-                }
-            } else {
-                devOtp = otp;
+            try {
+                messagingProviderService.sendOtp(normalizedPhone, otp);
+                log.info("Sent 2FA login OTP to registered phone {}", normalizedPhone);
+            } catch (Exception ex) {
+                log.error("Failed to send 2FA login SMS: {}", ex.getMessage());
+                throw new BadRequestException("Failed to send verification SMS to your registered phone. " + ex.getMessage());
             }
 
             AuthResponse challengeRes = new AuthResponse();
@@ -360,7 +363,6 @@ public class AuthService {
             challengeRes.setEmail(user.getEmail());
             challengeRes.setMaskedPhone(maskPhoneNumber(phone));
             challengeRes.setMessage("OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
-            challengeRes.setDevOtp(devOtp);
             return challengeRes;
         }
 
@@ -368,24 +370,116 @@ public class AuthService {
         return issueSuccessAuthResponse(user);
     }
 
+    private Optional<User> findUserByIdentifier(String cleanIdentifier, String digitsOnly) {
+        Optional<User> byEmail = userRepository.findByEmail(cleanIdentifier);
+        if (byEmail.isPresent()) {
+            return byEmail;
+        }
+        if (!digitsOnly.isBlank()) {
+            Optional<User> byPhone = userRepository.findByFlexiblePhone(digitsOnly);
+            if (byPhone.isPresent()) {
+                return byPhone;
+            }
+            byPhone = userRepository.findByPhone(digitsOnly);
+            if (byPhone.isPresent()) {
+                return byPhone;
+            }
+        }
+        return userRepository.findByPhone(cleanIdentifier);
+    }
+
     // =====================================================
-    // LOGIN STEP 2: VERIFY 2FA PHONE OTP & ISSUE JWT
+    // DIRECT PHONE OTP LOGIN (Step 1: Request OTP)
+    // =====================================================
+
+    public AuthResponse sendLoginPhoneOtp(String rawPhone) {
+        if (rawPhone == null || rawPhone.isBlank()) {
+            throw new BadRequestException("Phone number is required");
+        }
+
+        String cleanDigits = rawPhone.replaceAll("[^0-9]", "");
+        if (cleanDigits.length() < 7 || cleanDigits.length() > 15) {
+            throw new BadRequestException("Please enter a valid phone number");
+        }
+
+        User user = findUserByIdentifier(rawPhone.trim(), cleanDigits)
+                .orElseThrow(() -> new BadRequestException("No registered doctor account found with this phone number."));
+
+        if (!user.isActive()) {
+            throw new ForbiddenException("Your account is deactivated. Please contact support.");
+        }
+
+        String approval = user.getApprovalStatus();
+        if ("PENDING".equalsIgnoreCase(approval)) {
+            throw new ForbiddenException(
+                    "Your registration is pending admin approval. " +
+                            "You'll receive access once an administrator reviews your account.");
+        }
+        if ("REJECTED".equalsIgnoreCase(approval)) {
+            String reason = user.getRejectionReason();
+            String message = (reason != null && !reason.isBlank())
+                    ? "Your registration was not approved: " + reason
+                    : "Your registration was not approved by the administrator. Please contact support.";
+            throw new ForbiddenException(message);
+        }
+
+        String otp = OtpUtil.generateOtp();
+        String sessionToken = UUID.randomUUID().toString();
+
+        user.setLoginOtp(otp);
+        user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        user.setLoginSessionToken(sessionToken);
+        user.setLoginSessionExpiry(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        String phone = user.getPhone() != null ? user.getPhone() : rawPhone;
+        String normalizedPhone = phone.replaceAll("[^0-9]", "");
+        try {
+            messagingProviderService.sendOtp(normalizedPhone, otp);
+            log.info("Sent phone login OTP to {}", normalizedPhone);
+        } catch (Exception ex) {
+            log.error("Failed to send login SMS: {}", ex.getMessage());
+            throw new BadRequestException("Failed to send verification SMS: " + ex.getMessage());
+        }
+
+        AuthResponse challengeRes = new AuthResponse();
+        challengeRes.setRequires2Fa(true);
+        challengeRes.setLoginSessionToken(sessionToken);
+        challengeRes.setEmail(user.getEmail());
+        challengeRes.setMaskedPhone(maskPhoneNumber(phone));
+        challengeRes.setMessage("OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
+        return challengeRes;
+    }
+
+    // =====================================================
+    // LOGIN STEP 2: VERIFY 2FA / PHONE OTP & ISSUE JWT
     // =====================================================
 
     public AuthResponse verifyLoginOtp(VerifyLoginOtpRequest request) {
         String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        String phone = request.getPhone() != null ? request.getPhone().trim() : "";
         String sessionToken = request.getLoginSessionToken() != null ? request.getLoginSessionToken().trim() : "";
         String otp = request.getOtp() != null ? request.getOtp().trim() : "";
 
         User user;
-        if (!email.isBlank()) {
-            user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new BadRequestException("User account not found"));
-        } else if (!sessionToken.isBlank()) {
+        if (!sessionToken.isBlank()) {
             user = userRepository.findByLoginSessionToken(sessionToken)
-                    .orElseThrow(() -> new BadRequestException("Invalid or expired login session. Please sign in again."));
+                    .orElseGet(() -> !email.isBlank()
+                            ? userRepository.findByEmail(email).orElse(null)
+                            : (!phone.isBlank() ? userRepository.findByPhone(phone).orElse(null) : null));
+        } else if (!email.isBlank()) {
+            user = userRepository.findByEmail(email).orElse(null);
+        } else if (!phone.isBlank()) {
+            String digitsOnly = phone.replaceAll("[^0-9]", "");
+            user = userRepository.findByFlexiblePhone(digitsOnly)
+                    .or(() -> userRepository.findByPhone(phone))
+                    .orElse(null);
         } else {
-            throw new BadRequestException("Invalid request");
+            user = null;
+        }
+
+        if (user == null) {
+            throw new BadRequestException("User account or login session not found. Please sign in again.");
         }
 
         if (user.getLoginSessionToken() == null
@@ -395,8 +489,9 @@ public class AuthService {
             throw new BadRequestException("Login session has expired. Please sign in again.");
         }
 
-        if (user.getLoginOtp() == null
-                || !user.getLoginOtp().equals(otp)
+        boolean matchesOtp = user.getLoginOtp() != null && user.getLoginOtp().equals(otp);
+
+        if (!matchesOtp
                 || user.getLoginOtpExpiry() == null
                 || user.getLoginOtpExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Invalid or expired OTP. Please check the code and try again.");
@@ -449,17 +544,12 @@ public class AuthService {
         userRepository.save(user);
 
         String normalizedPhone = phone.replaceAll("[^0-9]", "");
-        String devOtp = null;
-        if (messagingProviderService.isSmsConfigured()) {
-            try {
-                messagingProviderService.sendOtp(normalizedPhone, otp);
-                log.info("Resent 2FA login OTP to registered phone {}", normalizedPhone);
-            } catch (Exception ex) {
-                log.warn("Failed to resend SMS: {}. Falling back to dev OTP.", ex.getMessage());
-                devOtp = otp;
-            }
-        } else {
-            devOtp = otp;
+        try {
+            messagingProviderService.sendOtp(normalizedPhone, otp);
+            log.info("Resent 2FA login OTP to registered phone {}", normalizedPhone);
+        } catch (Exception ex) {
+            log.error("Failed to resend SMS: {}", ex.getMessage());
+            throw new BadRequestException("Failed to resend OTP SMS: " + ex.getMessage());
         }
 
         AuthResponse res = new AuthResponse();
@@ -468,7 +558,6 @@ public class AuthService {
         res.setEmail(user.getEmail());
         res.setMaskedPhone(maskPhoneNumber(phone));
         res.setMessage("A new OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
-        res.setDevOtp(devOtp);
         return res;
     }
 
@@ -550,8 +639,9 @@ public class AuthService {
             throw new BadRequestException("This reset session has expired. Please request a new OTP");
         }
 
-        if (user.getOtp() == null
-                || !user.getOtp().equals(otp)
+        boolean matchesOtp = user.getOtp() != null && user.getOtp().equals(otp);
+
+        if (!matchesOtp
                 || user.getOtpExpiry() == null
                 || user.getOtpExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Invalid or expired OTP");

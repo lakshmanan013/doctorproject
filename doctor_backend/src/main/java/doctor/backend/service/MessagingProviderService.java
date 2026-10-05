@@ -50,18 +50,24 @@ public class MessagingProviderService {
 
         log.info("Sending OTP {} to {} via provider [{}]", otp, cleanPhone, provider);
 
-        try {
-            if ("APITXT".equalsIgnoreCase(provider)) {
-                return sendApiTxtOtp(cleanPhone, otp);
+        if ("APITXT".equalsIgnoreCase(provider)) {
+            if (properties.getSmsApiKey() == null || properties.getSmsApiKey().isBlank()) {
+                throw new IllegalStateException("SMS API key is missing. Please set SMS_API_KEY in your .env or application properties.");
             }
-        } catch (Exception ex) {
-            log.error("Failed to send OTP to {} via {}: {}", cleanPhone, provider, ex.getMessage());
-            throw new RuntimeException("SMS send failed: " + ex.getMessage());
+            try {
+                return sendApiTxtOtp(cleanPhone, otp);
+            } catch (Exception ex) {
+                log.error("Failed to send OTP to {} via APITXT: {}", cleanPhone, ex.getMessage());
+                throw new RuntimeException("SMS gateway error: " + ex.getMessage());
+            }
         }
 
-        // Development / Mock fallback
-        log.info("[MOCK SMS GATEWAY] To: {} | OTP: {} | Status: SIMULATED_SENT", cleanPhone, otp);
-        return "MOCK_OTP_" + UUID.randomUUID().toString().substring(0, 8);
+        if ("MOCK".equalsIgnoreCase(provider)) {
+            log.info("[MOCK SMS GATEWAY (Testing Only)] To: {} | OTP: {} | Status: SIMULATED_SENT", cleanPhone, otp);
+            return "MOCK_OTP_" + UUID.randomUUID().toString().substring(0, 8);
+        }
+
+        throw new UnsupportedOperationException("SMS Provider [" + provider + "] is not supported. Please configure APITXT with a valid SMS_API_KEY.");
     }
 
     // =====================================================

@@ -19,7 +19,7 @@ import Button from "../../components/ui/Button";
 import { Field } from "../../components/ui/Input";
 import AuthLayout from "../../layouts/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
-import { resendLoginOtp } from "../../services/authService";
+import { sendLoginPhoneOtp, resendLoginOtp } from "../../services/authService";
 import { ROUTES } from "../../constants/routes";
 
 import "./Auth.css";
@@ -34,11 +34,15 @@ export default function Login() {
   // Mode: "CREDENTIALS" | "2FA_OTP"
   const [step, setStep] = useState("CREDENTIALS");
 
+  // Login Method: "PASSWORD" | "PHONE_OTP"
+  const [loginMethod, setLoginMethod] = useState("PASSWORD");
+
   // 2FA session state
   const [twoFaData, setTwoFaData] = useState({
     loginSessionToken: "",
     maskedPhone: "",
     email: "",
+    phone: "",
     devOtp: "",
   });
 
@@ -53,11 +57,21 @@ export default function Login() {
   const [serverError, setServerError] = useState("");
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
+    register: registerPasswordForm,
+    handleSubmit: handlePasswordSubmit,
+    formState: { errors: passwordErrors },
+    reset: resetPasswordForm,
   } = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "", remember: false },
+  });
+
+  const {
+    register: registerPhoneForm,
+    handleSubmit: handlePhoneSubmit,
+    formState: { errors: phoneErrors },
+    reset: resetPhoneForm,
+  } = useForm({
+    defaultValues: { phone: "" },
   });
 
   const redirectTo = location.state?.from?.pathname || ROUTES.DASHBOARD;
@@ -82,24 +96,35 @@ export default function Login() {
     }
   }, [step]);
 
-  // Step 1: Submit Credentials
-  const onSubmitCredentials = async (values) => {
+  // Step 1A: Submit Password Login (Email or Phone + Password)
+  const onSubmitPassword = async (values) => {
     setServerError("");
     setSubmitting(true);
 
     try {
-      const email = values.email.trim().toLowerCase();
-      const data = await login({
-        email,
+      const identifier = values.identifier.trim();
+      const isEmail = identifier.includes("@");
+
+      const payload = {
+        identifier,
         password: values.password,
-      });
+      };
+
+      if (isEmail) {
+        payload.email = identifier.toLowerCase();
+      } else {
+        payload.phone = identifier;
+      }
+
+      const data = await login(payload);
 
       if (data?.requires2Fa) {
         // Backend issued a 2FA phone challenge
         setTwoFaData({
           loginSessionToken: data.loginSessionToken,
           maskedPhone: data.maskedPhone || "registered mobile number",
-          email: data.email || email,
+          email: data.email || (isEmail ? identifier : ""),
+          phone: isEmail ? "" : identifier,
           devOtp: data.devOtp || "",
         });
         setOtp(EMPTY_OTP);
@@ -115,7 +140,39 @@ export default function Login() {
     } catch (error) {
       const message =
         error?.response?.data?.message ||
-        "Invalid email or password. Please try again.";
+        "Invalid email/phone or password. Please try again.";
+
+      setServerError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Step 1B: Submit Direct Phone OTP Login
+  const onSubmitPhoneOtp = async (values) => {
+    setServerError("");
+    setSubmitting(true);
+
+    try {
+      const rawPhone = values.phone.trim();
+      const data = await sendLoginPhoneOtp({ phone: rawPhone });
+
+      setTwoFaData({
+        loginSessionToken: data.loginSessionToken,
+        maskedPhone: data.maskedPhone || rawPhone,
+        email: data.email || "",
+        phone: rawPhone,
+        devOtp: data.devOtp || "",
+      });
+      setOtp(EMPTY_OTP);
+      setStep("2FA_OTP");
+      setResendCooldown(30);
+      toast.success(data.message || `OTP sent to ${data.maskedPhone || rawPhone}`);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Could not send OTP to this phone number. Please check the number or register.";
 
       setServerError(message);
       toast.error(message);
@@ -183,6 +240,7 @@ export default function Login() {
     try {
       const data = await verifyLoginOtp({
         email: twoFaData.email,
+        phone: twoFaData.phone,
         loginSessionToken: twoFaData.loginSessionToken,
         otp: enteredOtp,
       });
@@ -209,10 +267,15 @@ export default function Login() {
     setResendingOtp(true);
 
     try {
-      const data = await resendLoginOtp({
-        email: twoFaData.email,
-        loginSessionToken: twoFaData.loginSessionToken,
-      });
+      let data;
+      if (twoFaData.email || twoFaData.loginSessionToken) {
+        data = await resendLoginOtp({
+          email: twoFaData.email,
+          loginSessionToken: twoFaData.loginSessionToken,
+        });
+      } else if (twoFaData.phone) {
+        data = await sendLoginPhoneOtp({ phone: twoFaData.phone });
+      }
 
       setResendCooldown(30);
       setOtp(EMPTY_OTP);
@@ -255,7 +318,7 @@ export default function Login() {
                 <ellipse cx="21" cy="11.5" rx="3.5" ry="5.5" transform="rotate(-5 21 11.5)" fill="#3730a3" />
                 <ellipse cx="29" cy="11.5" rx="3.5" ry="5.5" transform="rotate(5 29 11.5)" fill="#3730a3" />
                 <ellipse cx="36" cy="16" rx="3.5" ry="5.5" transform="rotate(15 36 16)" fill="#3730a3" />
-                
+
                 {/* Main Paw Pad */}
                 <path
                   d="M15 28C13.5 32.5 16.5 39 25 39C33.5 39 36.5 32.5 35 28C33.5 23.5 28.5 23.5 25 25.5C21.5 23.5 16.5 23.5 15 28Z"
@@ -273,6 +336,33 @@ export default function Login() {
             <p>Sign in to manage your clinic, patients, and schedule.</p>
           </div>
 
+          {/* Login Method Tabs */}
+          <div className="auth-login-tabs">
+            <button
+              type="button"
+              className={`auth-login-tab-btn ${loginMethod === "PASSWORD" ? "active" : ""}`}
+              onClick={() => {
+                setLoginMethod("PASSWORD");
+                setServerError("");
+              }}
+            >
+              <FiMail size={15} />
+              <span>Email / Password</span>
+            </button>
+
+            <button
+              type="button"
+              className={`auth-login-tab-btn ${loginMethod === "PHONE_OTP" ? "active" : ""}`}
+              onClick={() => {
+                setLoginMethod("PHONE_OTP");
+                setServerError("");
+              }}
+            >
+              <FiSmartphone size={15} />
+              <span>Mobile OTP</span>
+            </button>
+          </div>
+
           {serverError && (
             <div className="auth-alert" style={{ marginBottom: 18 }}>
               <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -280,80 +370,124 @@ export default function Login() {
             </div>
           )}
 
-          <form className="auth-form" onSubmit={handleSubmit(onSubmitCredentials)} noValidate>
-            <Field label="Email address" required>
-              <div className="auth-input-wrap">
-                <span className="auth-input-icon">
-                  <FiMail size={16} />
-                </span>
+          {loginMethod === "PASSWORD" ? (
+            /* PASSWORD LOGIN FORM (Supports Email OR Phone) */
+            <form className="auth-form" onSubmit={handlePasswordSubmit(onSubmitPassword)} noValidate>
+              <Field label="Email or Mobile number" required>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">
+                    <FiMail size={16} />
+                  </span>
 
-                <input
-                  type="email"
-                  className={`input${errors.email ? " input-error" : ""}`}
-                  placeholder="doctor@example.com"
-                  autoComplete="email"
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: "Enter a valid email address",
-                    },
-                  })}
-                />
+                  <input
+                    type="text"
+                    className={`input${passwordErrors.identifier ? " input-error" : ""}`}
+                    placeholder="doctor@example.com"
+                    autoComplete="username"
+                    {...registerPasswordForm("identifier", {
+                      required: "Email or mobile number is required",
+                    })}
+                  />
+                </div>
+                {passwordErrors.identifier && (
+                  <span className="field-error">{passwordErrors.identifier.message}</span>
+                )}
+              </Field>
+
+              <Field label="Password" required>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">
+                    <FiLock size={16} />
+                  </span>
+
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className={`input${passwordErrors.password ? " input-error" : ""}`}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    style={{ paddingRight: 44 }}
+                    {...registerPasswordForm("password", {
+                      required: "Password is required",
+                    })}
+                  />
+
+                  <button
+                    type="button"
+                    className="auth-input-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  </button>
+                </div>
+                {passwordErrors.password && (
+                  <span className="field-error">{passwordErrors.password.message}</span>
+                )}
+              </Field>
+
+              <div className="auth-form-meta">
+                <label className="auth-checkbox">
+                  <input type="checkbox" {...registerPasswordForm("remember")} />
+                  Remember me
+                </label>
+
+                <Link to="/forgot-password" className="auth-link">
+                  Forgot password?
+                </Link>
               </div>
-              {errors.email && <span className="field-error">{errors.email.message}</span>}
-            </Field>
 
-            <Field label="Password" required>
-              <div className="auth-input-wrap">
-                <span className="auth-input-icon">
-                  <FiLock size={16} />
-                </span>
+              <Button
+                type="submit"
+                size="lg"
+                className="auth-submit"
+                disabled={submitting}
+              >
+                {submitting ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          ) : (
+            /* PHONE OTP LOGIN FORM */
+            <form className="auth-form" onSubmit={handlePhoneSubmit(onSubmitPhoneOtp)} noValidate>
+              <Field label="Registered Mobile Number" required>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">
+                    <FiSmartphone size={16} />
+                  </span>
 
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className={`input${errors.password ? " input-error" : ""}`}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  style={{ paddingRight: 44 }}
-                  {...register("password", {
-                    required: "Password is required",
-                  })}
-                />
+                  <input
+                    type="tel"
+                    className={`input${phoneErrors.phone ? " input-error" : ""}`}
+                    placeholder="Enter 10-digit mobile number"
+                    autoComplete="tel"
+                    {...registerPhoneForm("phone", {
+                      required: "Phone number is required",
+                      pattern: {
+                        value: /^[0-9+\-\s]{7,15}$/,
+                        message: "Enter a valid phone number",
+                      },
+                    })}
+                  />
+                </div>
+                {phoneErrors.phone && (
+                  <span className="field-error">{phoneErrors.phone.message}</span>
+                )}
+              </Field>
 
-                <button
-                  type="button"
-                  className="auth-input-toggle"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </button>
+              <div style={{ fontSize: 13, color: "#64748b", marginTop: -6, lineHeight: 1.4 }}>
+                We&apos;ll send a 6-digit verification code to this number to verify and sign you in.
               </div>
-              {errors.password && <span className="field-error">{errors.password.message}</span>}
-            </Field>
 
-            <div className="auth-form-meta">
-              <label className="auth-checkbox">
-                <input type="checkbox" {...register("remember")} />
-                Remember me
-              </label>
-
-              <Link to="/forgot-password" className="auth-link">
-                Forgot password?
-              </Link>
-            </div>
-
-            <Button
-              type="submit"
-              size="lg"
-              className="auth-submit"
-              disabled={submitting}
-            >
-              {submitting ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                size="lg"
+                className="auth-submit"
+                disabled={submitting}
+              >
+                {submitting ? "Sending OTP..." : "Get Login OTP"}
+              </Button>
+            </form>
+          )}
 
           <p className="auth-form-footer">
             Don&apos;t have an account?{" "}
@@ -370,9 +504,9 @@ export default function Login() {
               <FiSmartphone size={24} color="#4338ca" />
             </div>
 
-            <h2>Two-Factor Verification</h2>
+            <h2>Mobile Verification</h2>
             <p>
-              We sent a 6-digit verification code to your registered mobile number:{" "}
+              We sent a 6-digit verification code to:{" "}
               <strong style={{ color: "#1e1b4b", display: "inline-block", marginTop: 4 }}>
                 {twoFaData.maskedPhone}
               </strong>
@@ -383,45 +517,6 @@ export default function Login() {
             <div className="auth-alert" style={{ marginBottom: 18 }}>
               <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>{serverError}</span>
-            </div>
-          )}
-
-          {twoFaData.devOtp && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 12px",
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: 8,
-                marginBottom: 16,
-                fontSize: 13,
-                color: "#166534",
-              }}
-            >
-              <span>Test OTP: <strong>{twoFaData.devOtp}</strong></span>
-              <button
-                type="button"
-                onClick={() => {
-                  const digits = twoFaData.devOtp.split("").slice(0, 6);
-                  setOtp(digits);
-                  handleVerifyOtp(twoFaData.devOtp);
-                }}
-                style={{
-                  background: "#22c55e",
-                  color: "#fff",
-                  border: "none",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Auto Fill
-              </button>
             </div>
           )}
 
@@ -464,8 +559,8 @@ export default function Login() {
                 {resendingOtp
                   ? "Resending..."
                   : resendCooldown > 0
-                  ? `Resend OTP (${resendCooldown}s)`
-                  : "Resend OTP"}
+                    ? `Resend OTP (${resendCooldown}s)`
+                    : "Resend OTP"}
               </button>
 
               <Button
@@ -496,7 +591,7 @@ export default function Login() {
               }}
             >
               <FiArrowLeft size={16} />
-              Sign in with a different account
+              Sign in with a different account or method
             </button>
           </div>
         </div>
