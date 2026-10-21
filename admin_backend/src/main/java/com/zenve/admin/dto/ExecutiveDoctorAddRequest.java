@@ -13,6 +13,13 @@ public record ExecutiveDoctorAddRequest(
         Integer experienceYears,
         BigDecimal consultationFee,
         String pincode,
-        String city
+        String city,
+        String clinicName,
+        String facilityType,
+        String clinicPhone,
+        String clinicInsideImage,
+        String clinicOutsideImage,
+        String signatureImage,
+        String profileImage
 ) {
 }

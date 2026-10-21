@@ -78,7 +78,14 @@ export default function Doctors() {
     if (!token) return
     try {
       const data = await api.listDoctors(token, tab)
-      const rawDoctors = data?.doctors || []
+      const rawList = data?.doctors || []
+      const seen = new Set()
+      const rawDoctors = rawList.filter(d => {
+        const key = (d.email && d.email.trim().toLowerCase()) || (d.phone && d.phone.trim()) || d.id
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
       setDoctors(rawDoctors)
       setCounts(data?.counts || { pending: 0, approved: 0, rejected: 0, all: 0 })
 

@@ -26,6 +26,22 @@ public class ExecutiveDoctorAddRequest {
     private String digitalSignatureImage;
     private String clinicInsideImage;
     private String clinicOutsideImage;
+    private String clinicName;
+    private String clinicHospital;
+    private String facilityType;
+    private String clinicPhone;
+
+    public String getClinicName() { return clinicName; }
+    public void setClinicName(String clinicName) { this.clinicName = clinicName; }
+
+    public String getClinicHospital() { return clinicHospital != null ? clinicHospital : clinicName; }
+    public void setClinicHospital(String clinicHospital) { this.clinicHospital = clinicHospital; }
+
+    public String getFacilityType() { return facilityType; }
+    public void setFacilityType(String facilityType) { this.facilityType = facilityType; }
+
+    public String getClinicPhone() { return clinicPhone; }
+    public void setClinicPhone(String clinicPhone) { this.clinicPhone = clinicPhone; }
 
     public String getFullName() {
         return fullName;

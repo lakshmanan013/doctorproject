@@ -41,12 +41,22 @@ public class AdminApprovalClient {
      * doctor is re-submitted, or via the admin's own "register" tooling.
      */
     public void notifyDoctorRegistered(User user) {
+        notifyDoctorRegistered(user, null, null);
+    }
+
+    public void notifyDoctorRegistered(User user, String clinicHospital, String qualification) {
         String url = properties.getBaseUrl() + "/doctors/register";
 
-        Map<String, String> body = Map.of(
-                "fullName", user.getFullName(),
-                "email", user.getEmail(),
-                "phone", user.getPhone() == null ? "" : user.getPhone());
+        Map<String, String> body = new java.util.HashMap<>();
+        body.put("fullName", user.getFullName());
+        body.put("email", user.getEmail());
+        body.put("phone", user.getPhone() == null ? "" : user.getPhone());
+        if (clinicHospital != null && !clinicHospital.isBlank()) {
+            body.put("clinicName", clinicHospital.trim());
+        }
+        if (qualification != null && !qualification.isBlank()) {
+            body.put("qualification", qualification.trim());
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

@@ -82,7 +82,15 @@ export default function Dashboard() {
       const data = await api.listDoctors(token, 'pending')
       if (data && data.counts) {
         setCounts(data.counts)
-        setPendingDoctors(data.doctors || [])
+        const raw = data.doctors || []
+        const seen = new Set()
+        const unique = raw.filter(d => {
+          const key = (d.email && d.email.trim().toLowerCase()) || (d.phone && d.phone.trim()) || d.id
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        setPendingDoctors(unique)
       }
     } catch {
       setPendingDoctors([])

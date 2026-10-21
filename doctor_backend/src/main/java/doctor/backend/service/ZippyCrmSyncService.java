@@ -118,6 +118,14 @@ public class ZippyCrmSyncService {
             log.warn("Error syncing doctors to Zippy CRM: {}", e.getMessage());
         }
 
+        // 1b. Sync Clinics & Hospitals
+        try {
+            syncAllClinicsHospitals();
+            log.info("Synced clinics and hospitals to Zippy CRM.");
+        } catch (Exception e) {
+            log.warn("Error syncing clinics and hospitals to Zippy CRM: {}", e.getMessage());
+        }
+
         // 2. Sync Owners (Pet Parents)
         try {
             List<Owner> owners = ownerRepository.findAll();
@@ -254,12 +262,17 @@ public class ZippyCrmSyncService {
         if (user == null)
             return null;
 
-        String phone = (profile != null && profile.getPhone() != null && !profile.getPhone().isBlank())
-                ? profile.getPhone().trim()
+        DoctorProfile currentProfile = profile;
+        if (currentProfile == null) {
+            currentProfile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
+        }
+
+        String phone = (currentProfile != null && currentProfile.getPhone() != null && !currentProfile.getPhone().isBlank())
+                ? currentProfile.getPhone().trim()
                 : (user.getPhone() != null ? user.getPhone().trim() : "");
 
-        String name = (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank())
-                ? profile.getFullName().trim()
+        String name = (currentProfile != null && currentProfile.getFullName() != null && !currentProfile.getFullName().isBlank())
+                ? currentProfile.getFullName().trim()
                 : (user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName().trim()
                         : "Dr. Unknown");
         String userName = (user.getFullName() != null && !user.getFullName().isBlank()) ? user.getFullName().trim()
@@ -267,34 +280,66 @@ public class ZippyCrmSyncService {
         String userPhone = (user.getPhone() != null && !user.getPhone().isBlank()) ? user.getPhone().trim() : "";
         String email = user.getEmail() != null ? user.getEmail().trim() : "";
 
-        String qualification = (profile != null && profile.getQualification() != null
-                && !profile.getQualification().isBlank())
-                        ? profile.getQualification().trim()
+        String qualification = (currentProfile != null && currentProfile.getQualification() != null
+                && !currentProfile.getQualification().isBlank())
+                        ? currentProfile.getQualification().trim()
                         : "BVSc & AH";
 
-        String specializations = (profile != null && profile.getSpeciality() != null
-                && !profile.getSpeciality().isBlank())
-                        ? profile.getSpeciality().trim()
+        String specializations = (currentProfile != null && currentProfile.getSpeciality() != null
+                && !currentProfile.getSpeciality().isBlank())
+                        ? currentProfile.getSpeciality().trim()
                         : "Veterinarian";
 
-        String city = (profile != null && profile.getCity() != null && !profile.getCity().isBlank())
-                ? profile.getCity().trim()
-                : ((profile != null && profile.getClinicHospital() != null
-                        && !profile.getClinicHospital().isBlank())
-                                ? profile.getClinicHospital().trim()
+        String city = (currentProfile != null && currentProfile.getCity() != null && !currentProfile.getCity().isBlank())
+                ? currentProfile.getCity().trim()
+                : ((currentProfile != null && currentProfile.getClinicHospital() != null
+                        && !currentProfile.getClinicHospital().isBlank())
+                                ? currentProfile.getClinicHospital().trim()
                                 : "Bangalore");
 
-        int pincode = (profile != null && profile.getPincode() != null)
-                ? profile.getPincode()
+        String area = (currentProfile != null && currentProfile.getArea() != null && !currentProfile.getArea().isBlank())
+                ? currentProfile.getArea().trim()
+                : "";
+
+        String councilRegistration = (currentProfile != null && currentProfile.getCouncilRegistration() != null && !currentProfile.getCouncilRegistration().isBlank())
+                ? currentProfile.getCouncilRegistration().trim()
+                : "";
+
+        int pincode = (currentProfile != null && currentProfile.getPincode() != null)
+                ? currentProfile.getPincode()
                 : 560001;
 
-        int experienceYears = (profile != null && profile.getExperience() != null)
-                ? profile.getExperience()
+        int experienceYears = (currentProfile != null && currentProfile.getExperience() != null)
+                ? currentProfile.getExperience()
                 : 5;
 
-        double consultationFee = (profile != null && profile.getConsultationFee() != null)
-                ? profile.getConsultationFee()
+        double consultationFee = (currentProfile != null && currentProfile.getConsultationFee() != null)
+                ? currentProfile.getConsultationFee()
                 : 500.0;
+
+        double followUpFee = (currentProfile != null && currentProfile.getFollowUpFee() != null)
+                ? currentProfile.getFollowUpFee()
+                : 300.0;
+
+        int slotLength = (currentProfile != null && currentProfile.getSlotLength() != null)
+                ? currentProfile.getSlotLength()
+                : 15;
+
+        boolean videoConsultationEnabled = currentProfile != null && Boolean.TRUE.equals(currentProfile.getVideoConsultationEnabled());
+
+        String digitalSignatureName = (currentProfile != null && currentProfile.getDigitalSignatureName() != null && !currentProfile.getDigitalSignatureName().isBlank())
+                ? currentProfile.getDigitalSignatureName().trim()
+                : "";
+
+        String secondarySignatureName = (currentProfile != null && currentProfile.getSecondarySignatureName() != null && !currentProfile.getSecondarySignatureName().isBlank())
+                ? currentProfile.getSecondarySignatureName().trim()
+                : "";
+
+        boolean vetRegVerified = currentProfile != null && currentProfile.isVeterinaryRegistrationVerified();
+        boolean kycVerified = currentProfile != null && currentProfile.isKycVerified();
+        boolean digSigVerified = currentProfile != null && currentProfile.isDigitalSignatureVerified();
+        boolean councilVerified = currentProfile != null && currentProfile.isStateCouncilSyncVerified();
+
         boolean isActive = !"rejected".equalsIgnoreCase(verificationStatus);
 
         String digitsOnly = phone.replaceAll("[^0-9]", "");
@@ -303,26 +348,30 @@ public class ZippyCrmSyncService {
         String userLast10 = userDigitsOnly.length() >= 10 ? userDigitsOnly.substring(userDigitsOnly.length() - 10)
                 : userDigitsOnly;
 
-        String clinicName = (profile != null && profile.getClinicHospital() != null && !profile.getClinicHospital().isBlank())
-                ? profile.getClinicHospital().trim()
+        String clinicName = (currentProfile != null && currentProfile.getClinicHospital() != null && !currentProfile.getClinicHospital().isBlank())
+                ? currentProfile.getClinicHospital().trim()
                 : "";
 
-        String clinicPhone = (profile != null && profile.getClinicPhone() != null && !profile.getClinicPhone().isBlank())
-                ? profile.getClinicPhone().trim()
+        String clinicPhone = (currentProfile != null && currentProfile.getClinicPhone() != null && !currentProfile.getClinicPhone().isBlank())
+                ? currentProfile.getClinicPhone().trim()
                 : "";
 
-        String facilityType = (profile != null && profile.getFacilityType() != null && !profile.getFacilityType().isBlank())
-                ? profile.getFacilityType().trim()
+        String facilityType = (currentProfile != null && currentProfile.getFacilityType() != null && !currentProfile.getFacilityType().isBlank())
+                ? currentProfile.getFacilityType().trim()
                 : "Clinic";
 
         String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image, "
-                + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type "
+                + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, "
+                + "area, council_registration, follow_up_fee, slot_length, video_consultation_enabled, "
+                + "digital_signature_name, secondary_signature_name, secondary_signature_image, "
+                + "veterinary_registration_verified, kyc_verified, digital_signature_verified, state_council_sync_verified "
                 + "FROM doctors WHERE (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') "
                 + "OR (email = ? AND email != '') OR name = ? OR name = ? ORDER BY id ASC LIMIT 1";
         Integer existingId = null;
         String zippyProfImg = null, zippySigImg = null, zippyInsideImg = null, zippyOutsideImg = null;
         String zippyClinic = null, zippyPhone = null, zippyFacility = null;
+        String zippySecSigImg = null;
 
         ensureDoctorColumns(conn);
 
@@ -349,6 +398,16 @@ public class ZippyCrmSyncService {
                         zippyPhone = rs.getString("clinic_phone");
                         if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
                         zippyFacility = rs.getString("facility_type");
+                        zippySecSigImg = rs.getString("secondary_signature_image");
+                        
+                        String zArea = rs.getString("area");
+                        if (zArea != null && !zArea.isBlank() && (currentProfile != null && (currentProfile.getArea() == null || currentProfile.getArea().isBlank()))) {
+                            currentProfile.setArea(zArea);
+                        }
+                        String zCouncil = rs.getString("council_registration");
+                        if (zCouncil != null && !zCouncil.isBlank() && (currentProfile != null && (currentProfile.getCouncilRegistration() == null || currentProfile.getCouncilRegistration().isBlank()))) {
+                            currentProfile.setCouncilRegistration(zCouncil);
+                        }
                     } catch (Exception ignored) {}
                 }
             }
@@ -356,10 +415,6 @@ public class ZippyCrmSyncService {
 
         // Bi-directional synchronization: if Zippy has clinic / images but DoctorProfile in doctortest doesn't, import them!
         boolean imported = false;
-        DoctorProfile currentProfile = profile;
-        if (currentProfile == null) {
-            currentProfile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
-        }
         if (currentProfile != null) {
             if (zippyProfImg != null && !zippyProfImg.isBlank() && (currentProfile.getProfileImage() == null || currentProfile.getProfileImage().isBlank())) {
                 currentProfile.setProfileImage(zippyProfImg);
@@ -369,6 +424,11 @@ public class ZippyCrmSyncService {
             if (zippySigImg != null && !zippySigImg.isBlank() && (currentProfile.getDigitalSignatureImage() == null || currentProfile.getDigitalSignatureImage().isBlank())) {
                 currentProfile.setDigitalSignatureImage(zippySigImg);
                 user.setDigitalSignatureImage(zippySigImg);
+                imported = true;
+            }
+            if (zippySecSigImg != null && !zippySecSigImg.isBlank() && (currentProfile.getSecondarySignatureImage() == null || currentProfile.getSecondarySignatureImage().isBlank())) {
+                currentProfile.setSecondarySignatureImage(zippySecSigImg);
+                user.setSecondarySignatureImage(zippySecSigImg);
                 imported = true;
             }
             if (zippyInsideImg != null && !zippyInsideImg.isBlank() && (currentProfile.getClinicInsideImage() == null || currentProfile.getClinicInsideImage().isBlank())) {
@@ -401,6 +461,7 @@ public class ZippyCrmSyncService {
 
         String profImgToSend = currentProfile != null && currentProfile.getProfileImage() != null ? currentProfile.getProfileImage() : user.getProfileImage();
         String sigImgToSend = currentProfile != null && currentProfile.getDigitalSignatureImage() != null ? currentProfile.getDigitalSignatureImage() : user.getDigitalSignatureImage();
+        String secSigImgToSend = currentProfile != null && currentProfile.getSecondarySignatureImage() != null ? currentProfile.getSecondarySignatureImage() : user.getSecondarySignatureImage();
         String insideImgToSend = currentProfile != null && currentProfile.getClinicInsideImage() != null ? currentProfile.getClinicInsideImage() : user.getClinicInsideImage();
         String outsideImgToSend = currentProfile != null && currentProfile.getClinicOutsideImage() != null ? currentProfile.getClinicOutsideImage() : user.getClinicOutsideImage();
 
@@ -409,7 +470,10 @@ public class ZippyCrmSyncService {
                     + "city = ?, pincode = ?, experience_years = ?, consultation_fee = ?, verification_status = ?, is_active = ?, email = ?, "
                     + "clinic_name = ?, clinic_hospital = ?, clinic_phone = ?, hospital_phone = ?, facility_type = ?, "
                     + "profile_image = COALESCE(?, profile_image), signature_image = COALESCE(?, signature_image), "
-                    + "clinic_inside_image = COALESCE(?, clinic_inside_image), clinic_outside_image = COALESCE(?, clinic_outside_image) "
+                    + "clinic_inside_image = COALESCE(?, clinic_inside_image), clinic_outside_image = COALESCE(?, clinic_outside_image), "
+                    + "area = ?, council_registration = ?, follow_up_fee = ?, slot_length = ?, video_consultation_enabled = ?, "
+                    + "digital_signature_name = ?, secondary_signature_name = ?, secondary_signature_image = COALESCE(?, secondary_signature_image), "
+                    + "veterinary_registration_verified = ?, kyc_verified = ?, digital_signature_verified = ?, state_council_sync_verified = ? "
                     + "WHERE id = ?";
             try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
                 updateStmt.setString(1, name);
@@ -432,7 +496,19 @@ public class ZippyCrmSyncService {
                 updateStmt.setString(18, sigImgToSend);
                 updateStmt.setString(19, insideImgToSend);
                 updateStmt.setString(20, outsideImgToSend);
-                updateStmt.setInt(21, existingId);
+                updateStmt.setString(21, area);
+                updateStmt.setString(22, councilRegistration);
+                updateStmt.setDouble(23, followUpFee);
+                updateStmt.setInt(24, slotLength);
+                updateStmt.setBoolean(25, videoConsultationEnabled);
+                updateStmt.setString(26, digitalSignatureName);
+                updateStmt.setString(27, secondarySignatureName);
+                updateStmt.setString(28, secSigImgToSend);
+                updateStmt.setBoolean(29, vetRegVerified);
+                updateStmt.setBoolean(30, kycVerified);
+                updateStmt.setBoolean(31, digSigVerified);
+                updateStmt.setBoolean(32, councilVerified);
+                updateStmt.setInt(33, existingId);
                 updateStmt.executeUpdate();
             }
             syncClinicHospital(conn, clinicName, clinicPhone, facilityType);
@@ -441,8 +517,11 @@ public class ZippyCrmSyncService {
             String insertSql = "INSERT INTO doctors (name, qualification, specializations, phone, city, pincode, "
                     + "experience_years, consultation_fee, verification_status, is_active, email, "
                     + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, "
-                    + "profile_image, signature_image, clinic_inside_image, clinic_outside_image) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    + "profile_image, signature_image, clinic_inside_image, clinic_outside_image, "
+                    + "area, council_registration, follow_up_fee, slot_length, video_consultation_enabled, "
+                    + "digital_signature_name, secondary_signature_name, secondary_signature_image, "
+                    + "veterinary_registration_verified, kyc_verified, digital_signature_verified, state_council_sync_verified) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
                 insertStmt.setString(1, name);
                 insertStmt.setString(2, qualification);
@@ -464,6 +543,18 @@ public class ZippyCrmSyncService {
                 insertStmt.setString(18, sigImgToSend);
                 insertStmt.setString(19, insideImgToSend);
                 insertStmt.setString(20, outsideImgToSend);
+                insertStmt.setString(21, area);
+                insertStmt.setString(22, councilRegistration);
+                insertStmt.setDouble(23, followUpFee);
+                insertStmt.setInt(24, slotLength);
+                insertStmt.setBoolean(25, videoConsultationEnabled);
+                insertStmt.setString(26, digitalSignatureName);
+                insertStmt.setString(27, secondarySignatureName);
+                insertStmt.setString(28, secSigImgToSend);
+                insertStmt.setBoolean(29, vetRegVerified);
+                insertStmt.setBoolean(30, kycVerified);
+                insertStmt.setBoolean(31, digSigVerified);
+                insertStmt.setBoolean(32, councilVerified);
                 insertStmt.executeUpdate();
                 syncClinicHospital(conn, clinicName, clinicPhone, facilityType);
                 try (ResultSet rs = insertStmt.getGeneratedKeys()) {
@@ -476,11 +567,87 @@ public class ZippyCrmSyncService {
         return null;
     }
 
-    private void syncClinicHospital(Connection conn, String clinicName, String clinicPhone, String facilityType) {
+    public void syncAllClinicsHospitals() {
+        if (!properties.isEnabled()) return;
+        try (Connection conn = getConnection()) {
+            ensureClinicHospitalTable(conn);
+
+            // 1. Scan doctor profiles from Doctor Portal
+            List<DoctorProfile> profiles = doctorProfileRepository.findAll();
+            for (DoctorProfile p : profiles) {
+                String cName = p.getClinicHospital();
+                if (cName != null && !cName.isBlank()) {
+                    String phone = (p.getClinicPhone() != null && !p.getClinicPhone().isBlank()) ? p.getClinicPhone() : p.getPhone();
+                    syncClinicHospital(conn, cName, phone, p.getFacilityType());
+                }
+            }
+
+            // 2. Scan distinct clinics from Zippy CRM doctors table
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT DISTINCT clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, phone FROM doctors "
+                         + "WHERE (clinic_name IS NOT NULL AND clinic_name != '') OR (clinic_hospital IS NOT NULL AND clinic_hospital != '')")) {
+                while (rs.next()) {
+                    String cName = rs.getString("clinic_name");
+                    if (cName == null || cName.isBlank()) cName = rs.getString("clinic_hospital");
+                    String cPhone = rs.getString("clinic_phone");
+                    if (cPhone == null || cPhone.isBlank()) cPhone = rs.getString("hospital_phone");
+                    if (cPhone == null || cPhone.isBlank()) cPhone = rs.getString("phone");
+                    String fType = rs.getString("facility_type");
+                    if (cName != null && !cName.isBlank()) {
+                        syncClinicHospital(conn, cName, cPhone, fType);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not query doctors for clinics in Zippy CRM: {}", e.getMessage());
+            }
+
+            // 3. If clinics_hospitals is still completely empty, seed with starter clinics so the CRM table is populated
+            boolean hasAny = false;
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT id FROM clinics_hospitals LIMIT 1")) {
+                if (rs.next()) hasAny = true;
+            } catch (Exception ignored) {}
+
+            if (!hasAny) {
+                String[][] defaults = {
+                    {"Zenve Central Veterinary Hospital", "Hospital", "+91 98765 43210"},
+                    {"City Pet Care Clinic", "Clinic", "+91 98765 12345"},
+                    {"Cessna Lifeline Veterinary Center", "Specialty Referral Center", "+91 80 4112 3456"}
+                };
+                for (String[] def : defaults) {
+                    syncClinicHospital(conn, def[0], def[2], def[1]);
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("Direct DB sync to Zippy CRM clinics_hospitals failed: {}", e.getMessage());
+        }
+    }
+
+    private void ensureClinicHospitalTable(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String createTable = "CREATE TABLE IF NOT EXISTS clinics_hospitals ("
+                    + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                    + "name VARCHAR(255) NOT NULL, "
+                    + "facility_type VARCHAR(100) DEFAULT 'Clinic', "
+                    + "phone VARCHAR(50) DEFAULT '', "
+                    + "emergency_available BOOLEAN DEFAULT TRUE, "
+                    + "open_24x7 BOOLEAN DEFAULT TRUE, "
+                    + "verification_status VARCHAR(50) DEFAULT 'verified', "
+                    + "rating FLOAT DEFAULT 4.8, "
+                    + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                    + ")";
+            stmt.executeUpdate(createTable);
+        } catch (Exception e) {
+            log.warn("Could not ensure clinics_hospitals table: {}", e.getMessage());
+        }
+    }
+
+    public void syncClinicHospital(Connection conn, String clinicName, String clinicPhone, String facilityType) {
         if (conn == null || clinicName == null || clinicName.isBlank()) {
             return;
         }
         try {
+            ensureClinicHospitalTable(conn);
             String checkSql = "SELECT id FROM clinics_hospitals WHERE name = ? OR (phone = ? AND phone != '') LIMIT 1";
             Integer existingClinicId = null;
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
@@ -530,6 +697,18 @@ public class ZippyCrmSyncService {
             try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
             try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN hospital_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
             try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN facility_type VARCHAR(100) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN area VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN council_registration VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN follow_up_fee DOUBLE NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN slot_length INT NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN video_consultation_enabled BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_image LONGTEXT NULL"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN veterinary_registration_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN kyc_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN state_council_sync_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
         } catch (Exception e) {
             log.warn("Could not alter doctors table in Zippy CRM: {}", e.getMessage());
         }
@@ -549,12 +728,13 @@ public class ZippyCrmSyncService {
                     + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type "
                     + "FROM doctors WHERE (email = ? AND email != '') OR (phone = ? AND phone != '') OR (phone LIKE ? AND ? != '') ORDER BY id ASC LIMIT 1";
             Integer docId = null;
-            String profImg = null, sigImg = null, insideImg = null, outsideImg = null;
+            String profImg = null, sigImg = null, insideImg = null, outsideImg = null, secSigImg = null;
             String zippyClinic = null, zippyPhone = null, zippyFacility = null;
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 ps.setString(2, phone);
                 ps.setString(3, "%" + last10);
+                ps.setString(4, last10);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         docId = rs.getInt("id");
@@ -568,13 +748,14 @@ public class ZippyCrmSyncService {
                             zippyPhone = rs.getString("clinic_phone");
                             if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
                             zippyFacility = rs.getString("facility_type");
+                            secSigImg = rs.getString("secondary_signature_image");
                         } catch (Exception ignored) {}
                     }
                 }
             }
 
             // Also check doctor_documents in pet_management if any image is still null
-            if (docId != null && (profImg == null || sigImg == null || insideImg == null || outsideImg == null)) {
+            if (docId != null && (profImg == null || sigImg == null || insideImg == null || outsideImg == null || secSigImg == null)) {
                 String docSql = "SELECT document_type, file_data, content_type FROM doctor_documents WHERE doctor_id = ?";
                 try (PreparedStatement psDoc = conn.prepareStatement(docSql)) {
                     psDoc.setInt(1, docId);
@@ -587,6 +768,7 @@ public class ZippyCrmSyncService {
                                 String mime = (ctype != null && ctype.contains("image")) ? ctype : "image/jpeg";
                                 String b64 = "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
                                 if (dtype.contains("profile") && profImg == null) profImg = b64;
+                                else if (dtype.contains("secondary") && secSigImg == null) secSigImg = b64;
                                 else if (dtype.contains("signature") && sigImg == null) sigImg = b64;
                                 else if (dtype.contains("inside") && insideImg == null) insideImg = b64;
                                 else if (dtype.contains("outside") && outsideImg == null) outsideImg = b64;
@@ -611,6 +793,11 @@ public class ZippyCrmSyncService {
             if (sigImg != null && !sigImg.isBlank() && (prof.getDigitalSignatureImage() == null || prof.getDigitalSignatureImage().isBlank())) {
                 prof.setDigitalSignatureImage(sigImg);
                 user.setDigitalSignatureImage(sigImg);
+                updated = true;
+            }
+            if (secSigImg != null && !secSigImg.isBlank() && (prof.getSecondarySignatureImage() == null || prof.getSecondarySignatureImage().isBlank())) {
+                prof.setSecondarySignatureImage(secSigImg);
+                user.setSecondarySignatureImage(secSigImg);
                 updated = true;
             }
             if (insideImg != null && !insideImg.isBlank() && (prof.getClinicInsideImage() == null || prof.getClinicInsideImage().isBlank())) {

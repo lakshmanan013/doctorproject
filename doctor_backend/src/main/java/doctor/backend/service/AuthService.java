@@ -127,7 +127,7 @@ public class AuthService {
 
         // Let the admin backend know a new doctor is waiting for approval.
         // The account cannot log in until an admin approves it there.
-        adminApprovalClient.notifyDoctorRegistered(saved);
+        adminApprovalClient.notifyDoctorRegistered(saved, request.getClinicHospital(), null);
 
         // Sync pending doctor to Zippy CRM
         zippyCrmSyncService.syncDoctor(saved, profile);
@@ -257,6 +257,26 @@ public class AuthService {
         if (request.getPincode() != null) profile.setPincode(request.getPincode());
         if (request.getCity() != null) profile.setCity(request.getCity());
 
+        String cName = request.getClinicHospital() != null && !request.getClinicHospital().isBlank()
+                ? request.getClinicHospital() : request.getClinicName();
+        if (cName != null && !cName.isBlank()) {
+            profile.setClinicHospital(cName.trim());
+        }
+        if (request.getFacilityType() != null && !request.getFacilityType().isBlank()) {
+            profile.setFacilityType(request.getFacilityType().trim());
+        }
+        if (request.getClinicPhone() != null && !request.getClinicPhone().isBlank()) {
+            profile.setClinicPhone(request.getClinicPhone().trim());
+        }
+        if (request.getClinicInsideImage() != null && !request.getClinicInsideImage().isBlank()) {
+            profile.setClinicInsideImage(request.getClinicInsideImage());
+            user.setClinicInsideImage(request.getClinicInsideImage());
+        }
+        if (request.getClinicOutsideImage() != null && !request.getClinicOutsideImage().isBlank()) {
+            profile.setClinicOutsideImage(request.getClinicOutsideImage());
+            user.setClinicOutsideImage(request.getClinicOutsideImage());
+        }
+
         if (user.getProfileImage() != null) profile.setProfileImage(user.getProfileImage());
         if (user.getClinicInsideImage() != null) profile.setClinicInsideImage(user.getClinicInsideImage());
         if (user.getClinicOutsideImage() != null) profile.setClinicOutsideImage(user.getClinicOutsideImage());
@@ -264,7 +284,7 @@ public class AuthService {
 
         DoctorProfile savedProfile = doctorProfileRepository.save(profile);
 
-        adminApprovalClient.notifyDoctorRegistered(saved);
+        // adminApprovalClient.notifyDoctorRegistered(saved); // prevented duplicate admin pending creation
         zippyCrmSyncService.syncDoctor(saved, savedProfile);
     }
 

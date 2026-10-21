@@ -128,6 +128,14 @@ public class DoctorAppNotifier {
             } catch (NumberFormatException ignored) {}
         }
         body.put("city", request.city());
+        body.put("clinicName", request.clinicName());
+        body.put("clinicHospital", request.clinicName());
+        body.put("facilityType", request.facilityType());
+        body.put("clinicPhone", request.clinicPhone());
+        body.put("clinicInsideImage", request.clinicInsideImage());
+        body.put("clinicOutsideImage", request.clinicOutsideImage());
+        body.put("signatureImage", request.signatureImage());
+        body.put("profileImage", request.profileImage());
 
         postObj(url, body, "executive add for " + request.phone());
     }

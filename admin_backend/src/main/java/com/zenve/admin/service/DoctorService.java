@@ -176,9 +176,21 @@ public class DoctorService {
 
     @Transactional
     public DoctorDto register(RegisterDoctorRequest request) {
+        String cleanEmail = request.email() != null ? request.email().trim().toLowerCase() : null;
+        if (cleanEmail != null && !cleanEmail.isBlank()) {
+            java.util.Optional<Doctor> existing = doctorRepository.findByEmail(cleanEmail);
+            if (existing.isPresent()) {
+                Doctor doctor = existing.get();
+                if (request.clinicName() != null && doctor.getClinicName() == null) doctor.setClinicName(request.clinicName());
+                if (request.qualification() != null && doctor.getQualification() == null) doctor.setQualification(request.qualification());
+                doctorRepository.save(doctor);
+                return DoctorDto.from(doctor);
+            }
+        }
+
         Doctor doctor = Doctor.builder()
                 .fullName(request.fullName().trim())
-                .email(request.email().trim().toLowerCase())
+                .email(cleanEmail)
                 .phone(request.phone())
                 .clinicName(request.clinicName())
                 .qualification(request.qualification())
@@ -201,23 +213,40 @@ public class DoctorService {
         if (email == null || email.isBlank()) {
             email = "doc_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@zenve.internal";
         }
+        String cleanEmail = email.trim().toLowerCase();
 
-        Doctor doctor = Doctor.builder()
-                .fullName(request.fullName().trim())
-                .email(email.trim().toLowerCase())
-                .phone(request.phone())
-                .qualification(request.qualification())
-                .city(request.city())
-                .pincode(request.pincode())
-                .status(DoctorStatus.pending)
-                .build();
-        doctorRepository.save(java.util.Objects.requireNonNull(doctor));
+        java.util.Optional<Doctor> existing = doctorRepository.findByEmail(cleanEmail);
+        Doctor doctor;
+        if (existing.isPresent()) {
+            doctor = existing.get();
+            if (request.fullName() != null && !request.fullName().isBlank()) doctor.setFullName(request.fullName().trim());
+            if (request.phone() != null && !request.phone().isBlank()) doctor.setPhone(request.phone().trim());
+            if (request.qualification() != null && !request.qualification().isBlank()) doctor.setQualification(request.qualification().trim());
+            if (request.city() != null && !request.city().isBlank()) doctor.setCity(request.city().trim());
+            if (request.pincode() != null && !request.pincode().isBlank()) doctor.setPincode(request.pincode().trim());
+            if (request.clinicName() != null && !request.clinicName().isBlank()) doctor.setClinicName(request.clinicName().trim());
+            if (request.profileImage() != null && !request.profileImage().isBlank()) doctor.setProfileImage(request.profileImage());
+            doctorRepository.save(doctor);
+        } else {
+            doctor = Doctor.builder()
+                    .fullName(request.fullName().trim())
+                    .email(cleanEmail)
+                    .phone(request.phone())
+                    .qualification(request.qualification())
+                    .city(request.city())
+                    .pincode(request.pincode())
+                    .clinicName(request.clinicName() != null ? request.clinicName().trim() : null)
+                    .profileImage(request.profileImage())
+                    .status(DoctorStatus.pending)
+                    .build();
+            doctorRepository.save(java.util.Objects.requireNonNull(doctor));
 
-        notificationService.notify(
-                NotificationType.doctor_registered,
-                "Executive added new doctor",
-                "Executive added " + doctor.getFullName() + ". They are waiting for approval.",
-                doctor.getId());
+            notificationService.notify(
+                    NotificationType.doctor_registered,
+                    "Executive added new doctor",
+                    "Executive added " + doctor.getFullName() + ". They are waiting for approval.",
+                    doctor.getId());
+        }
 
         doctorAppNotifier.notifyExecutiveAdd(request, doctor.getEmail());
 
