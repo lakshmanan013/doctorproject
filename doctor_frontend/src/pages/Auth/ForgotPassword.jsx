@@ -185,7 +185,7 @@ export default function ForgotPassword() {
 
   if (step === 1) {
     return (
-      <AuthLayout>
+      <AuthLayout className="auth-shell-forgot">
         <div className="auth-form-header">
           <h2>Forgot password</h2>
           <p>Enter your account email and we&apos;ll send you a 6-digit OTP.</p>
@@ -240,7 +240,7 @@ export default function ForgotPassword() {
 
   if (step === 2) {
     return (
-      <AuthLayout>
+      <AuthLayout className="auth-shell-forgot">
         <div className="auth-form-header">
           <h2>Verify OTP</h2>
           <p>
@@ -305,7 +305,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout className="auth-shell-forgot">
       <div className="auth-form-header">
         <h2>Create new password</h2>
         <p>Choose a new password for your account.</p>
@@ -361,9 +361,8 @@ export default function ForgotPassword() {
 
             <input
               type={showConfirmPassword ? "text" : "password"}
-              className={`input${
-                passwordForm.formState.errors.confirmPassword ? " input-error" : ""
-              }`}
+              className={`input${passwordForm.formState.errors.confirmPassword ? " input-error" : ""
+                }`}
               placeholder="Re-enter the new password"
               autoComplete="new-password"
               style={{ paddingRight: 44 }}

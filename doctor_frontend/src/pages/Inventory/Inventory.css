@@ -6,7 +6,9 @@
 }
 
 @media (max-width: 1100px) {
-  .inv-layout { grid-template-columns: 1fr; }
+  .inv-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .row-selected {

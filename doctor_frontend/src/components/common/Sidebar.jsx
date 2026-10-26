@@ -33,7 +33,7 @@ export default function Sidebar({ isOpen, onClose }) {
             sessionStorage.setItem("zenve_doctor_user", JSON.stringify(parsed));
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     } catch {
       setDoctor(null);
     }
@@ -61,9 +61,9 @@ export default function Sidebar({ isOpen, onClose }) {
   const rawImage = doctor !== null ? (doctor?.profileImage || "") : "";
   const profilePhoto =
     typeof rawImage === "string" &&
-    rawImage.trim() !== "" &&
-    rawImage.trim() !== "null" &&
-    rawImage.trim() !== "undefined"
+      rawImage.trim() !== "" &&
+      rawImage.trim() !== "null" &&
+      rawImage.trim() !== "undefined"
       ? rawImage.trim()
       : "";
 

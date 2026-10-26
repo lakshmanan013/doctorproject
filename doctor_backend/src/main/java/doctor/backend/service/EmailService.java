@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,15 +45,15 @@ public class EmailService {
         private InternetAddress resolveFromAddress() {
                 String fromEmail = (mailProperties.getFrom() != null && !mailProperties.getFrom().isBlank())
                                 ? mailProperties.getFrom().trim()
-                                : "vetdoctors@zenvevet.com";
+                                : "no-replyzenvedoctors@zenvevet.com";
                 String senderName = (mailProperties.getSenderName() != null
                                 && !mailProperties.getSenderName().isBlank())
                                                 ? mailProperties.getSenderName().trim()
-                                                : "Doctor Zenve Vet";
+                                                : "Zenve Doctors";
 
                 if (!fromEmail.contains("@")) {
                         senderName = fromEmail;
-                        fromEmail = "vetdoctors@zenvevet.com";
+                        fromEmail = "no-replyzenvedoctors@zenvevet.com";
                 }
 
                 try {
@@ -64,6 +65,58 @@ public class EmailService {
 				return new InternetAddress();
 			}
 		}
+	}
+
+	private InternetAddress resolveAppointmentFromAddress() {
+		String fromEmail = (mailProperties.getAppointmentFrom() != null && !mailProperties.getAppointmentFrom().isBlank())
+				? mailProperties.getAppointmentFrom().trim()
+				: "no-replyzenveappointments@zenvevet.com";
+		String senderName = (mailProperties.getAppointmentSenderName() != null
+				&& !mailProperties.getAppointmentSenderName().isBlank())
+						? mailProperties.getAppointmentSenderName().trim()
+						: "Zenve Appointments";
+
+		if (!fromEmail.contains("@")) {
+			senderName = fromEmail;
+			fromEmail = "no-replyzenveappointments@zenvevet.com";
+		}
+
+		try {
+			return new InternetAddress(fromEmail, senderName);
+		} catch (Exception ex) {
+			try {
+				return new InternetAddress(fromEmail);
+			} catch (Exception e) {
+				return new InternetAddress();
+			}
+		}
+	}
+
+	private JavaMailSenderImpl appointmentMailSenderInstance = null;
+
+	private synchronized JavaMailSender getAppointmentMailSender() {
+		if (appointmentMailSenderInstance == null) {
+			JavaMailSenderImpl impl = new JavaMailSenderImpl();
+			impl.setHost(mailProperties.getAppointmentHost() != null ? mailProperties.getAppointmentHost() : "mail.zenvevet.com");
+			impl.setPort(mailProperties.getAppointmentPort() > 0 ? mailProperties.getAppointmentPort() : 465);
+			impl.setUsername(mailProperties.getAppointmentUsername() != null ? mailProperties.getAppointmentUsername() : "no-replyzenveappointments@zenvevet.com");
+			impl.setPassword(mailProperties.getAppointmentPassword() != null ? mailProperties.getAppointmentPassword() : "zenveappointments@zenve123");
+			impl.setProtocol("smtps");
+			impl.setDefaultEncoding(StandardCharsets.UTF_8.name());
+
+			java.util.Properties props = impl.getJavaMailProperties();
+			props.put("mail.smtp.auth", "true");
+			props.put("mail.smtp.ssl.enable", "true");
+			props.put("mail.smtp.socketFactory.port", String.valueOf(impl.getPort()));
+			props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+			props.put("mail.smtp.socketFactory.fallback", "false");
+			props.put("mail.smtp.connectiontimeout", "10000");
+			props.put("mail.smtp.timeout", "10000");
+			props.put("mail.smtp.writetimeout", "10000");
+
+			appointmentMailSenderInstance = impl;
+		}
+		return appointmentMailSenderInstance;
 	}
 
 	private byte[] cachedLogoBytes = null;
@@ -202,33 +255,83 @@ public class EmailService {
         }
 
         // =====================================================
-        // 1. DOCTOR WELCOME EMAIL
+        // 1A. NEW DOCTOR REGISTRATION WELCOME EMAIL
         // =====================================================
 
-        public EmailResponse sendDoctorWelcomeEmail(String toEmail, String doctorName, String specialty) {
+        public EmailResponse sendDoctorRegistrationWelcomeEmail(String toEmail, String doctorName, String clinicHospital, String phone) {
                 String displayName = (doctorName != null && !doctorName.isBlank())
                                 ? (doctorName.toLowerCase().startsWith("dr") ? doctorName : ("Dr. " + doctorName))
                                 : "Dr. Practitioner";
-                String displaySpecialty = (specialty != null && !specialty.isBlank()) ? specialty
-                                : "Veterinary Medicine & Surgery";
+                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Veterinary Practice";
+                String displayPhone = (phone != null && !phone.isBlank()) ? phone : "Registered Mobile";
                 String appUrl = (mailProperties.getAppUrl() != null && !mailProperties.getAppUrl().isBlank())
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
 
-                String subject = "Official Welcome to Zenve Vet, " + displayName + "! 🐾";
-                String htmlBody = buildDoctorWelcomeHtml(displayName, toEmail, displaySpecialty, appUrl);
+                String subject = "Zenve Doctors: Welcome, " + displayName + " — Registration Received 🐾";
+                String htmlBody = buildDoctorRegistrationWelcomeHtml(displayName, toEmail, displayClinic, displayPhone, appUrl);
                 String plainText = String.format(
-                                "Welcome to Zenve Vet, %s!\n\n" +
-                                                "Your practitioner account has been successfully created.\n" +
-                                                "Registered Name: %s\n" +
-                                                "Registered Email: %s\n" +
-                                                "Specialty: %s\n" +
-                                                "Portal: %s\n\n" +
-                                                "Access India's Premier Veterinary Clinical Community & Network.\n\n" +
-                                                "Best regards,\nZenve Vet Team\nhttps://doctor.zenvevet.com",
-                                displayName, displayName, toEmail, displaySpecialty, appUrl);
+                                "Welcome to Zenve Doctors, %s!\n\n" +
+                                "Thank you for registering with Zenve Doctors — India's Premier Veterinary Practice OS.\n\n" +
+                                "Your practitioner registration has been received and submitted for administrative verification.\n\n" +
+                                "Registration Details:\n" +
+                                "- Practitioner: %s\n" +
+                                "- Email: %s\n" +
+                                "- Mobile: %s\n" +
+                                "- Practice / Clinic: %s\n" +
+                                "- Status: PENDING ADMIN VERIFICATION\n\n" +
+                                "What happens next?\n" +
+                                "1. Our administration team is reviewing your veterinary credentials.\n" +
+                                "2. You will receive an official approval email once approved.\n" +
+                                "3. You can then immediately sign in to manage appointments, digital prescriptions, and patients.\n\n" +
+                                "If you have any questions, reach out to us at support@zenvevet.com.\n\n" +
+                                "Best regards,\nZenve Doctors Team\nhttps://doctor.zenvevet.com",
+                                displayName, displayName, toEmail, displayPhone, displayClinic);
 
-                return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "DOCTOR_WELCOME");
+                return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "DOCTOR_REGISTRATION_WELCOME");
+        }
+
+        // =====================================================
+        // 1B. DOCTOR ACCOUNT APPROVED EMAIL
+        // =====================================================
+
+        public EmailResponse sendDoctorApprovedEmail(String toEmail, String doctorName, String specialty, String clinicHospital) {
+                String displayName = (doctorName != null && !doctorName.isBlank())
+                                ? (doctorName.toLowerCase().startsWith("dr") ? doctorName : ("Dr. " + doctorName))
+                                : "Dr. Practitioner";
+                String displaySpecialty = (specialty != null && !specialty.isBlank()) ? specialty : "Veterinary Medicine & Surgery";
+                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Veterinary Practice";
+                String appUrl = (mailProperties.getAppUrl() != null && !mailProperties.getAppUrl().isBlank())
+                                ? mailProperties.getAppUrl()
+                                : "https://doctor.zenvevet.com";
+                String loginUrl = appUrl.replaceAll("/+$", "") + "/login";
+
+                String subject = "🎉 Congratulations " + displayName + " — Your Zenve Doctors Account is Approved!";
+                String htmlBody = buildDoctorApprovedHtml(displayName, toEmail, displaySpecialty, displayClinic, loginUrl);
+                String plainText = String.format(
+                                "Congratulations %s!\n\n" +
+                                "Your Zenve Doctors practitioner account has been officially approved by the administrator.\n\n" +
+                                "Your practice management dashboard is now active and ready for you:\n" +
+                                "- Sign in at: %s\n" +
+                                "- Registered Email: %s\n" +
+                                "- Practice / Clinic: %s\n" +
+                                "- Specialization: %s\n" +
+                                "- Status: ACTIVE & APPROVED\n\n" +
+                                "What you can do now:\n" +
+                                "- Manage smart appointments and clinical queues\n" +
+                                "- Issue digital prescriptions with instant PDF generation\n" +
+                                "- Maintain comprehensive pet patient health records\n" +
+                                "- Send pet parents automated reminders via WhatsApp and SMS\n\n" +
+                                "Sign in now: %s\n\n" +
+                                "Best regards,\nZenve Doctors Team\nhttps://doctor.zenvevet.com",
+                                displayName, loginUrl, toEmail, displayClinic, displaySpecialty, loginUrl);
+
+                return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "DOCTOR_APPROVED");
+        }
+
+        // Legacy compatibility
+        public EmailResponse sendDoctorWelcomeEmail(String toEmail, String doctorName, String specialty) {
+                return sendDoctorApprovedEmail(toEmail, doctorName, specialty, null);
         }
 
         // =====================================================
@@ -445,7 +548,16 @@ public class EmailService {
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
 
-                String subject = "Appointment Confirmed: " + displayPet + " with " + displayDoctor + " on " + dateFormatted + " - " + displayClinic;
+                String subjectPrefix = "Appointment Confirmed";
+                if ("Cancelled".equalsIgnoreCase(statusStr)) {
+                    subjectPrefix = "Appointment Cancelled";
+                } else if ("Rescheduled".equalsIgnoreCase(statusStr)) {
+                    subjectPrefix = "Appointment Rescheduled";
+                } else if ("Scheduled".equalsIgnoreCase(statusStr)) {
+                    subjectPrefix = "Appointment Scheduled";
+                }
+
+                String subject = subjectPrefix + ": " + displayPet + " with " + displayDoctor + " on " + dateFormatted + " - " + displayClinic;
 
                 String htmlBody = buildAppointmentConfirmationEmailHtml(
                                 displayOwner, displayPet, species, breed, displayDoctor, displayClinic,
@@ -488,7 +600,128 @@ public class EmailService {
                                 displayClinic, appUrl
                 );
 
-                return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "APPOINTMENT_BOOKING");
+                return sendAppointmentHtmlEmail(toEmail, subject, htmlBody, plainText, null, null,
+                        "Cancelled".equalsIgnoreCase(statusStr) ? "APPOINTMENT_CANCELLED" :
+                        "Rescheduled".equalsIgnoreCase(statusStr) ? "APPOINTMENT_RESCHEDULED" :
+                        "APPOINTMENT_BOOKING");
+        }
+
+        // =====================================================
+        // 6B. DISPATCH APPOINTMENT EMAIL (DEDICATED APPOINTMENT GATEWAY)
+        // =====================================================
+
+        public EmailResponse sendAppointmentHtmlEmail(
+                        String toEmail,
+                        String subject,
+                        String htmlContent,
+                        String plainTextAlternative,
+                        byte[] attachmentBytes,
+                        String attachmentFilename,
+                        String type) {
+
+                if (toEmail == null || toEmail.trim().isEmpty()) {
+                        throw new RuntimeException("Recipient email is required");
+                }
+                if (subject == null || subject.trim().isEmpty()) {
+                        throw new RuntimeException("Email subject is required");
+                }
+
+                EmailLog emailLog = new EmailLog();
+                emailLog.setRecipient(toEmail.trim());
+                emailLog.setSubject(subject.trim());
+                emailLog.setMessage(
+                                plainTextAlternative != null && !plainTextAlternative.isBlank() ? plainTextAlternative
+                                                : subject);
+                emailLog.setType(type != null ? type : "APPOINTMENT_BOOKING");
+                emailLog.setProvider("SMTP_APPOINTMENTS");
+
+                try {
+                        InternetAddress fromAddress = resolveAppointmentFromAddress();
+                        String textPart = (plainTextAlternative != null && !plainTextAlternative.isBlank())
+                                        ? plainTextAlternative
+                                        : subject;
+                        String htmlPart = (htmlContent != null && !htmlContent.isBlank())
+                                        ? htmlContent
+                                        : textPart;
+
+                        boolean sent = false;
+                        try {
+                                JavaMailSender activeSender = getAppointmentMailSender();
+                                MimeMessage mimeMessage = activeSender.createMimeMessage();
+                                MimeMessageHelper helper = new MimeMessageHelper(
+                                                mimeMessage,
+                                                MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                                                StandardCharsets.UTF_8.name());
+
+                                helper.setFrom(fromAddress);
+                                helper.setReplyTo(fromAddress);
+                                helper.setTo(toEmail.trim());
+                                helper.setSubject(subject);
+                                helper.setText(textPart, htmlPart);
+
+                                if (htmlPart != null && htmlPart.contains("cid:zenveLogo")) {
+                                        byte[] lBytes = getLogoBytes();
+                                        if (lBytes != null && lBytes.length > 0) {
+                                                helper.addInline("zenveLogo", new ByteArrayResource(lBytes), "image/png");
+                                        }
+                                }
+
+                                if (attachmentBytes != null && attachmentFilename != null && !attachmentFilename.isBlank()) {
+                                        helper.addAttachment(
+                                                        attachmentFilename,
+                                                        new ByteArrayResource(attachmentBytes),
+                                                        "application/pdf");
+                                }
+
+                                activeSender.send(mimeMessage);
+                                sent = true;
+                                emailLog.setStatus("SENT");
+                                log.info("[Zenve Mail] Dispatched appointment email '{}' to: <{}> via direct appointment SMTP", type, toEmail);
+                        } catch (Exception ex) {
+                                log.warn("[Zenve Mail] Direct auth for appointment mail encountered issue ({}). Engaging verified domain sender with From: {}",
+                                                ex.getMessage(), fromAddress.getAddress());
+                        }
+
+                        if (!sent) {
+                                MimeMessage fallbackMessage = mailSender.createMimeMessage();
+                                MimeMessageHelper fallbackHelper = new MimeMessageHelper(
+                                                fallbackMessage,
+                                                MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                                                StandardCharsets.UTF_8.name());
+
+                                fallbackHelper.setFrom(fromAddress);
+                                fallbackHelper.setReplyTo(fromAddress);
+                                fallbackHelper.setTo(toEmail.trim());
+                                fallbackHelper.setSubject(subject);
+                                fallbackHelper.setText(textPart, htmlPart);
+
+                                if (htmlPart != null && htmlPart.contains("cid:zenveLogo")) {
+                                        byte[] lBytes = getLogoBytes();
+                                        if (lBytes != null && lBytes.length > 0) {
+                                                fallbackHelper.addInline("zenveLogo", new ByteArrayResource(lBytes), "image/png");
+                                        }
+                                }
+
+                                if (attachmentBytes != null && attachmentFilename != null && !attachmentFilename.isBlank()) {
+                                        fallbackHelper.addAttachment(
+                                                        attachmentFilename,
+                                                        new ByteArrayResource(attachmentBytes),
+                                                        "application/pdf");
+                                }
+
+                                mailSender.send(fallbackMessage);
+                                emailLog.setStatus("SENT");
+                                log.info("[Zenve Mail] Dispatched appointment email '{}' to: <{}> via domain SMTP sender with From: {}",
+                                                type, toEmail, fromAddress.getAddress());
+                        }
+                } catch (Exception ex) {
+                        log.error("[Zenve Mail] Failed to send appointment email to <{}>: {}", toEmail, ex.getMessage());
+                        emailLog.setStatus("FAILED");
+                        emailLog.setErrorMessage("Email delivery failed: " + ex.getMessage());
+                }
+
+                EmailLog saved = emailLogRepository.save(emailLog);
+                return mapToResponse(saved);
         }
 
         // =====================================================
@@ -559,108 +792,223 @@ public class EmailService {
         // HTML BUILDERS (Matching Zenve Vet Brand System)
         // =====================================================
 
-        private String buildDoctorWelcomeHtml(String doctorName, String email, String specialty, String appUrl) {
+        private String buildDoctorRegistrationWelcomeHtml(String doctorName, String email, String clinic, String phone, String appUrl) {
                 return """
                                 <!DOCTYPE html>
                                 <html lang="en">
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Official Welcome to Zenve Vet</title>
+                                  <title>Welcome to Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
                                     .wrapper { width: 100%%; max-width: 620px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #0F766E 0%%, #0D9488 50%%, #059669 100%%); padding: 36px 32px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+                                    .logo-bar { background-color: #FFFFFF; padding: 20px 28px; text-align: center; border-bottom: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #1E1B4B 0%%, #312E81 50%%, #4338CA 100%%); padding: 36px 32px; text-align: center; color: #FFFFFF; }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
                                     .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13.5px; opacity: 0.94; font-weight: 400; }
+                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13.5px; opacity: 0.94; font-weight: 400; color: #C7D2FE; }
                                     .content { padding: 34px 30px; line-height: 1.6; }
                                     .greeting { font-size: 20px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
                                     .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 10px 16px; border-bottom: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 35%%; }
+                                    .details-table .label { color: #64748B; font-weight: 600; width: 36%%; }
                                     .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .details-table a { color: #0D9488; text-decoration: none; font-weight: 600; }
-                                    .feature-box { background: #F0FDF4; border-left: 4px solid #10B981; border-radius: 8px; padding: 16px 20px; margin: 22px 0; }
+                                    .status-tag { display: inline-block; background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #FDE68A; }
+                                    .feature-box { background: #EEF2FF; border-left: 4px solid #4F46E5; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
                                     .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.5; }
                                     .feature-item:last-child { margin-bottom: 0; }
-                                    .feature-item strong { color: #065F46; }
-                                    .cta-container { text-align: center; margin: 30px 0 22px 0; }
-                                    .cta-btn { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.32); }
+                                    .feature-item strong { color: #312E81; }
                                     .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .footer a { color: #818CF8; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                      <div class="logo-bar">
+                                        <a href="%s" target="_blank" style="text-decoration: none;">
+                                          <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 52px; max-width: 180px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
                                         </a>
                                       </div>
                                       <div class="header">
-                                        <span class="brand-badge">Official Welcome</span>
-                                        <h1 class="brand-title">Zenve Vet 🐾</h1>
-                                        <p class="brand-subtitle">India's Premier Veterinary Clinical Community & Network</p>
+                                        <span class="brand-badge">Registration Received 🐾</span>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">Veterinary Practice Operating System</p>
                                       </div>
                                       <div class="content">
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Welcome to <strong>Zenve Vet</strong>! Your practitioner account has been successfully created. We are excited to welcome you into a dedicated, collaborative ecosystem designed exclusively for veterinary professionals.
+                                          Thank you for registering with <strong>Zenve Doctors</strong>! Your veterinary practitioner account has been successfully created and submitted to our administration team for credential verification.
                                         </p>
 
                                         <table class="details-table">
                                           <tr>
-                                            <td class="label">Website</td>
-                                            <td class="value"><a href="%s">%s</a></td>
-                                          </tr>
-                                          <tr>
-                                            <td class="label">Registered Name</td>
+                                            <td class="label">Practitioner Name</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
                                             <td class="label">Registered Email</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #4F46E5; text-decoration: none;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Mobile Number</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Clinical Specialty</td>
+                                            <td class="label">Clinic / Practice</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Sender</td>
-                                            <td class="value">no-reply@zenvevet.com</td>
+                                            <td class="label">Account Status</td>
+                                            <td class="value"><span class="status-tag">PENDING ADMIN VERIFICATION ⏳</span></td>
                                           </tr>
                                         </table>
 
                                         <div class="feature-box">
                                           <div class="feature-item">
-                                            <strong>🩺 Clinical Case Exchange:</strong> Share challenging diagnostic cases, review imaging, and collaborate with veterinary surgeons and specialists.
+                                            <strong>🔍 1. Document & Credential Review:</strong> Our administration team reviews your registration credentials to ensure a safe, verified clinical community.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>🤝 Verified Practitioner Network:</strong> Connect and build professional relationships with verified veterinarians across India.
+                                            <strong>✉️ 2. Approval Email:</strong> As soon as your registration is verified, you will receive an official approval email.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>📋 Digital Rx & Clinical Management:</strong> Automatic dosing calculation, Instant PDF generation, and automated patient communication.
+                                            <strong>🚀 3. Dashboard Access:</strong> Upon approval, you will have immediate full access to manage appointments, digital prescriptions, and pet patient histories.
                                           </div>
                                         </div>
 
-                                        <div class="cta-container">
-                                          <a href="%s" class="cta-btn">Access Doctor Portal →</a>
-                                        </div>
+                                        <p style="font-size: 13.5px; color: #64748B; margin-top: 22px;">
+                                          Need assistance or have questions regarding your verification? Contact our clinical support team at <a href="mailto:support@zenvevet.com" style="color: #4F46E5; text-decoration: none; font-weight: 600;">support@zenvevet.com</a>.
+                                        </p>
                                       </div>
                                       <div class="footer">
-                                        Sent automatically by <strong>no-reply@zenvevet.com</strong> • Zenve Pets Healthcare Pvt. Ltd.<br>
-                                        India's Premier Veterinary Network • <a href="%s">https://doctor.zenvevet.com</a>
+                                        Sent automatically by <strong>no-replyzenvedoctors@zenvevet.com</strong> &bull; Zenve Technologies Inc.<br>
+                                        Zenve Veterinary Practice OS &bull; <a href="%s">https://doctor.zenvevet.com</a>
                                       </div>
                                     </div>
                                   </div>
                                 </body>
                                 </html>
                                 """
-                                .formatted(doctorName, appUrl, appUrl, doctorName, email, specialty, appUrl, appUrl);
+                                .formatted(appUrl, doctorName, doctorName, email, email, phone, clinic, appUrl);
+        }
+
+        private String buildDoctorApprovedHtml(String doctorName, String email, String specialty, String clinic, String loginUrl) {
+                return """
+                                <!DOCTYPE html>
+                                <html lang="en">
+                                <head>
+                                  <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                  <title>Your Zenve Doctors Account is Approved</title>
+                                  <style>
+                                    body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
+                                    .wrapper { width: 100%%; max-width: 620px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
+                                    .logo-bar { background-color: #FFFFFF; padding: 20px 28px; text-align: center; border-bottom: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #065F46 0%%, #059669 50%%, #0D9488 100%%); padding: 36px 32px; text-align: center; color: #FFFFFF; }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 20px; padding: 5px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13.5px; opacity: 0.94; font-weight: 400; color: #D1FAE5; }
+                                    .content { padding: 34px 30px; line-height: 1.6; }
+                                    .greeting { font-size: 20px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
+                                    .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
+                                    .details-table tr:last-child td { border-bottom: none; }
+                                    .details-table .label { color: #64748B; font-weight: 600; width: 36%%; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; }
+                                    .status-tag-active { display: inline-block; background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #A7F3D0; }
+                                    .feature-box { background: #F0FDF4; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
+                                    .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.5; }
+                                    .feature-item:last-child { margin-bottom: 0; }
+                                    .feature-item strong { color: #065F46; }
+                                    .cta-container { text-align: center; margin: 30px 0 24px 0; }
+                                    .cta-btn { display: inline-block; background: linear-gradient(135deg, #059669 0%%, #047857 100%%); color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 36px; border-radius: 9px; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35); }
+                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
+                                    .footer a { color: #34D399; text-decoration: none; font-weight: 500; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div style="background-color: #F8FAFC; padding: 32px 16px;">
+                                    <div class="wrapper">
+                                      <div class="logo-bar">
+                                        <a href="%s" target="_blank" style="text-decoration: none;">
+                                          <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 52px; max-width: 180px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                        </a>
+                                      </div>
+                                      <div class="header">
+                                        <span class="brand-badge">Account Approved & Verified ✅</span>
+                                        <h1 class="brand-title">Welcome Aboard, %s! 🎉</h1>
+                                        <p class="brand-subtitle">Your Zenve Practice OS Dashboard is Ready</p>
+                                      </div>
+                                      <div class="content">
+                                        <div class="greeting">Dear %s,</div>
+                                        <p class="intro">
+                                          Great news! Your <strong>Zenve Doctors</strong> registration has been reviewed and <strong>officially approved</strong> by the administrator. Your practice account is now active with immediate access to all clinical features.
+                                        </p>
+
+                                        <table class="details-table">
+                                          <tr>
+                                            <td class="label">Practitioner Name</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Login ID / Email</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #059669; text-decoration: none;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Clinical Specialty</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Clinic / Practice</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Account Status</td>
+                                            <td class="value"><span class="status-tag-active">ACTIVE & APPROVED 🟢</span></td>
+                                          </tr>
+                                        </table>
+
+                                        <div class="feature-box">
+                                          <div class="feature-item">
+                                            <strong>📅 Smart Appointment Scheduling:</strong> Manage in-clinic appointments, video consultations, and token queues seamlessly.
+                                          </div>
+                                          <div class="feature-item">
+                                            <strong>💊 Instant Digital Prescriptions:</strong> Create complete prescriptions with drug dosages and instant PDF exports.
+                                          </div>
+                                          <div class="feature-item">
+                                            <strong>🐾 Comprehensive Patient Records:</strong> Maintain vaccination schedules, medical histories, and diagnostic reports.
+                                          </div>
+                                          <div class="feature-item">
+                                            <strong>💬 Automated Communication:</strong> Reach pet parents automatically with appointment & vaccination reminders.
+                                          </div>
+                                        </div>
+
+                                        <div class="cta-container">
+                                          <a href="%s" class="cta-btn">Sign In to Doctor Dashboard &rarr;</a>
+                                        </div>
+
+                                        <p style="font-size: 13.5px; color: #64748B; margin-top: 22px;">
+                                          For any assistance setting up your clinic details, our team is always ready to support you at <a href="mailto:support@zenvevet.com" style="color: #059669; text-decoration: none; font-weight: 600;">support@zenvevet.com</a>.
+                                        </p>
+                                      </div>
+                                      <div class="footer">
+                                        Sent automatically by <strong>no-replyzenvedoctors@zenvevet.com</strong> &bull; Zenve Technologies Inc.<br>
+                                        Zenve Veterinary Practice OS &bull; <a href="%s">https://doctor.zenvevet.com</a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </body>
+                                </html>
+                                """
+                                .formatted(loginUrl, doctorName, doctorName, doctorName, email, email, specialty, clinic, loginUrl, loginUrl);
+        }
+
+        private String buildDoctorWelcomeHtml(String doctorName, String email, String specialty, String appUrl) {
+                return buildDoctorApprovedHtml(doctorName, email, specialty, "Veterinary Practice", appUrl + "/login");
         }
 
         private String buildPasswordResetOtpHtml(String recipientName, String email, String otpCode, int expiryMinutes,
@@ -1285,8 +1633,8 @@ public class EmailService {
                                         </div>
                                       </div>
                                       <div class="footer">
-                                        Sent on behalf of <strong>%s</strong> by Zenve Vet Care.<br>
-                                        <a href="%s">%s</a>
+                                        Sent on behalf of <strong>%s</strong> by <strong>Zenve Appointments</strong> (<a href="mailto:no-replyzenveappointments@zenvevet.com" style="color:#14B8A6;">no-replyzenveappointments@zenvevet.com</a>).<br>
+                                        India's Premier Veterinary Practice OS • <a href="%s">%s</a>
                                       </div>
                                     </div>
                                   </div>

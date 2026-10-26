@@ -302,7 +302,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout className="auth-shell-login">
       {step === "CREDENTIALS" ? (
         <>
           <div className="auth-form-header">
@@ -474,7 +474,7 @@ export default function Login() {
                 )}
               </Field>
 
-              <div style={{ fontSize: 13, color: "#64748b", marginTop: -6, lineHeight: 1.4 }}>
+              <div className="auth-phone-helper-hint">
                 We&apos;ll send a 6-digit verification code to this number to verify and sign you in.
               </div>
 
@@ -575,7 +575,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div style={{ marginTop: 24, textAlign: "center" }}>
+          <div className="auth-back-to-login-wrap">
             <button
               type="button"
               onClick={handleBackToCredentials}

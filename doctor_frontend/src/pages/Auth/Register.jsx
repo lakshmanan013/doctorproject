@@ -209,7 +209,7 @@ export default function Register() {
 
       toast.success(
         data?.message ||
-          "Account created. It's pending admin approval - you'll be able to log in once approved.",
+        "Account created. It's pending admin approval - you'll be able to log in once approved.",
         { duration: 6000 }
       );
 
@@ -227,7 +227,7 @@ export default function Register() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout className="auth-shell-register">
       <div className="auth-form-header">
         <h2>Create Doctor Account</h2>
         <p>Set up your veterinary dashboard & profile in a couple of minutes.</p>

@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -210,6 +212,24 @@ public class EmailController {
         return ResponseEntity.ok(emailService.sendDoctorWelcomeEmail(toEmail, doctorName, specialty));
     }
 
+    @PostMapping("/test/doctor-registration-welcome")
+    public ResponseEntity<EmailResponse> testDoctorRegistrationWelcome(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
+            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital,
+            @RequestParam(required = false, defaultValue = "+91 9876543210") String phone) {
+        return ResponseEntity.ok(emailService.sendDoctorRegistrationWelcomeEmail(toEmail, doctorName, clinicHospital, phone));
+    }
+
+    @PostMapping("/test/doctor-approved")
+    public ResponseEntity<EmailResponse> testDoctorApproved(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
+            @RequestParam(required = false, defaultValue = "Veterinary Medicine & Surgery") String specialty,
+            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital) {
+        return ResponseEntity.ok(emailService.sendDoctorApprovedEmail(toEmail, doctorName, specialty, clinicHospital));
+    }
+
     @PostMapping("/test/password-reset-otp")
     public ResponseEntity<EmailResponse> testPasswordResetOtp(
             @RequestParam String toEmail,
@@ -244,6 +264,35 @@ public class EmailController {
                 BigDecimal.ZERO,
                 "UPI",
                 java.time.LocalDateTime.now()
+        ));
+    }
+
+    @PostMapping("/test/appointment-confirmation")
+    public ResponseEntity<EmailResponse> testAppointmentConfirmation(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Rahul Sharma") String ownerName,
+            @RequestParam(required = false, defaultValue = "Buddy") String petName,
+            @RequestParam(required = false, defaultValue = "Canine") String species,
+            @RequestParam(required = false, defaultValue = "Golden Retriever") String breed,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
+            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital,
+            @RequestParam(required = false, defaultValue = "Confirmed") String status) {
+        return ResponseEntity.ok(emailService.sendAppointmentConfirmationEmail(
+                toEmail,
+                ownerName,
+                petName,
+                species,
+                breed,
+                doctorName,
+                clinicHospital,
+                "123 Green Valley Road, Indiranagar, Bangalore",
+                "+91 9876543210",
+                LocalDate.now().plusDays(1),
+                LocalTime.of(10, 30),
+                "In Clinic Consultation",
+                "Regular Routine Health Checkup & Vaccinations",
+                "Please do not feed 2 hours prior to visit.",
+                status
         ));
     }
 }

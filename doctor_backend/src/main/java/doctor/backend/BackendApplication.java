@@ -17,7 +17,17 @@ public class BackendApplication {
 	}
 
 	private static void loadDotEnv() {
-		String[] possiblePaths = { "doctor_backend/.env", ".env", "../.env" };
+		String[] possiblePaths = {
+			"doctorproject/doctor_backend/.env",
+			"doctorproject/.env",
+			"doctor_backend/.env",
+			".env",
+			"../doctorproject/doctor_backend/.env",
+			"../doctorproject/.env",
+			"../doctor_backend/.env",
+			"../.env",
+			"../../.env"
+		};
 		for (String path : possiblePaths) {
 			File file = new File(path);
 			if (file.exists() && file.isFile()) {

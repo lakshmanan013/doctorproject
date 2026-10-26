@@ -7,9 +7,9 @@ import {
 
 import "../pages/Auth/Auth.css";
 
-export default function AuthLayout({ children }) {
+export default function AuthLayout({ children, className = "" }) {
   return (
-    <div className="auth-shell">
+    <div className={`auth-shell ${className}`.trim()}>
 
       {/* -------------------- BRAND HERO PANEL -------------------- */}
       <div className="auth-brand">
@@ -136,6 +136,21 @@ export default function AuthLayout({ children }) {
       {/* -------------------- FORM PANEL -------------------- */}
       <div className="auth-form-panel">
         <div className="auth-form-wrap">
+          {/* Mobile Brand Header (< 980px) */}
+          <div className="auth-mobile-brand">
+            <div className="auth-mobile-brand-logo">
+              <img
+                src="/zenve.png"
+                alt="Zenve Logo"
+                className="auth-mobile-zenve-logo"
+              />
+            </div>
+            <div className="auth-mobile-brand-text">
+              <h3>Zenve Doctors</h3>
+              <span className="auth-mobile-brand-tag">Veterinary Practice OS</span>
+            </div>
+          </div>
+
           {children}
         </div>
       </div>

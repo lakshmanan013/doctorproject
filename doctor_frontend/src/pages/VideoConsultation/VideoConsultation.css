@@ -884,6 +884,7 @@
     opacity: 0;
     transform: scale(0.995);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -941,10 +942,12 @@
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.35;
     transform: scale(0.85);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -2099,9 +2102,17 @@
 }
 
 @keyframes pulseListeningBtn {
-  0% { box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(234, 67, 53, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.6);
+  }
+
+  70% {
+    box-shadow: 0 0 0 8px rgba(234, 67, 53, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+  }
 }
 
 .vc-voice-live-dot {
@@ -2114,8 +2125,15 @@
 }
 
 @keyframes blinkLiveDot {
-  0% { opacity: 0.3; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1.2); }
+  0% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 /* Active Voice Notes Banner */
@@ -2154,14 +2172,36 @@
   animation: voiceWaveAnim 1s ease-in-out infinite;
 }
 
-.vc-voice-wave span:nth-child(1) { height: 4px; animation-delay: 0.1s; }
-.vc-voice-wave span:nth-child(2) { height: 12px; animation-delay: 0.25s; }
-.vc-voice-wave span:nth-child(3) { height: 8px; animation-delay: 0.15s; }
-.vc-voice-wave span:nth-child(4) { height: 10px; animation-delay: 0.35s; }
+.vc-voice-wave span:nth-child(1) {
+  height: 4px;
+  animation-delay: 0.1s;
+}
+
+.vc-voice-wave span:nth-child(2) {
+  height: 12px;
+  animation-delay: 0.25s;
+}
+
+.vc-voice-wave span:nth-child(3) {
+  height: 8px;
+  animation-delay: 0.15s;
+}
+
+.vc-voice-wave span:nth-child(4) {
+  height: 10px;
+  animation-delay: 0.35s;
+}
 
 @keyframes voiceWaveAnim {
-  0%, 100% { transform: scaleY(0.4); }
-  50% { transform: scaleY(1); }
+
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 .vc-vab-text {
@@ -2204,8 +2244,15 @@
 }
 
 @keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .vc-vmb-top {
@@ -2236,8 +2283,15 @@
 }
 
 @keyframes pulseRingAnim {
-  0% { transform: scale(0.9); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; }
+  0% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
 }
 
 .vc-vmb-info {
@@ -2432,4 +2486,3 @@
   background: rgba(99, 102, 241, 0.06);
   transform: translateY(-1px);
 }
-

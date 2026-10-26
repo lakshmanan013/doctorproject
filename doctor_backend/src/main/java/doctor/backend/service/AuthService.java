@@ -135,13 +135,11 @@ public class AuthService {
         // Sync pending doctor to Zippy CRM
         zippyCrmSyncService.syncDoctor(saved, profile);
 
-        // Send official doctor welcome email with credentials & portal link
+        // Send official doctor registration welcome email
         try {
-            String spec = (request.getClinicHospital() != null && !request.getClinicHospital().isBlank())
-                    ? request.getClinicHospital() : "Veterinary Medicine & Surgery";
-            emailService.sendDoctorWelcomeEmail(saved.getEmail(), saved.getFullName(), spec);
+            emailService.sendDoctorRegistrationWelcomeEmail(saved.getEmail(), saved.getFullName(), request.getClinicHospital(), saved.getPhone());
         } catch (Exception ex) {
-            log.warn("Could not send welcome email to {}: {}", saved.getEmail(), ex.getMessage());
+            log.warn("Could not send registration welcome email to {}: {}", saved.getEmail(), ex.getMessage());
         }
 
         // No token on purpose: registering does not log the doctor in.
@@ -204,9 +202,9 @@ public class AuthService {
         zippyCrmSyncService.syncDoctor(saved, profile);
 
         try {
-            emailService.sendDoctorWelcomeEmail(saved.getEmail(), saved.getFullName(), "Veterinary Medicine");
+            emailService.sendDoctorApprovedEmail(saved.getEmail(), saved.getFullName(), "Veterinary Medicine", null);
         } catch (Exception ex) {
-            log.warn("Could not dispatch welcome email to {}: {}", saved.getEmail(), ex.getMessage());
+            log.warn("Could not dispatch approval email to {}: {}", saved.getEmail(), ex.getMessage());
         }
     }
 
@@ -333,9 +331,10 @@ public class AuthService {
             try {
                 String spec = (profile != null && profile.getSpeciality() != null && !profile.getSpeciality().isBlank())
                         ? profile.getSpeciality() : "Veterinary Medicine & Surgery";
-                emailService.sendDoctorWelcomeEmail(user.getEmail(), user.getFullName(), spec);
+                String clinic = profile != null ? profile.getClinicHospital() : null;
+                emailService.sendDoctorApprovedEmail(user.getEmail(), user.getFullName(), spec, clinic);
             } catch (Exception ex) {
-                log.warn("Could not dispatch welcome email to {}: {}", user.getEmail(), ex.getMessage());
+                log.warn("Could not dispatch approval email to {}: {}", user.getEmail(), ex.getMessage());
             }
         }
     }
@@ -494,6 +493,7 @@ public class AuthService {
         challengeRes.setLoginSessionToken(sessionToken);
         challengeRes.setEmail(user.getEmail());
         challengeRes.setMaskedPhone(maskPhoneNumber(phone));
+        challengeRes.setDevOtp(otp);
         challengeRes.setMessage("OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
         return challengeRes;
     }
@@ -604,6 +604,7 @@ public class AuthService {
         res.setLoginSessionToken(sessionToken);
         res.setEmail(user.getEmail());
         res.setMaskedPhone(maskPhoneNumber(phone));
+        res.setDevOtp(otp);
         res.setMessage("A new OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
         return res;
     }

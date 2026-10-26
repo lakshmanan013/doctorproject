@@ -143,7 +143,7 @@ body.dark-theme,
 [data-theme="dark"] body,
 body.dark-theme {
   background: #0B0F19;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.45) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(49, 46, 129, 0.35) 0px, transparent 50%),
     radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 55%),
@@ -172,7 +172,7 @@ body {
   font-family: var(--font-body);
   color: var(--text);
   background: #f1f4fb;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(224, 231, 255, 0.8) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(237, 233, 254, 0.75) 0px, transparent 50%),
     radial-gradient(at 50% 50%, rgba(254, 243, 199, 0.4) 0px, transparent 55%),
@@ -611,7 +611,7 @@ h5 {
   border-bottom: 1px solid var(--border);
 }
 
-.table-card > .row-list {
+.table-card>.row-list {
   padding: 8px 18px;
 }
 
@@ -1549,6 +1549,24 @@ tbody tr:hover {
    RESPONSIVE SHELL & MULTI-DEVICE SUPPORT
 ========================================================== */
 
+/* Ultra-Wide Monitors & 4K Displays (>= 1600px) */
+@media (min-width: 1600px) {
+  .app-content-inner {
+    max-width: 1720px;
+    margin: 0 auto;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
 /* Laptops / Compact Desktops (1025px - 1366px) */
 @media (max-width: 1366px) {
   .app-content-inner {
@@ -1731,6 +1749,7 @@ tbody tr:hover {
     opacity: 0;
     transform: translateY(-20px) scale(0.92);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1742,6 +1761,7 @@ tbody tr:hover {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(-16px) scale(0.95);
@@ -1843,4 +1863,4 @@ tbody tr:hover {
 .plt-close-btn:hover {
   background: #f1f5f9;
   color: #0f172a;
-}
+}

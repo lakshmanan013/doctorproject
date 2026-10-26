@@ -5,28 +5,33 @@ import doctor.backend.dto.appointment.AppointmentResponse;
 import doctor.backend.dto.email.EmailResponse;
 import doctor.backend.entity.Appointment;
 import doctor.backend.entity.DoctorProfile;
+import doctor.backend.entity.Owner;
 import doctor.backend.entity.Patient;
 import doctor.backend.entity.User;
 import doctor.backend.exception.ResourceNotFoundException;
 import doctor.backend.repository.AppointmentRepository;
 import doctor.backend.repository.DoctorProfileRepository;
+import doctor.backend.repository.OwnerRepository;
 import doctor.backend.repository.PatientRepository;
 import doctor.backend.security.CurrentUserProvider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@Transactional
 public class AppointmentService {
 
     private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
+    private final OwnerRepository ownerRepository;
     private final CurrentUserProvider currentUserProvider;
     private final ZippyCrmSyncService zippyCrmSyncService;
     private final EmailService emailService;
@@ -35,6 +40,7 @@ public class AppointmentService {
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
+            OwnerRepository ownerRepository,
             CurrentUserProvider currentUserProvider,
             ZippyCrmSyncService zippyCrmSyncService,
             EmailService emailService,
@@ -42,6 +48,7 @@ public class AppointmentService {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
+        this.ownerRepository = ownerRepository;
         this.currentUserProvider = currentUserProvider;
         this.zippyCrmSyncService = zippyCrmSyncService;
         this.emailService = emailService;
@@ -303,6 +310,14 @@ public class AppointmentService {
 
         zippyCrmSyncService.syncAppointment(updatedAppointment);
 
+        // Dispatch update/confirmation email to patient's owner upon update
+        try {
+            User doctor = currentUserProvider.getCurrentDoctor();
+            sendAppointmentConfirmationEmail(updatedAppointment, patient, doctor, null);
+        } catch (Exception ex) {
+            log.warn("[Appointment] Failed to dispatch appointment update email: {}", ex.getMessage());
+        }
+
         return mapToResponse(updatedAppointment);
     }
 
@@ -455,7 +470,18 @@ public class AppointmentService {
 
         String recipientEmail = (overrideRecipientEmail != null && !overrideRecipientEmail.isBlank())
                 ? overrideRecipientEmail.trim()
-                : (patient != null && patient.getOwner() != null ? patient.getOwner().getEmail() : null);
+                : null;
+
+        if (recipientEmail == null && patient != null) {
+            if (patient.getOwner() != null && patient.getOwner().getEmail() != null && !patient.getOwner().getEmail().isBlank()) {
+                recipientEmail = patient.getOwner().getEmail().trim();
+            } else if (patient.getOwner() != null && patient.getOwner().getId() != null) {
+                Owner owner = ownerRepository.findById(patient.getOwner().getId()).orElse(null);
+                if (owner != null && owner.getEmail() != null && !owner.getEmail().isBlank()) {
+                    recipientEmail = owner.getEmail().trim();
+                }
+            }
+        }
 
         if (recipientEmail == null || !recipientEmail.contains("@")) {
             log.info("[Appointment] Skipped confirmation email: no valid email found for patient '{}'",
@@ -493,7 +519,16 @@ public class AppointmentService {
 
         String ownerName = (patient != null && patient.getOwner() != null && patient.getOwner().getFullName() != null)
                 ? patient.getOwner().getFullName()
-                : "Pet Parent";
+                : null;
+        if (ownerName == null && patient != null && patient.getOwner() != null && patient.getOwner().getId() != null) {
+            Owner owner = ownerRepository.findById(patient.getOwner().getId()).orElse(null);
+            if (owner != null && owner.getFullName() != null) {
+                ownerName = owner.getFullName();
+            }
+        }
+        if (ownerName == null || ownerName.isBlank()) {
+            ownerName = "Pet Parent";
+        }
 
         String petName = patient != null ? patient.getName() : "Pet";
         String species = patient != null ? patient.getSpecies() : "Pet";
