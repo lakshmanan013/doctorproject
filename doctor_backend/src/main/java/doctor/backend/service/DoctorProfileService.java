@@ -67,11 +67,9 @@ public class DoctorProfileService {
                 updated = true;
             }
 
-            // If still missing any images, import directly from Zippy CRM pet_management DB
-            if (profile.getProfileImage() == null || profile.getProfileImage().isBlank()
-                    || profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()
-                    || profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()
-                    || profile.getDigitalSignatureImage() == null || profile.getDigitalSignatureImage().isBlank()) {
+            // If still missing clinic images, import directly from Zippy CRM pet_management DB
+            if (profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()
+                    || profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()) {
                 zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
                 DoctorProfile reloaded = repository.findByUserId(userId).orElse(profile);
                 return reloaded;

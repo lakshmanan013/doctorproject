@@ -1,6 +1,5 @@
 package doctor.backend.controller;
 
-
 import doctor.backend.dto.auth.AuthResponse;
 import doctor.backend.dto.auth.ForgotPasswordRequest;
 import doctor.backend.dto.auth.ForgotPasswordResponse;

@@ -137,9 +137,16 @@ export default function DoctorProfile() {
 
   const handleRemoveSignature = (target = "primary") => {
     if (target === "secondary") {
+      try {
+        localStorage.removeItem("doc_secondary_sig_img");
+        localStorage.removeItem("doc_secondary_sig_name");
+      } catch (_) {}
       autoSaveField("secondarySignatureImage", "");
       toast.success("Secondary signature removed");
     } else {
+      try {
+        localStorage.removeItem("doc_primary_sig_img");
+      } catch (_) {}
       autoSaveField("digitalSignatureImage", "");
       toast.success("Primary digital signature removed");
     }
@@ -618,8 +625,8 @@ export default function DoctorProfile() {
           clinicInsideImage: data?.clinicInsideImage ?? "",
           clinicOutsideImage: data?.clinicOutsideImage ?? "",
           digitalSignatureImage: data?.digitalSignatureImage ?? "",
-          secondarySignatureImage: data?.secondarySignatureImage || localStorage.getItem("doc_secondary_sig_img") || "",
-          secondarySignatureName: data?.secondarySignatureName || localStorage.getItem("doc_secondary_sig_name") || "",
+          secondarySignatureImage: data?.secondarySignatureImage ?? "",
+          secondarySignatureName: data?.secondarySignatureName ?? "",
           prescriptionSignatureMode: localStorage.getItem("doc_rx_sig_mode") === "secondary" ? "secondary" : "primary",
         });
 
@@ -633,6 +640,16 @@ export default function DoctorProfile() {
         if (data?.city || data?.pincode || data?.area) {
           setLocationVerified(true);
         }
+
+        // Ensure session cache is synced with DB state
+        try {
+          const stored = sessionStorage.getItem("zenve_doctor_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.profileImage = data?.profileImage || "";
+            sessionStorage.setItem("zenve_doctor_user", JSON.stringify(parsed));
+          }
+        } catch (_) {}
       } catch (err) {
         console.error("Error loading doctor profile:", err);
         toast.error("Failed to load doctor profile");

@@ -184,4 +184,20 @@ public class AppointmentController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // =====================================================
+    // SEND APPOINTMENT CONFIRMATION EMAIL
+    // POST /api/appointments/{id}/send-email
+    // =====================================================
+
+    @PostMapping("/{id}/send-email")
+    public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendAppointmentEmail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String email) {
+
+        doctor.backend.dto.email.EmailResponse response =
+                appointmentService.sendAppointmentConfirmationEmail(id, email);
+
+        return ResponseEntity.ok(response);
+    }
 }

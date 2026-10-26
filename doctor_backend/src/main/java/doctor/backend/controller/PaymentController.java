@@ -200,4 +200,20 @@ public class PaymentController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // =====================================================
+    // SEND PAYMENT RECEIPT EMAIL
+    // POST /api/payments/{id}/send-receipt-email
+    // =====================================================
+
+    @PostMapping("/{id}/send-receipt-email")
+    public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendPaymentReceiptEmail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String recipientEmail) {
+
+        doctor.backend.dto.email.EmailResponse response =
+                paymentService.sendPaymentReceiptEmail(id, recipientEmail);
+
+        return ResponseEntity.ok(response);
+    }
 }

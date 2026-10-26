@@ -6,3 +6,6 @@ export const getPrescriptionsByPatient = async (patientId) => (await api.get(`/p
 export const createPrescription = async (payload) => (await api.post("/prescriptions", payload)).data;
 export const updatePrescription = async (id, payload) => (await api.put(`/prescriptions/${id}`, payload)).data;
 export const deletePrescription = async (id) => (await api.delete(`/prescriptions/${id}`)).data;
+export const sendPrescriptionEmail = async (id, recipientEmail) =>
+  (await api.post(`/prescriptions/${id}/send-email`, null, { params: recipientEmail ? { recipientEmail } : {} })).data;
+

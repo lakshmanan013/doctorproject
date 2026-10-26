@@ -9,7 +9,7 @@ import Input, { Field, Select, Textarea } from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { getPatients } from "../../services/patientService";
 import { getMedicines } from "../../services/medicineService";
-import { getPrescriptions, getPrescriptionById, getPrescriptionsByPatient, createPrescription, updatePrescription } from "../../services/prescriptionService";
+import { getPrescriptions, getPrescriptionById, getPrescriptionsByPatient, createPrescription, updatePrescription, sendPrescriptionEmail } from "../../services/prescriptionService";
 import { createMedicalRecord } from "../../services/medicalRecordService";
 import { createVaccination } from "../../services/vaccinationService";
 import { sendSms, sendWhatsApp, sendEmail } from "../../services/communicationService";
@@ -62,7 +62,7 @@ export default function Prescription() {
   const { doctor } = useDoctorProfile();
   const rxSigMode = typeof window !== "undefined" && localStorage.getItem("doc_rx_sig_mode") === "secondary" ? "secondary" : "primary";
   const primarySig = doctor?.digitalSignatureImage;
-  const secondarySig = doctor?.secondarySignatureImage || (typeof window !== "undefined" ? localStorage.getItem("doc_secondary_sig_img") : "");
+  const secondarySig = doctor?.secondarySignatureImage || "";
   const primaryDoctorName = doctor?.digitalSignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.qualification ? `, ${doctor.qualification}` : ""}` : "Veterinary Doctor");
   const secondaryDoctorName = doctor?.secondarySignatureName || (doctor?.fullName ? `${doctor.fullName.toLowerCase().startsWith("dr") ? doctor.fullName : `Dr. ${doctor.fullName}`}${doctor?.speciality ? ` · ${doctor.speciality}` : ""}` : "Attending Veterinary Doctor");
   const clinicAddress = [
@@ -505,21 +505,39 @@ export default function Prescription() {
         if (!patientEmail) {
           return toast.error("This patient has no registered email address on file. Please add an email address in the Patient profile.");
         }
-        const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
-        const subject = `Veterinary Prescription: ${patient?.name || "Patient"}${patient?.petId ? ` (${patient.petId})` : ""} - ${clinicTitle}`;
-        const emailBody = getEmailContent();
-        result = await sendEmail({
-          recipient: patientEmail,
-          subject,
-          message: emailBody,
-          type: "PRESCRIPTION",
-          provider: "MANUAL",
-        });
+        if (rx?.id) {
+          try {
+            result = await sendPrescriptionEmail(rx.id, patientEmail);
+          } catch (pdfErr) {
+            console.warn("Direct prescription PDF mailer failed, falling back to communication mailer:", pdfErr);
+            const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+            const subject = `Veterinary Prescription: ${patient?.name || "Patient"}${patient?.petId ? ` (${patient.petId})` : ""} - ${clinicTitle}`;
+            const emailBody = getEmailContent();
+            result = await sendEmail({
+              recipient: patientEmail,
+              subject,
+              message: emailBody,
+              type: "PRESCRIPTION",
+              provider: "MANUAL",
+            });
+          }
+        } else {
+          const clinicTitle = doctor?.clinicHospital || doctor?.clinicName || "Zenve Veterinary Clinic";
+          const subject = `Veterinary Prescription: ${patient?.name || "Patient"}${patient?.petId ? ` (${patient.petId})` : ""} - ${clinicTitle}`;
+          const emailBody = getEmailContent();
+          result = await sendEmail({
+            recipient: patientEmail,
+            subject,
+            message: emailBody,
+            type: "PRESCRIPTION",
+            provider: "MANUAL",
+          });
+        }
       }
       const status = (result?.status || "").toLowerCase();
       const label = type === "sms" ? "SMS" : "Prescription email";
       if (status === "sent") {
-        toast.success(type === "email" ? `Prescription sent to registered email (${patientEmail})` : `${label} sent successfully`);
+        toast.success(type === "email" ? `Prescription with PDF attached sent to registered email (${patientEmail})` : `${label} sent successfully`);
       } else if (status === "failed") {
         toast.error(result?.errorMessage || `Could not send ${type}`);
       } else {

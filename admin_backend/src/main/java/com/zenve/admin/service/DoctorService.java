@@ -183,7 +183,7 @@ public class DoctorService {
                 Doctor doctor = existing.get();
                 if (request.clinicName() != null && doctor.getClinicName() == null) doctor.setClinicName(request.clinicName());
                 if (request.qualification() != null && doctor.getQualification() == null) doctor.setQualification(request.qualification());
-                doctorRepository.save(doctor);
+                doctorRepository.save(java.util.Objects.requireNonNull(doctor));
                 return DoctorDto.from(doctor);
             }
         }
@@ -226,7 +226,7 @@ public class DoctorService {
             if (request.pincode() != null && !request.pincode().isBlank()) doctor.setPincode(request.pincode().trim());
             if (request.clinicName() != null && !request.clinicName().isBlank()) doctor.setClinicName(request.clinicName().trim());
             if (request.profileImage() != null && !request.profileImage().isBlank()) doctor.setProfileImage(request.profileImage());
-            doctorRepository.save(doctor);
+            doctorRepository.save(java.util.Objects.requireNonNull(doctor));
         } else {
             doctor = Doctor.builder()
                     .fullName(request.fullName().trim())

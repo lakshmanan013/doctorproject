@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -195,5 +196,54 @@ public class EmailController {
         emailService.deleteEmail(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    // =====================================================
+    // TEST EMAIL ENDPOINTS
+    // =====================================================
+
+    @PostMapping("/test/doctor-welcome")
+    public ResponseEntity<EmailResponse> testDoctorWelcome(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
+            @RequestParam(required = false, defaultValue = "Veterinary Medicine & Surgery") String specialty) {
+        return ResponseEntity.ok(emailService.sendDoctorWelcomeEmail(toEmail, doctorName, specialty));
+    }
+
+    @PostMapping("/test/password-reset-otp")
+    public ResponseEntity<EmailResponse> testPasswordResetOtp(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
+            @RequestParam(required = false, defaultValue = "849201") String otpCode) {
+        return ResponseEntity.ok(emailService.sendPasswordResetOtpEmail(toEmail, doctorName, otpCode, 15));
+    }
+
+    @PostMapping("/test/password-updated")
+    public ResponseEntity<EmailResponse> testPasswordUpdated(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName) {
+        return ResponseEntity.ok(emailService.sendPasswordChangedSuccessEmail(toEmail, doctorName));
+    }
+
+    @PostMapping("/test/payment-receipt")
+    public ResponseEntity<EmailResponse> testPaymentReceipt(
+            @RequestParam String toEmail,
+            @RequestParam(required = false, defaultValue = "Rahul Sharma") String ownerName,
+            @RequestParam(required = false, defaultValue = "Buddy (Golden Retriever)") String petName,
+            @RequestParam(required = false, defaultValue = "1500.00") BigDecimal amount) {
+        return ResponseEntity.ok(emailService.sendPaymentReceiptEmail(
+                toEmail,
+                ownerName,
+                petName,
+                "Dr. Jane Doe",
+                "Zenve Veterinary Care",
+                "INV-10029",
+                "TXN-" + System.currentTimeMillis(),
+                amount,
+                amount,
+                BigDecimal.ZERO,
+                "UPI",
+                java.time.LocalDateTime.now()
+        ));
     }
 }

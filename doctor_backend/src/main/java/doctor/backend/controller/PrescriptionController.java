@@ -189,4 +189,20 @@ public class PrescriptionController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // =====================================================
+    // SEND PRESCRIPTION PDF BY EMAIL
+    // POST /api/prescriptions/{id}/send-email
+    // =====================================================
+
+    @PostMapping("/{id}/send-email")
+    public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendPrescriptionEmail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String recipientEmail) {
+
+        doctor.backend.dto.email.EmailResponse response =
+                prescriptionService.sendPrescriptionPdfEmail(id, recipientEmail);
+
+        return ResponseEntity.ok(response);
+    }
 }

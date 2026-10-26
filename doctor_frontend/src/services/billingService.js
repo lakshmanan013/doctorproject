@@ -12,3 +12,6 @@ export const createPayment = async (payload) => (await api.post("/payments", pay
 // --- Razorpay ---
 export const createRazorpayOrder = async (payload) => (await api.post("/payments/razorpay/order", payload)).data;
 export const verifyRazorpayPayment = async (payload) => (await api.post("/payments/razorpay/verify", payload)).data;
+export const sendPaymentReceiptEmail = async (id, recipientEmail) =>
+  (await api.post(`/payments/${id}/send-receipt-email`, null, { params: recipientEmail ? { recipientEmail } : {} })).data;
+

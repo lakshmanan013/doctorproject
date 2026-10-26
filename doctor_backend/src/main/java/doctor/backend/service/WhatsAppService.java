@@ -14,324 +14,294 @@ import java.util.List;
 @Transactional
 public class WhatsAppService {
 
-    private final WhatsAppLogRepository whatsAppLogRepository;
-    private final MessagingProviderService messagingProviderService;
+        private final WhatsAppLogRepository whatsAppLogRepository;
+        private final MessagingProviderService messagingProviderService;
 
-    public WhatsAppService(
-            WhatsAppLogRepository whatsAppLogRepository,
-            MessagingProviderService messagingProviderService) {
+        public WhatsAppService(
+                        WhatsAppLogRepository whatsAppLogRepository,
+                        MessagingProviderService messagingProviderService) {
 
-        this.whatsAppLogRepository = whatsAppLogRepository;
-        this.messagingProviderService = messagingProviderService;
-    }
-
-    // =====================================================
-    // SEND / CREATE WHATSAPP LOG
-    // =====================================================
-
-    public WhatsAppResponse sendMessage(
-            WhatsAppRequest request) {
-
-        if (request.getPhoneNumber() == null ||
-                request.getPhoneNumber().trim().isEmpty()) {
-
-            throw new RuntimeException(
-                    "Phone number is required"
-            );
+                this.whatsAppLogRepository = whatsAppLogRepository;
+                this.messagingProviderService = messagingProviderService;
         }
 
-        if (request.getMessage() == null ||
-                request.getMessage().trim().isEmpty()) {
+        // =====================================================
+        // SEND / CREATE WHATSAPP LOG
+        // =====================================================
 
-            throw new RuntimeException(
-                    "WhatsApp message is required"
-            );
+        public WhatsAppResponse sendMessage(
+                        WhatsAppRequest request) {
+
+                if (request.getPhoneNumber() == null ||
+                                request.getPhoneNumber().trim().isEmpty()) {
+
+                        throw new RuntimeException(
+                                        "Phone number is required");
+                }
+
+                if (request.getMessage() == null ||
+                                request.getMessage().trim().isEmpty()) {
+
+                        throw new RuntimeException(
+                                        "WhatsApp message is required");
+                }
+
+                WhatsAppLog log = new WhatsAppLog();
+
+                log.setPhoneNumber(
+                                request.getPhoneNumber());
+
+                log.setMessage(
+                                request.getMessage());
+
+                log.setType(
+                                request.getType() != null &&
+                                                !request.getType().trim().isEmpty()
+                                                                ? request.getType()
+                                                                : "General");
+
+                log.setProvider(
+                                request.getProvider() != null &&
+                                                !request.getProvider().trim().isEmpty()
+                                                                ? request.getProvider()
+                                                                : "Default");
+
+                if (!messagingProviderService.isWhatsAppConfigured()) {
+                        log.setStatus("SIMULATED");
+                        log.setErrorMessage(
+                                        "WhatsApp provider isn't configured yet. Simulating send in development mode.");
+                        log.setProviderMessageId("DEV_MOCK_WA");
+                } else {
+                        try {
+                                String messageSid = messagingProviderService.sendWhatsApp(log.getPhoneNumber(),
+                                                log.getMessage());
+                                log.setStatus("SENT");
+                                log.setProviderMessageId(messageSid);
+                        } catch (RuntimeException ex) {
+                                log.setStatus("FAILED");
+                                log.setErrorMessage(ex.getMessage());
+                        }
+                }
+
+                WhatsAppLog saved = whatsAppLogRepository.save(log);
+
+                return mapToResponse(saved);
         }
 
-        WhatsAppLog log = new WhatsAppLog();
+        // =====================================================
+        // GET ALL
+        // =====================================================
 
-        log.setPhoneNumber(
-                request.getPhoneNumber()
-        );
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getAllMessages() {
 
-        log.setMessage(
-                request.getMessage()
-        );
-
-        log.setType(
-                request.getType() != null &&
-                        !request.getType().trim().isEmpty()
-                        ? request.getType()
-                        : "General"
-        );
-
-        log.setProvider(
-                request.getProvider() != null &&
-                        !request.getProvider().trim().isEmpty()
-                        ? request.getProvider()
-                        : "Default"
-        );
-
-        if (!messagingProviderService.isWhatsAppConfigured()) {
-            log.setStatus("SIMULATED");
-            log.setErrorMessage("WhatsApp provider isn't configured yet. Simulating send in development mode.");
-            log.setProviderMessageId("DEV_MOCK_WA");
-        } else {
-            try {
-                String messageSid = messagingProviderService.sendWhatsApp(log.getPhoneNumber(), log.getMessage());
-                log.setStatus("SENT");
-                log.setProviderMessageId(messageSid);
-            } catch (RuntimeException ex) {
-                log.setStatus("FAILED");
-                log.setErrorMessage(ex.getMessage());
-            }
+                return whatsAppLogRepository.findAll()
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        WhatsAppLog saved =
-                whatsAppLogRepository.save(log);
+        // =====================================================
+        // GET BY ID
+        // =====================================================
 
-        return mapToResponse(saved);
-    }
+        @Transactional(readOnly = true)
+        public WhatsAppResponse getMessageById(Long id) {
 
-    // =====================================================
-    // GET ALL
-    // =====================================================
+                WhatsAppLog log = whatsAppLogRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException(
+                                                "WhatsApp log not found with id: "
+                                                                + id));
 
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getAllMessages() {
-
-        return whatsAppLogRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY ID
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public WhatsAppResponse getMessageById(Long id) {
-
-        WhatsAppLog log =
-                whatsAppLogRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "WhatsApp log not found with id: "
-                                                + id
-                                )
-                        );
-
-        return mapToResponse(log);
-    }
-
-    // =====================================================
-    // GET BY PHONE
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByPhoneNumber(
-            String phoneNumber) {
-
-        return whatsAppLogRepository
-                .findByPhoneNumber(phoneNumber)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY STATUS
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByStatus(
-            String status) {
-
-        return whatsAppLogRepository
-                .findByStatus(status)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY TYPE
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByType(
-            String type) {
-
-        return whatsAppLogRepository
-                .findByType(type)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY PROVIDER
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByProvider(
-            String provider) {
-
-        return whatsAppLogRepository
-                .findByProvider(provider)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY PHONE + STATUS
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByPhoneAndStatus(
-            String phoneNumber,
-            String status) {
-
-        return whatsAppLogRepository
-                .findByPhoneNumberAndStatus(
-                        phoneNumber,
-                        status
-                )
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // GET BY PROVIDER MESSAGE ID
-    // =====================================================
-
-    @Transactional(readOnly = true)
-    public List<WhatsAppResponse> getByProviderMessageId(
-            String providerMessageId) {
-
-        return whatsAppLogRepository
-                .findByProviderMessageId(
-                        providerMessageId
-                )
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // UPDATE STATUS
-    // =====================================================
-
-    public WhatsAppResponse updateStatus(
-            Long id,
-            String status,
-            String providerMessageId,
-            String errorMessage) {
-
-        WhatsAppLog log =
-                whatsAppLogRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "WhatsApp log not found with id: "
-                                                + id
-                                )
-                        );
-
-        if (status != null &&
-                !status.trim().isEmpty()) {
-
-            log.setStatus(status);
+                return mapToResponse(log);
         }
 
-        if (providerMessageId != null) {
+        // =====================================================
+        // GET BY PHONE
+        // =====================================================
 
-            log.setProviderMessageId(
-                    providerMessageId
-            );
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByPhoneNumber(
+                        String phoneNumber) {
+
+                return whatsAppLogRepository
+                                .findByPhoneNumber(phoneNumber)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        if (errorMessage != null) {
+        // =====================================================
+        // GET BY STATUS
+        // =====================================================
 
-            log.setErrorMessage(
-                    errorMessage
-            );
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByStatus(
+                        String status) {
+
+                return whatsAppLogRepository
+                                .findByStatus(status)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        WhatsAppLog updated =
-                whatsAppLogRepository.save(log);
+        // =====================================================
+        // GET BY TYPE
+        // =====================================================
 
-        return mapToResponse(updated);
-    }
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByType(
+                        String type) {
 
-    // =====================================================
-    // DELETE
-    // =====================================================
-
-    public void deleteMessage(Long id) {
-
-        if (!whatsAppLogRepository.existsById(id)) {
-
-            throw new RuntimeException(
-                    "WhatsApp log not found with id: " + id
-            );
+                return whatsAppLogRepository
+                                .findByType(type)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        whatsAppLogRepository.deleteById(id);
-    }
+        // =====================================================
+        // GET BY PROVIDER
+        // =====================================================
 
-    // =====================================================
-    // MAP ENTITY TO RESPONSE
-    // =====================================================
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByProvider(
+                        String provider) {
 
-    private WhatsAppResponse mapToResponse(
-            WhatsAppLog log) {
+                return whatsAppLogRepository
+                                .findByProvider(provider)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
 
-        WhatsAppResponse response =
-                new WhatsAppResponse();
+        // =====================================================
+        // GET BY PHONE + STATUS
+        // =====================================================
 
-        response.setId(
-                log.getId()
-        );
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByPhoneAndStatus(
+                        String phoneNumber,
+                        String status) {
 
-        response.setPhoneNumber(
-                log.getPhoneNumber()
-        );
+                return whatsAppLogRepository
+                                .findByPhoneNumberAndStatus(
+                                                phoneNumber,
+                                                status)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
 
-        response.setMessage(
-                log.getMessage()
-        );
+        // =====================================================
+        // GET BY PROVIDER MESSAGE ID
+        // =====================================================
 
-        response.setType(
-                log.getType()
-        );
+        @Transactional(readOnly = true)
+        public List<WhatsAppResponse> getByProviderMessageId(
+                        String providerMessageId) {
 
-        response.setStatus(
-                log.getStatus()
-        );
+                return whatsAppLogRepository
+                                .findByProviderMessageId(
+                                                providerMessageId)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
 
-        response.setProvider(
-                log.getProvider()
-        );
+        // =====================================================
+        // UPDATE STATUS
+        // =====================================================
 
-        response.setProviderMessageId(
-                log.getProviderMessageId()
-        );
+        public WhatsAppResponse updateStatus(
+                        Long id,
+                        String status,
+                        String providerMessageId,
+                        String errorMessage) {
 
-        response.setErrorMessage(
-                log.getErrorMessage()
-        );
+                WhatsAppLog log = whatsAppLogRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException(
+                                                "WhatsApp log not found with id: "
+                                                                + id));
 
-        response.setCreatedAt(
-                log.getCreatedAt()
-        );
+                if (status != null &&
+                                !status.trim().isEmpty()) {
 
-        response.setUpdatedAt(
-                log.getUpdatedAt()
-        );
+                        log.setStatus(status);
+                }
 
-        return response;
-    }
+                if (providerMessageId != null) {
+
+                        log.setProviderMessageId(
+                                        providerMessageId);
+                }
+
+                if (errorMessage != null) {
+
+                        log.setErrorMessage(
+                                        errorMessage);
+                }
+
+                WhatsAppLog updated = whatsAppLogRepository.save(log);
+
+                return mapToResponse(updated);
+        }
+
+        // =====================================================
+        // DELETE
+        // =====================================================
+
+        public void deleteMessage(Long id) {
+
+                if (!whatsAppLogRepository.existsById(id)) {
+
+                        throw new RuntimeException(
+                                        "WhatsApp log not found with id: " + id);
+                }
+
+                whatsAppLogRepository.deleteById(id);
+        }
+
+        // =====================================================
+        // MAP ENTITY TO RESPONSE
+        // =====================================================
+
+        private WhatsAppResponse mapToResponse(
+                        WhatsAppLog log) {
+
+                WhatsAppResponse response = new WhatsAppResponse();
+
+                response.setId(
+                                log.getId());
+
+                response.setPhoneNumber(
+                                log.getPhoneNumber());
+
+                response.setMessage(
+                                log.getMessage());
+
+                response.setType(
+                                log.getType());
+
+                response.setStatus(
+                                log.getStatus());
+
+                response.setProvider(
+                                log.getProvider());
+
+                response.setProviderMessageId(
+                                log.getProviderMessageId());
+
+                response.setErrorMessage(
+                                log.getErrorMessage());
+
+                response.setCreatedAt(
+                                log.getCreatedAt());
+
+                response.setUpdatedAt(
+                                log.getUpdatedAt());
+
+                return response;
+        }
 }

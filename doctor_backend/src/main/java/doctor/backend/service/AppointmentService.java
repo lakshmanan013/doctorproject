@@ -2,14 +2,19 @@ package doctor.backend.service;
 
 import doctor.backend.dto.appointment.AppointmentRequest;
 import doctor.backend.dto.appointment.AppointmentResponse;
+import doctor.backend.dto.email.EmailResponse;
 import doctor.backend.entity.Appointment;
+import doctor.backend.entity.DoctorProfile;
 import doctor.backend.entity.Patient;
 import doctor.backend.entity.User;
 import doctor.backend.exception.ResourceNotFoundException;
 import doctor.backend.repository.AppointmentRepository;
+import doctor.backend.repository.DoctorProfileRepository;
 import doctor.backend.repository.PatientRepository;
 import doctor.backend.security.CurrentUserProvider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,21 +23,29 @@ import java.util.List;
 @Service
 public class AppointmentService {
 
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
+
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final CurrentUserProvider currentUserProvider;
     private final ZippyCrmSyncService zippyCrmSyncService;
+    private final EmailService emailService;
+    private final DoctorProfileRepository doctorProfileRepository;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
             CurrentUserProvider currentUserProvider,
-            ZippyCrmSyncService zippyCrmSyncService) {
+            ZippyCrmSyncService zippyCrmSyncService,
+            EmailService emailService,
+            DoctorProfileRepository doctorProfileRepository) {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.currentUserProvider = currentUserProvider;
         this.zippyCrmSyncService = zippyCrmSyncService;
+        this.emailService = emailService;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     // =====================================================
@@ -88,6 +101,13 @@ public class AppointmentService {
                 appointmentRepository.save(appointment);
 
         zippyCrmSyncService.syncAppointment(savedAppointment);
+
+        // Dispatch confirmation email to patient's owner upon booking
+        try {
+            sendAppointmentConfirmationEmail(savedAppointment, patient, doctor, null);
+        } catch (Exception ex) {
+            log.warn("[Appointment] Failed to dispatch appointment confirmation email: {}", ex.getMessage());
+        }
 
         return mapToResponse(savedAppointment);
     }
@@ -410,5 +430,91 @@ public class AppointmentService {
         );
 
         return response;
+    }
+
+    // =====================================================
+    // SEND APPOINTMENT CONFIRMATION EMAIL (On Demand)
+    // =====================================================
+
+    public EmailResponse sendAppointmentConfirmationEmail(Long appointmentId, String overrideRecipientEmail) {
+        Long doctorId = currentUserProvider.getCurrentDoctorId();
+        User doctor = currentUserProvider.getCurrentDoctor();
+
+        Appointment appointment = appointmentRepository.findByIdAndDoctorId(appointmentId, doctorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id: " + appointmentId));
+
+        Patient patient = appointment.getPatient();
+        return sendAppointmentConfirmationEmail(appointment, patient, doctor, overrideRecipientEmail);
+    }
+
+    private EmailResponse sendAppointmentConfirmationEmail(
+            Appointment appointment,
+            Patient patient,
+            User doctor,
+            String overrideRecipientEmail) {
+
+        String recipientEmail = (overrideRecipientEmail != null && !overrideRecipientEmail.isBlank())
+                ? overrideRecipientEmail.trim()
+                : (patient != null && patient.getOwner() != null ? patient.getOwner().getEmail() : null);
+
+        if (recipientEmail == null || !recipientEmail.contains("@")) {
+            log.info("[Appointment] Skipped confirmation email: no valid email found for patient '{}'",
+                    patient != null ? patient.getName() : "Unknown");
+            return null;
+        }
+
+        DoctorProfile profile = doctor != null ? doctorProfileRepository.findByUserId(doctor.getId()).orElse(null) : null;
+        String clinicName = (profile != null && profile.getClinicHospital() != null && !profile.getClinicHospital().isBlank())
+                ? profile.getClinicHospital()
+                : "Zenve Veterinary Clinic";
+
+        StringBuilder addressBuilder = new StringBuilder();
+        if (profile != null) {
+            if (profile.getArea() != null && !profile.getArea().isBlank()) addressBuilder.append(profile.getArea().trim());
+            if (profile.getCity() != null && !profile.getCity().isBlank()) {
+                if (addressBuilder.length() > 0) addressBuilder.append(", ");
+                addressBuilder.append(profile.getCity().trim());
+            }
+            if (profile.getPincode() != null) {
+                if (addressBuilder.length() > 0) addressBuilder.append(" - ");
+                addressBuilder.append(profile.getPincode());
+            }
+        }
+        String clinicAddress = addressBuilder.length() > 0 ? addressBuilder.toString() : "Clinic Premises";
+
+        String clinicPhone = (profile != null && profile.getClinicPhone() != null && !profile.getClinicPhone().isBlank())
+                ? profile.getClinicPhone()
+                : (doctor != null && doctor.getPhone() != null ? doctor.getPhone() : "");
+
+        String docName = (appointment.getDoctorName() != null && !appointment.getDoctorName().isBlank())
+                ? appointment.getDoctorName()
+                : (profile != null && profile.getFullName() != null ? profile.getFullName()
+                : (doctor != null ? doctor.getFullName() : "Veterinary Doctor"));
+
+        String ownerName = (patient != null && patient.getOwner() != null && patient.getOwner().getFullName() != null)
+                ? patient.getOwner().getFullName()
+                : "Pet Parent";
+
+        String petName = patient != null ? patient.getName() : "Pet";
+        String species = patient != null ? patient.getSpecies() : "Pet";
+        String breed = patient != null ? patient.getBreed() : "";
+
+        return emailService.sendAppointmentConfirmationEmail(
+                recipientEmail,
+                ownerName,
+                petName,
+                species,
+                breed,
+                docName,
+                clinicName,
+                clinicAddress,
+                clinicPhone,
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime(),
+                appointment.getAppointmentType(),
+                appointment.getReason(),
+                appointment.getNotes(),
+                appointment.getStatus()
+        );
     }
 }

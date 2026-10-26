@@ -21,6 +21,19 @@ export default function Sidebar({ isOpen, onClose }) {
       const data = await getDoctorProfile();
       setDoctor(data || null);
       setImgError(false);
+
+      // Keep stored session synchronized with latest profile image state
+      try {
+        const stored = sessionStorage.getItem("zenve_doctor_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const currentImg = data?.profileImage || "";
+          if (parsed.profileImage !== currentImg) {
+            parsed.profileImage = currentImg;
+            sessionStorage.setItem("zenve_doctor_user", JSON.stringify(parsed));
+          }
+        }
+      } catch (_) {}
     } catch {
       setDoctor(null);
     }
@@ -29,7 +42,10 @@ export default function Sidebar({ isOpen, onClose }) {
   useEffect(() => {
     loadDoctorProfile();
 
-    const handleDoctorProfileUpdated = () => {
+    const handleDoctorProfileUpdated = (e) => {
+      if (e?.detail && typeof e.detail.profileImage !== "undefined") {
+        setDoctor((prev) => (prev ? { ...prev, profileImage: e.detail.profileImage } : prev));
+      }
       loadDoctorProfile();
     };
 
@@ -41,7 +57,15 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const doctorName = doctor?.fullName?.trim() || authDoctor?.fullName?.trim() || "Doctor";
   const clinicName = doctor?.clinicHospital?.trim() || authDoctor?.clinicHospital?.trim() || "Clinic";
-  const profilePhoto = doctor?.profileImage || authDoctor?.profileImage || "";
+  // Strict check: if profile is empty or has no image, sidebar profile photo is also empty
+  const rawImage = doctor !== null ? (doctor?.profileImage || "") : "";
+  const profilePhoto =
+    typeof rawImage === "string" &&
+    rawImage.trim() !== "" &&
+    rawImage.trim() !== "null" &&
+    rawImage.trim() !== "undefined"
+      ? rawImage.trim()
+      : "";
 
   const getInitials = (name) => {
     if (!name || name === "Doctor") return "DR";

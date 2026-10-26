@@ -47,6 +47,7 @@ public class AuthService {
     private final PasswordResetMailer passwordResetMailer;
     private final ZippyCrmSyncService zippyCrmSyncService;
     private final MessagingProviderService messagingProviderService;
+    private final EmailService emailService;
 
     public AuthService(
             UserRepository userRepository,
@@ -58,7 +59,8 @@ public class AuthService {
             AdminApprovalClient adminApprovalClient,
             PasswordResetMailer passwordResetMailer,
             ZippyCrmSyncService zippyCrmSyncService,
-            MessagingProviderService messagingProviderService) {
+            MessagingProviderService messagingProviderService,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.passwordEncoder = passwordEncoder;
@@ -69,6 +71,7 @@ public class AuthService {
         this.passwordResetMailer = passwordResetMailer;
         this.zippyCrmSyncService = zippyCrmSyncService;
         this.messagingProviderService = messagingProviderService;
+        this.emailService = emailService;
     }
 
     // =====================================================
@@ -132,6 +135,15 @@ public class AuthService {
         // Sync pending doctor to Zippy CRM
         zippyCrmSyncService.syncDoctor(saved, profile);
 
+        // Send official doctor welcome email with credentials & portal link
+        try {
+            String spec = (request.getClinicHospital() != null && !request.getClinicHospital().isBlank())
+                    ? request.getClinicHospital() : "Veterinary Medicine & Surgery";
+            emailService.sendDoctorWelcomeEmail(saved.getEmail(), saved.getFullName(), spec);
+        } catch (Exception ex) {
+            log.warn("Could not send welcome email to {}: {}", saved.getEmail(), ex.getMessage());
+        }
+
         // No token on purpose: registering does not log the doctor in.
         AuthResponse res = new AuthResponse(
                 saved.getId(),
@@ -189,8 +201,13 @@ public class AuthService {
         profile.setEmail(saved.getEmail());
         profile.setPhone(saved.getPhone());
         doctorProfileRepository.save(profile);
-
         zippyCrmSyncService.syncDoctor(saved, profile);
+
+        try {
+            emailService.sendDoctorWelcomeEmail(saved.getEmail(), saved.getFullName(), "Veterinary Medicine");
+        } catch (Exception ex) {
+            log.warn("Could not dispatch welcome email to {}: {}", saved.getEmail(), ex.getMessage());
+        }
     }
 
     // =====================================================
@@ -311,6 +328,16 @@ public class AuthService {
 
         DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
         zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
+
+        if ("APPROVED".equalsIgnoreCase(status)) {
+            try {
+                String spec = (profile != null && profile.getSpeciality() != null && !profile.getSpeciality().isBlank())
+                        ? profile.getSpeciality() : "Veterinary Medicine & Surgery";
+                emailService.sendDoctorWelcomeEmail(user.getEmail(), user.getFullName(), spec);
+            } catch (Exception ex) {
+                log.warn("Could not dispatch welcome email to {}: {}", user.getEmail(), ex.getMessage());
+            }
+        }
     }
 
     // =====================================================
@@ -590,12 +617,6 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(extraClaims, userDetails);
 
-        if (user.getProfileImage() == null || user.getClinicInsideImage() == null || user.getClinicOutsideImage() == null || user.getDigitalSignatureImage() == null) {
-            DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
-            zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
-            user = userRepository.findById(user.getId()).orElse(user);
-        }
-
         AuthResponse res = new AuthResponse(
                 user.getId(),
                 user.getFullName(),
@@ -641,7 +662,7 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
 
-        passwordResetMailer.sendOtp(user.getEmail(), otp);
+        passwordResetMailer.sendOtp(user.getEmail(), user.getFullName(), otp);
 
         return new ForgotPasswordResponse("An OTP has been sent to your email address.", sessionToken);
     }
@@ -700,6 +721,12 @@ public class AuthService {
         user.setOtpExpiry(null);
         user.setOtpVerified(false);
         userRepository.save(user);
+
+        try {
+            emailService.sendPasswordChangedSuccessEmail(user.getEmail(), user.getFullName());
+        } catch (Exception ex) {
+            log.warn("Could not dispatch password updated email to {}: {}", user.getEmail(), ex.getMessage());
+        }
 
         return new MessageResponse("Password has been reset successfully. You can now log in with your new password.");
     }

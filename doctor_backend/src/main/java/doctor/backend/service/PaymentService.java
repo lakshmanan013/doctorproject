@@ -4,10 +4,14 @@ import doctor.backend.dto.payment.PaymentRequest;
 import doctor.backend.dto.payment.PaymentResponse;
 import doctor.backend.entity.Invoice;
 import doctor.backend.entity.Payment;
+import doctor.backend.repository.DoctorProfileRepository;
 import doctor.backend.repository.InvoiceRepository;
+import doctor.backend.repository.OwnerRepository;
+import doctor.backend.repository.PatientRepository;
 import doctor.backend.repository.PaymentRepository;
 import doctor.backend.security.CurrentUserProvider;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,18 +23,32 @@ import java.util.List;
 @Transactional
 public class PaymentService {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
+
     private final PaymentRepository paymentRepository;
     private final InvoiceRepository invoiceRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final EmailService emailService;
+    private final OwnerRepository ownerRepository;
+    private final PatientRepository patientRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             InvoiceRepository invoiceRepository,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            EmailService emailService,
+            OwnerRepository ownerRepository,
+            PatientRepository patientRepository,
+            DoctorProfileRepository doctorProfileRepository) {
 
         this.paymentRepository = paymentRepository;
         this.invoiceRepository = invoiceRepository;
         this.currentUserProvider = currentUserProvider;
+        this.emailService = emailService;
+        this.ownerRepository = ownerRepository;
+        this.patientRepository = patientRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     // =====================================================
@@ -236,7 +254,104 @@ public class PaymentService {
 
         invoiceRepository.save(invoice);
 
+        // =================================================
+        // DISPATCH PAYMENT RECEIPT EMAIL
+        // =================================================
+        try {
+            Long ownerId = savedPayment.getOwnerId() != null ? savedPayment.getOwnerId() : invoice.getOwnerId();
+            if (ownerId != null) {
+                ownerRepository.findById(ownerId).ifPresent(owner -> {
+                    if (owner.getEmail() != null && !owner.getEmail().isBlank()) {
+                        String petName = "Your Pet";
+                        if (savedPayment.getPatientId() != null) {
+                            petName = patientRepository.findById(savedPayment.getPatientId())
+                                    .map(p -> p.getName())
+                                    .orElse("Your Pet");
+                        }
+                        doctor.backend.entity.DoctorProfile dp = doctorProfileRepository.findByUserId(doctorId).orElse(null);
+                        String clinicName = (dp != null && dp.getClinicHospital() != null && !dp.getClinicHospital().isBlank())
+                                ? dp.getClinicHospital() : "Zenve Veterinary Clinic";
+                        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Veterinary Doctor";
+                        String invNum = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : ("INV-" + invoice.getId());
+
+                        emailService.sendPaymentReceiptEmail(
+                                owner.getEmail(),
+                                owner.getFullName(),
+                                petName,
+                                docName,
+                                clinicName,
+                                invNum,
+                                savedPayment.getTransactionId(),
+                                savedPayment.getAmount(),
+                                invoice.getTotalAmount(),
+                                invoice.getDueAmount(),
+                                savedPayment.getPaymentMethod(),
+                                savedPayment.getPaymentDate()
+                        );
+                    }
+                });
+            }
+        } catch (Exception ex) {
+            log.warn("[PaymentService] Could not auto-send receipt email for payment {}: {}", savedPayment.getId(), ex.getMessage());
+        }
+
         return mapToResponse(savedPayment);
+    }
+
+    // =====================================================
+    // SEND PAYMENT RECEIPT EMAIL (On demand)
+    // =====================================================
+
+    public doctor.backend.dto.email.EmailResponse sendPaymentReceiptEmail(Long paymentId, String overrideRecipientEmail) {
+        Long doctorId = currentUserProvider.getCurrentDoctorId();
+
+        Payment payment = paymentRepository.findByIdAndDoctorId(paymentId, doctorId)
+                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + paymentId));
+
+        Invoice invoice = invoiceRepository.findByIdAndDoctorId(payment.getInvoiceId(), doctorId)
+                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + payment.getInvoiceId()));
+
+        Long ownerId = payment.getOwnerId() != null ? payment.getOwnerId() : invoice.getOwnerId();
+        doctor.backend.entity.Owner owner = ownerId != null ? ownerRepository.findById(ownerId).orElse(null) : null;
+
+        String targetEmail = (overrideRecipientEmail != null && !overrideRecipientEmail.isBlank())
+                ? overrideRecipientEmail.trim()
+                : (owner != null && owner.getEmail() != null && !owner.getEmail().isBlank()
+                        ? owner.getEmail().trim()
+                        : null);
+
+        if (targetEmail == null || targetEmail.isBlank()) {
+            throw new RuntimeException("No recipient email address on file. Please provide an email address.");
+        }
+
+        String petName = "Your Pet";
+        if (payment.getPatientId() != null) {
+            petName = patientRepository.findById(payment.getPatientId())
+                    .map(p -> p.getName())
+                    .orElse("Your Pet");
+        }
+
+        doctor.backend.entity.DoctorProfile dp = doctorProfileRepository.findByUserId(doctorId).orElse(null);
+        String clinicName = (dp != null && dp.getClinicHospital() != null && !dp.getClinicHospital().isBlank())
+                ? dp.getClinicHospital() : "Zenve Veterinary Clinic";
+        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Veterinary Doctor";
+        String invNum = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : ("INV-" + invoice.getId());
+        String ownerName = owner != null ? owner.getFullName() : "Pet Parent";
+
+        return emailService.sendPaymentReceiptEmail(
+                targetEmail,
+                ownerName,
+                petName,
+                docName,
+                clinicName,
+                invNum,
+                payment.getTransactionId(),
+                payment.getAmount(),
+                invoice.getTotalAmount(),
+                invoice.getDueAmount(),
+                payment.getPaymentMethod(),
+                payment.getPaymentDate()
+        );
     }
 
     // =====================================================

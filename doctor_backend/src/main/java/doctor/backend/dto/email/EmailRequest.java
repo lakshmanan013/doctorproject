@@ -12,6 +12,12 @@ public class EmailRequest {
 
     private String provider;
 
+    private String htmlContent;
+
+    private byte[] attachmentBytes;
+
+    private String attachmentFilename;
+
     // =========================
     // Recipient
     // =========================
@@ -70,5 +76,33 @@ public class EmailRequest {
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+    // =========================
+    // HTML Content & Attachments
+    // =========================
+
+    public String getHtmlContent() {
+        return htmlContent;
+    }
+
+    public void setHtmlContent(String htmlContent) {
+        this.htmlContent = htmlContent;
+    }
+
+    public byte[] getAttachmentBytes() {
+        return attachmentBytes;
+    }
+
+    public void setAttachmentBytes(byte[] attachmentBytes) {
+        this.attachmentBytes = attachmentBytes;
+    }
+
+    public String getAttachmentFilename() {
+        return attachmentFilename;
+    }
+
+    public void setAttachmentFilename(String attachmentFilename) {
+        this.attachmentFilename = attachmentFilename;
     }
 }

@@ -50,6 +50,9 @@ public class PrescriptionService {
     private final AppointmentRepository appointmentRepository;
     private final CurrentUserProvider currentUserProvider;
     private final ZippyCrmSyncService zippyCrmSyncService;
+    private final PdfService pdfService;
+    private final EmailService emailService;
+    private final doctor.backend.repository.DoctorProfileRepository doctorProfileRepository;
 
     public PrescriptionService(
             PrescriptionRepository prescriptionRepository,
@@ -61,7 +64,10 @@ public class PrescriptionService {
             InventoryService inventoryService,
             AppointmentRepository appointmentRepository,
             CurrentUserProvider currentUserProvider,
-            ZippyCrmSyncService zippyCrmSyncService) {
+            ZippyCrmSyncService zippyCrmSyncService,
+            PdfService pdfService,
+            EmailService emailService,
+            doctor.backend.repository.DoctorProfileRepository doctorProfileRepository) {
 
         this.prescriptionRepository = prescriptionRepository;
         this.patientRepository = patientRepository;
@@ -73,6 +79,9 @@ public class PrescriptionService {
         this.appointmentRepository = appointmentRepository;
         this.currentUserProvider = currentUserProvider;
         this.zippyCrmSyncService = zippyCrmSyncService;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     // =====================================================
@@ -922,5 +931,64 @@ public class PrescriptionService {
         response.setItems(itemResponses);
 
         return response;
+    }
+
+    // =====================================================
+    // SEND PRESCRIPTION PDF BY EMAIL
+    // =====================================================
+
+    public doctor.backend.dto.email.EmailResponse sendPrescriptionPdfEmail(Long prescriptionId, String overrideRecipientEmail) {
+        Long doctorId = currentUserProvider.getCurrentDoctorId();
+
+        Prescription prescription = prescriptionRepository.findByIdAndDoctorId(prescriptionId, doctorId)
+                .orElseThrow(() -> new RuntimeException("Prescription not found with id: " + prescriptionId));
+
+        Patient patient = prescription.getPatient();
+        Owner owner = patient != null ? patient.getOwner() : null;
+        doctor.backend.entity.DoctorProfile doctorProfile =
+                doctorProfileRepository.findByUserId(prescription.getDoctorId()).orElse(null);
+        List<PrescriptionItem> items = prescription.getItems();
+
+        String targetEmail = (overrideRecipientEmail != null && !overrideRecipientEmail.isBlank())
+                ? overrideRecipientEmail.trim()
+                : (owner != null && owner.getEmail() != null && !owner.getEmail().isBlank()
+                        ? owner.getEmail().trim()
+                        : null);
+
+        if (targetEmail == null || targetEmail.isBlank()) {
+            throw new RuntimeException("No recipient email address on file. Please enter an email address.");
+        }
+
+        byte[] pdfBytes = pdfService.generatePrescriptionPdf(prescription, doctorProfile, patient, owner, items);
+
+        String ownerName = owner != null ? owner.getFullName() : "Pet Parent";
+        String petName = patient != null ? patient.getName() : "Pet";
+        String doctorName = prescription.getDoctorName() != null ? prescription.getDoctorName() : "Veterinary Doctor";
+        String clinicName = (doctorProfile != null && doctorProfile.getClinicHospital() != null && !doctorProfile.getClinicHospital().isBlank())
+                ? doctorProfile.getClinicHospital() : "Zenve Veterinary Clinic";
+        String clinicAddress = (doctorProfile != null && doctorProfile.getCity() != null)
+                ? ((doctorProfile.getArea() != null ? (doctorProfile.getArea() + ", ") : "") + doctorProfile.getCity())
+                : null;
+        String clinicPhone = doctorProfile != null ? doctorProfile.getClinicPhone() : null;
+        String visitDate = prescription.getPrescriptionDate() != null
+                ? prescription.getPrescriptionDate().toString() : null;
+        String followUp = prescription.getPrescriptionDate() != null
+                ? prescription.getPrescriptionDate().plusDays(DEFAULT_FOLLOW_UP_GAP_DAYS).toString() : null;
+
+        return emailService.sendPrescriptionEmailWithPdf(
+                targetEmail,
+                ownerName,
+                petName,
+                doctorName,
+                clinicName,
+                clinicAddress,
+                clinicPhone,
+                visitDate,
+                prescription.getDiagnosis(),
+                prescription.getInstructions(),
+                followUp,
+                items,
+                pdfBytes
+        );
     }
 }

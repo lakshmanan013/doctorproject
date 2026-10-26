@@ -183,6 +183,17 @@ public class Patient {
         this.dateOfBirth = dateOfBirth;
     }
 
+    public String getAge() {
+        if (dateOfBirth == null) return null;
+        int years = java.time.Period.between(dateOfBirth, java.time.LocalDate.now()).getYears();
+        int months = java.time.Period.between(dateOfBirth, java.time.LocalDate.now()).getMonths();
+        if (years > 0) {
+            return years + (years == 1 ? " yr" : " yrs");
+        }
+        return months + (months == 1 ? " mo" : " mos");
+    }
+
+
     public Double getWeight() {
         return weight;
     }
