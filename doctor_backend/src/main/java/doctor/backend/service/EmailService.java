@@ -1007,10 +1007,6 @@ public class EmailService {
                                 .formatted(loginUrl, doctorName, doctorName, doctorName, email, email, specialty, clinic, loginUrl, loginUrl);
         }
 
-        private String buildDoctorWelcomeHtml(String doctorName, String email, String specialty, String appUrl) {
-                return buildDoctorApprovedHtml(doctorName, email, specialty, "Veterinary Practice", appUrl + "/login");
-        }
-
         private String buildPasswordResetOtpHtml(String recipientName, String email, String otpCode, int expiryMinutes,
                         String appUrl) {
                 String spacedOtp = otpCode != null ? String.join("  ", otpCode.split("")) : "• • • • • •";

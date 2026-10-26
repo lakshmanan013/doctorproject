@@ -1372,6 +1372,7 @@
   .auth-shell.auth-shell-login .auth-hero-desc {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin-bottom: 8px;
