@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Stethoscope, Bell, MoreHorizontal } from 'lucide-react'
+import { Home, Stethoscope, Bell } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNotifications } from '../context/NotificationsContext'
 
@@ -105,7 +105,6 @@ export default function Sidebar() {
               <p className="truncate text-[11px] text-white/50">{email}</p>
             </div>
           </div>
-          <MoreHorizontal className="h-4 w-4 text-white/50 hover:text-white shrink-0" />
         </div>
       </div>
     </aside>

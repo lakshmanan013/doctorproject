@@ -961,11 +961,11 @@ public class PrescriptionService {
 
         byte[] pdfBytes = pdfService.generatePrescriptionPdf(prescription, doctorProfile, patient, owner, items);
 
-        String ownerName = owner != null ? owner.getFullName() : "Pet Parent";
-        String petName = patient != null ? patient.getName() : "Pet";
-        String doctorName = prescription.getDoctorName() != null ? prescription.getDoctorName() : "Veterinary Doctor";
+        String ownerName = owner != null ? owner.getFullName() : "Patient Guardian";
+        String petName = patient != null ? patient.getName() : "Patient";
+        String doctorName = prescription.getDoctorName() != null ? prescription.getDoctorName() : "Consulting Doctor";
         String clinicName = (doctorProfile != null && doctorProfile.getClinicHospital() != null && !doctorProfile.getClinicHospital().isBlank())
-                ? doctorProfile.getClinicHospital() : "Zenve Veterinary Clinic";
+                ? doctorProfile.getClinicHospital() : "Zenve Doctors Clinic";
         String clinicAddress = (doctorProfile != null && doctorProfile.getCity() != null)
                 ? ((doctorProfile.getArea() != null ? (doctorProfile.getArea() + ", ") : "") + doctorProfile.getCity())
                 : null;

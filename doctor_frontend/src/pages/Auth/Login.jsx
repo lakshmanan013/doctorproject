@@ -302,7 +302,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout className="auth-shell-login">
+    <AuthLayout>
       {step === "CREDENTIALS" ? (
         <>
           <div className="auth-form-header">

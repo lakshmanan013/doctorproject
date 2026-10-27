@@ -131,7 +131,7 @@ public class PdfService {
                         String clinicTitle = (doctorProfile != null && doctorProfile.getClinicHospital() != null
                                         && !doctorProfile.getClinicHospital().isBlank())
                                                         ? doctorProfile.getClinicHospital().trim()
-                                                        : "ZENVE VET CLINICAL NETWORK";
+                                                        : "ZENVE DOCTORS CLINICAL NETWORK";
 
                         PdfPTable headerTable = new PdfPTable(1);
                         headerTable.setWidthPercentage(100);
@@ -150,13 +150,13 @@ public class PdfService {
 
                         String doctorTitle = "Attending Doctor: "
                                         + (prescription.getDoctorName() != null ? prescription.getDoctorName()
-                                                        : "Dr. Veterinary Surgeon");
+                                                        : "Consulting Physician");
                         if (doctorProfile != null && doctorProfile.getQualification() != null
                                         && !doctorProfile.getQualification().isBlank()) {
                                 doctorTitle += " (" + doctorProfile.getQualification() + ")";
                         }
                         Paragraph subP = new Paragraph(doctorTitle
-                                        + " • Certified Veterinary Medical Care • https://doctor.zenvevet.com",
+                                        + " • Certified Clinical Healthcare • https://doctor.zenvevet.com",
                                         headerSubFont);
                         subP.setSpacingBefore(3);
                         headerCell.addElement(subP);
@@ -180,7 +180,7 @@ public class PdfService {
                         patientCell.setBorderColor(borderGray);
                         patientCell.setPadding(10);
 
-                        Paragraph pSecTitle = new Paragraph("🐾 PATIENT / PET DETAILS", sectionTitleFont);
+                        Paragraph pSecTitle = new Paragraph("PATIENT DETAILS", sectionTitleFont);
                         pSecTitle.setSpacingAfter(6);
                         patientCell.addElement(pSecTitle);
 
@@ -423,12 +423,12 @@ public class PdfService {
 
                         Paragraph docNameP = new Paragraph(
                                         prescription.getDoctorName() != null ? prescription.getDoctorName()
-                                                        : "Attending Veterinary Surgeon",
+                                                        : "Attending Clinical Practitioner",
                                         regularBoldFont);
                         docNameP.setAlignment(Element.ALIGN_RIGHT);
                         rightSigCell.addElement(docNameP);
 
-                        Paragraph sigNoteP = new Paragraph("Digitally Certified • Zenve Vet Portal", footerFont);
+                        Paragraph sigNoteP = new Paragraph("Digitally Certified • Zenve Doctors Portal", footerFont);
                         sigNoteP.setAlignment(Element.ALIGN_RIGHT);
                         rightSigCell.addElement(sigNoteP);
 
@@ -438,7 +438,7 @@ public class PdfService {
                         // Bottom Brand Divider
                         document.add(new Paragraph(" ", FontFactory.getFont(FontFactory.HELVETICA, 8)));
                         Paragraph finalFooter = new Paragraph(
-                                        "Zenve Vet Care • India's Premier Veterinary Clinical Community & Network • https://doctor.zenvevet.com",
+                                        "Zenve Doctors • India's Premier Clinical Practice & Healthcare Network • https://doctor.zenvevet.com",
                                         footerFont);
                         finalFooter.setAlignment(Element.ALIGN_CENTER);
                         document.add(finalFooter);
@@ -447,7 +447,7 @@ public class PdfService {
                         return outputStream.toByteArray();
 
                 } catch (DocumentException e) {
-                        throw new RuntimeException("Failed to generate veterinary prescription PDF: " + e.getMessage(),
+                        throw new RuntimeException("Failed to generate prescription PDF: " + e.getMessage(),
                                         e);
                 }
         }

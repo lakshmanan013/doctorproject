@@ -262,31 +262,36 @@ public class EmailService {
                 String displayName = (doctorName != null && !doctorName.isBlank())
                                 ? (doctorName.toLowerCase().startsWith("dr") ? doctorName : ("Dr. " + doctorName))
                                 : "Dr. Practitioner";
-                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Veterinary Practice";
+                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Clinical Practice";
                 String displayPhone = (phone != null && !phone.isBlank()) ? phone : "Registered Mobile";
                 String appUrl = (mailProperties.getAppUrl() != null && !mailProperties.getAppUrl().isBlank())
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
+                String senderEmail = resolveFromAddress().getAddress();
 
-                String subject = "Zenve Doctors: Welcome, " + displayName + " — Registration Received 🐾";
-                String htmlBody = buildDoctorRegistrationWelcomeHtml(displayName, toEmail, displayClinic, displayPhone, appUrl);
+                String subject = "Zenve Doctors: Welcome, " + displayName + " — Registration Received";
+                String htmlBody = buildDoctorRegistrationWelcomeHtml(displayName, toEmail, displayClinic, displayPhone, appUrl, senderEmail);
                 String plainText = String.format(
-                                "Welcome to Zenve Doctors, %s!\n\n" +
-                                "Thank you for registering with Zenve Doctors — India's Premier Veterinary Practice OS.\n\n" +
-                                "Your practitioner registration has been received and submitted for administrative verification.\n\n" +
+                                "Dear %s,\n\n" +
+                                "Welcome to Zenve Doctors! Your practitioner account has been successfully created.\n\n" +
+                                "We are excited to welcome you into a dedicated, collaborative ecosystem designed exclusively for healthcare and clinical professionals.\n\n" +
                                 "Registration Details:\n" +
-                                "- Practitioner: %s\n" +
-                                "- Email: %s\n" +
+                                "- Website: %s\n" +
+                                "- Registered Name: %s\n" +
+                                "- Registered Email: %s\n" +
                                 "- Mobile: %s\n" +
                                 "- Practice / Clinic: %s\n" +
+                                "- Sender: %s\n" +
                                 "- Status: PENDING ADMIN VERIFICATION\n\n" +
-                                "What happens next?\n" +
-                                "1. Our administration team is reviewing your veterinary credentials.\n" +
-                                "2. You will receive an official approval email once approved.\n" +
-                                "3. You can then immediately sign in to manage appointments, digital prescriptions, and patients.\n\n" +
+                                "What you can do with Zenve Doctors:\n" +
+                                "- 📅 Smart Appointment Scheduling: Manage in-clinic appointments, token queues, and automated reminders.\n" +
+                                "- 💊 Instant Digital Prescriptions: Create official digital prescriptions with drug dosages and instant PDF exports.\n" +
+                                "- 🏥 Comprehensive Patient Records (EHR): Track complete clinical histories, diagnostics, and treatment plans.\n" +
+                                "- 💳 Seamless Billing & Invoicing: Issue medical invoices, track consultation fees, and generate digital receipts.\n\n" +
+                                "Our administration team is reviewing your clinical credentials. You will receive an official approval email once verified.\n\n" +
                                 "If you have any questions, reach out to us at support@zenvevet.com.\n\n" +
                                 "Best regards,\nZenve Doctors Team\nhttps://doctor.zenvevet.com",
-                                displayName, displayName, toEmail, displayPhone, displayClinic);
+                                displayName, appUrl, displayName, toEmail, displayPhone, displayClinic, senderEmail);
 
                 return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "DOCTOR_REGISTRATION_WELCOME");
         }
@@ -299,32 +304,35 @@ public class EmailService {
                 String displayName = (doctorName != null && !doctorName.isBlank())
                                 ? (doctorName.toLowerCase().startsWith("dr") ? doctorName : ("Dr. " + doctorName))
                                 : "Dr. Practitioner";
-                String displaySpecialty = (specialty != null && !specialty.isBlank()) ? specialty : "Veterinary Medicine & Surgery";
-                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Veterinary Practice";
+                String displaySpecialty = (specialty != null && !specialty.isBlank()) ? specialty : "General Medicine & Surgery";
+                String displayClinic = (clinicHospital != null && !clinicHospital.isBlank()) ? clinicHospital : "Zenve Doctors Clinic";
                 String appUrl = (mailProperties.getAppUrl() != null && !mailProperties.getAppUrl().isBlank())
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
                 String loginUrl = appUrl.replaceAll("/+$", "") + "/login";
+                String senderEmail = resolveFromAddress().getAddress();
 
-                String subject = "🎉 Congratulations " + displayName + " — Your Zenve Doctors Account is Approved!";
-                String htmlBody = buildDoctorApprovedHtml(displayName, toEmail, displaySpecialty, displayClinic, loginUrl);
+                String subject = "Zenve Doctors: Official Welcome, " + displayName + " — Your Account is Ready";
+                String htmlBody = buildDoctorApprovedHtml(displayName, toEmail, displaySpecialty, displayClinic, loginUrl, appUrl, senderEmail);
                 String plainText = String.format(
-                                "Congratulations %s!\n\n" +
-                                "Your Zenve Doctors practitioner account has been officially approved by the administrator.\n\n" +
-                                "Your practice management dashboard is now active and ready for you:\n" +
-                                "- Sign in at: %s\n" +
+                                "Dear %s,\n\n" +
+                                "Welcome to Zenve Doctors! Your practitioner account has been successfully created.\n\n" +
+                                "We are excited to welcome you into a dedicated, collaborative ecosystem designed exclusively for healthcare and clinical professionals.\n\n" +
+                                "Account Details:\n" +
+                                "- Website: %s\n" +
+                                "- Registered Name: %s\n" +
                                 "- Registered Email: %s\n" +
-                                "- Practice / Clinic: %s\n" +
-                                "- Specialization: %s\n" +
-                                "- Status: ACTIVE & APPROVED\n\n" +
-                                "What you can do now:\n" +
-                                "- Manage smart appointments and clinical queues\n" +
-                                "- Issue digital prescriptions with instant PDF generation\n" +
-                                "- Maintain comprehensive pet patient health records\n" +
-                                "- Send pet parents automated reminders via WhatsApp and SMS\n\n" +
+                                "- Clinical Specialty: %s\n" +
+                                "- Sender: %s\n\n" +
+                                "Platform Features:\n" +
+                                "- 📅 Smart Appointment Scheduling: Manage in-clinic appointments, token queues, and automated reminders.\n" +
+                                "- 💊 Instant Digital Prescriptions: Create official digital prescriptions with drug dosages and instant PDF exports.\n" +
+                                "- 🏥 Comprehensive Patient Records (EHR): Track complete clinical histories, diagnostics, and treatment plans.\n" +
+                                "- 💳 Seamless Billing & Invoicing: Issue medical invoices, track consultation fees, and generate digital receipts.\n\n" +
                                 "Sign in now: %s\n\n" +
-                                "Best regards,\nZenve Doctors Team\nhttps://doctor.zenvevet.com",
-                                displayName, loginUrl, toEmail, displayClinic, displaySpecialty, loginUrl);
+                                "Need assistance or have questions? Our clinical support team is here to assist at support@zenvevet.com.\n\n" +
+                                "Best regards,\nZenve Doctors Platform\nhttps://doctor.zenvevet.com",
+                                displayName, appUrl, displayName, toEmail, displaySpecialty, senderEmail, loginUrl);
 
                 return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "DOCTOR_APPROVED");
         }
@@ -347,16 +355,18 @@ public class EmailService {
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
 
-                String subject = "Zenve Vet: Password Reset Verification Code (" + otpCode + ")";
-                String htmlBody = buildPasswordResetOtpHtml(displayName, toEmail, otpCode, expiryMinutes, appUrl);
+                String senderEmail = resolveFromAddress().getAddress();
+
+                String subject = "Zenve Doctors: Password Reset Verification Code (" + otpCode + ")";
+                String htmlBody = buildPasswordResetOtpHtml(displayName, toEmail, otpCode, expiryMinutes, appUrl, senderEmail);
                 String plainText = String.format(
                                 "Hello %s,\n\n" +
-                                                "We received a request to reset the password for your Zenve Vet account.\n"
+                                                "We received a request to reset the password for your Zenve Doctors account.\n"
                                                 +
                                                 "Your One-Time Password (OTP) is: %s\n\n" +
                                                 "This code will expire in %d minutes.\n" +
                                                 "If you did not request this code, please ignore this email.\n\n" +
-                                                "Best regards,\nZenve Vet Security Team\nhttps://doctor.zenvevet.com",
+                                                "Best regards,\nZenve Doctors Security Team\nhttps://doctor.zenvevet.com",
                                 displayName, otpCode, expiryMinutes);
 
                 return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "PASSWORD_RESET_OTP");
@@ -374,17 +384,18 @@ public class EmailService {
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
                 String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy, hh:mm a"));
+                String senderEmail = resolveFromAddress().getAddress();
 
-                String subject = "Zenve Vet: Your Password Has Been Successfully Changed 🔒";
-                String htmlBody = buildPasswordChangedSuccessHtml(displayName, toEmail, timestamp, appUrl);
+                String subject = "Zenve Doctors: Your Password Has Been Successfully Changed 🔒";
+                String htmlBody = buildPasswordChangedSuccessHtml(displayName, toEmail, timestamp, appUrl, senderEmail);
                 String plainText = String.format(
                                 "Dear %s,\n\n" +
-                                                "This notification confirms that the password for your Zenve Vet account registered under %s was successfully updated on %s.\n\n"
+                                                "This notification confirms that the password for your Zenve Doctors account registered under %s was successfully updated on %s.\n\n"
                                                 +
                                                 "If you made this change, no further action is required.\n" +
                                                 "If you DID NOT make this change, please reset your password immediately or contact support@zenvevet.com.\n\n"
                                                 +
-                                                "Best regards,\nZenve Vet Security Team\nhttps://doctor.zenvevet.com",
+                                                "Best regards,\nZenve Doctors Security Team\nhttps://doctor.zenvevet.com",
                                 displayName, toEmail, timestamp);
 
                 return sendHtmlEmail(toEmail, subject, htmlBody, plainText, null, null, "PASSWORD_UPDATED");
@@ -409,11 +420,11 @@ public class EmailService {
                         List<PrescriptionItem> items,
                         byte[] pdfBytes) {
 
-                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Pet Parent";
-                String displayPet = (petName != null && !petName.isBlank()) ? petName : "Your Pet";
-                String displayDoctor = (doctorName != null && !doctorName.isBlank()) ? doctorName : "Veterinary Doctor";
+                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Valued Patient";
+                String displayPet = (petName != null && !petName.isBlank()) ? petName : "Patient";
+                String displayDoctor = (doctorName != null && !doctorName.isBlank()) ? doctorName : "Doctor";
                 String displayClinic = (clinicName != null && !clinicName.isBlank()) ? clinicName
-                                : "Zenve Veterinary Clinic";
+                                : "Zenve Doctors Clinic";
                 String dateStr = (visitDate != null && !visitDate.isBlank()) ? visitDate : LocalDateNowStr();
                 String appUrl = (mailProperties.getAppUrl() != null && !mailProperties.getAppUrl().isBlank())
                                 ? mailProperties.getAppUrl()
@@ -422,11 +433,13 @@ public class EmailService {
                 String cleanPetFile = displayPet.replaceAll("[^a-zA-Z0-9_-]", "-").toLowerCase();
                 String attachmentFilename = "Prescription-" + cleanPetFile + "-" + dateStr + ".pdf";
 
-                String subject = "Veterinary Prescription: " + displayPet + " - " + displayClinic;
+                String senderEmail = resolveFromAddress().getAddress();
+
+                String subject = "Official Prescription: " + displayPet + " — " + displayClinic;
                 String htmlBody = buildPrescriptionEmailHtml(
                                 displayOwner, displayPet, displayDoctor, displayClinic, clinicAddress,
-                                clinicPhone, dateStr, diagnosis, instructions, followUpDate, items,
-                                attachmentFilename, appUrl);
+                                clinicPhone, dateStr, diagnosis, instructions, followUpDate,
+                                attachmentFilename, appUrl, toEmail, senderEmail);
 
                 String plainText = String.format(
                                 "Dear %s,\n\n" +
@@ -437,7 +450,7 @@ public class EmailService {
                                                 "Follow-up: %s\n\n" +
                                                 "The complete prescription PDF has been attached to this email (%s).\n\n"
                                                 +
-                                                "Best regards,\n%s\nhttps://doctor.zenvevet.com",
+                                                "Best regards,\n%s\nZenve Doctors • https://doctor.zenvevet.com",
                                 displayOwner, displayPet, displayDoctor, displayClinic, dateStr,
                                 diagnosis != null ? diagnosis : "General Examination",
                                 instructions != null ? instructions : "Follow prescribed dosage",
@@ -466,10 +479,10 @@ public class EmailService {
                         String paymentMethod,
                         LocalDateTime paymentDate) {
 
-                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Valued Client";
+                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Valued Patient";
                 String displayPet = (petName != null && !petName.isBlank()) ? petName : "Patient";
                 String displayClinic = (clinicName != null && !clinicName.isBlank()) ? clinicName
-                                : "Zenve Veterinary Clinic";
+                                : "Zenve Doctors Clinic";
                 String invNum = (invoiceNumber != null && !invoiceNumber.isBlank()) ? invoiceNumber
                                 : ("INV-" + System.currentTimeMillis() % 100000);
                 String txnId = (transactionId != null && !transactionId.isBlank()) ? transactionId
@@ -486,14 +499,16 @@ public class EmailService {
                                 ? mailProperties.getAppUrl()
                                 : "https://doctor.zenvevet.com";
 
-                String subject = "Payment Receipt: ₹" + paidStr + " for " + displayPet + "'s Care - " + displayClinic;
+                String senderEmail = resolveFromAddress().getAddress();
+
+                String subject = "Payment Receipt: ₹" + paidStr + " for " + displayPet + " — " + displayClinic;
                 String htmlBody = buildPaymentReceiptHtml(
                                 displayOwner, displayPet, displayClinic, invNum, txnId,
-                                paidStr, totalStr, dueStr, pMethod, timeStr, appUrl);
+                                paidStr, totalStr, dueStr, pMethod, timeStr, appUrl, toEmail, senderEmail);
 
                 String plainText = String.format(
                                 "Dear %s,\n\n" +
-                                                "Thank you for your payment. We have successfully received payment of ₹%s for %s's care at %s.\n\n"
+                                                "Thank you for your payment. We have successfully received payment of ₹%s for %s at %s.\n\n"
                                                 +
                                                 "Receipt / Transaction ID: %s\n" +
                                                 "Invoice Number: %s\n" +
@@ -503,7 +518,7 @@ public class EmailService {
                                                 "Total Invoice Amount: ₹%s\n" +
                                                 "Remaining Due: ₹%s\n\n" +
                                                 "Thank you for trusting %s!\n" +
-                                                "Zenve Vet Care • https://doctor.zenvevet.com",
+                                                "Zenve Doctors • https://doctor.zenvevet.com",
                                 displayOwner, paidStr, displayPet, displayClinic, txnId, invNum,
                                 pMethod, timeStr, paidStr, totalStr, dueStr, displayClinic);
 
@@ -531,10 +546,10 @@ public class EmailService {
                         String notes,
                         String status) {
 
-                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Valued Pet Parent";
-                String displayPet = (petName != null && !petName.isBlank()) ? petName : "Your Pet";
-                String displayDoctor = (doctorName != null && !doctorName.isBlank()) ? doctorName : "Veterinary Doctor";
-                String displayClinic = (clinicName != null && !clinicName.isBlank()) ? clinicName : "Zenve Veterinary Clinic";
+                String displayOwner = (ownerName != null && !ownerName.isBlank()) ? ownerName : "Valued Patient";
+                String displayPet = (petName != null && !petName.isBlank()) ? petName : "Patient";
+                String displayDoctor = (doctorName != null && !doctorName.isBlank()) ? doctorName : "Doctor";
+                String displayClinic = (clinicName != null && !clinicName.isBlank()) ? clinicName : "Zenve Doctors Clinic";
                 String typeStr = (appointmentType != null && !appointmentType.isBlank()) ? appointmentType : "In Clinic Consultation";
                 String statusStr = (status != null && !status.isBlank()) ? status : "Confirmed";
 
@@ -557,16 +572,18 @@ public class EmailService {
                     subjectPrefix = "Appointment Scheduled";
                 }
 
-                String subject = subjectPrefix + ": " + displayPet + " with " + displayDoctor + " on " + dateFormatted + " - " + displayClinic;
+                String senderEmail = resolveAppointmentFromAddress().getAddress();
+
+                String subject = subjectPrefix + ": " + displayPet + " with " + displayDoctor + " on " + dateFormatted + " — " + displayClinic;
 
                 String htmlBody = buildAppointmentConfirmationEmailHtml(
                                 displayOwner, displayPet, species, breed, displayDoctor, displayClinic,
                                 clinicAddress, clinicPhone, dateFormatted, timeFormatted, typeStr,
-                                reason, notes, statusStr, appUrl);
+                                reason, notes, statusStr, appUrl, toEmail, senderEmail);
 
                 String plainText = String.format(
                                 "Dear %s,\n\n" +
-                                "Your veterinary appointment has been successfully scheduled and confirmed.\n\n" +
+                                "Your appointment has been successfully scheduled and confirmed.\n\n" +
                                 "APPOINTMENT DETAILS:\n" +
                                 "----------------------------------------\n" +
                                 "Patient: %s (%s)\n" +
@@ -583,18 +600,17 @@ public class EmailService {
                                 "----------------------------------------\n\n" +
                                 "PREPARATION CHECKLIST:\n" +
                                 "• Please arrive 10 minutes prior to your scheduled consultation time.\n" +
-                                "• Bring any previous vaccination certificates or treatment history.\n" +
-                                "• For safety, please secure dogs on a leash and place cats in a carrier.\n" +
+                                "• Bring any previous medical reports, prescriptions, or investigation records.\n" +
                                 "• If you need to reschedule or have questions, please call %s.\n\n" +
                                 "Thank you for choosing %s!\n" +
-                                "Zenve Vet Care • %s",
+                                "Zenve Doctors • %s",
                                 displayOwner,
-                                displayPet, (species != null ? species : "Pet") + (breed != null && !breed.isBlank() ? " • " + breed : ""),
+                                displayPet, (species != null ? species : "Patient") + (breed != null && !breed.isBlank() ? " • " + breed : ""),
                                 displayDoctor, displayClinic,
                                 (clinicAddress != null && !clinicAddress.isBlank() ? clinicAddress : "Refer to clinic profile"),
                                 (clinicPhone != null && !clinicPhone.isBlank() ? clinicPhone : "Available via portal"),
                                 dateFormatted, timeFormatted, typeStr,
-                                (reason != null && !reason.isBlank() ? reason : "Consultation / Wellness Exam"),
+                                (reason != null && !reason.isBlank() ? reason : "Consultation / Examination"),
                                 statusStr,
                                 (clinicPhone != null && !clinicPhone.isBlank() ? clinicPhone : displayClinic),
                                 displayClinic, appUrl
@@ -789,10 +805,14 @@ public class EmailService {
         }
 
         // =====================================================
-        // HTML BUILDERS (Matching Zenve Vet Brand System)
+        // HTML BUILDERS (Matching Zenve Doctors Brand System)
         // =====================================================
 
-        private String buildDoctorRegistrationWelcomeHtml(String doctorName, String email, String clinic, String phone, String appUrl) {
+        private String uniqueDispatchRef() {
+                return java.util.UUID.randomUUID().toString().substring(0, 8);
+        }
+
+        private String buildDoctorRegistrationWelcomeHtml(String doctorName, String email, String clinic, String phone, String appUrl, String senderEmail) {
                 return """
                                 <!DOCTYPE html>
                                 <html lang="en">
@@ -802,56 +822,63 @@ public class EmailService {
                                   <title>Welcome to Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 620px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .logo-bar { background-color: #FFFFFF; padding: 20px 28px; text-align: center; border-bottom: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #1E1B4B 0%%, #312E81 50%%, #4338CA 100%%); padding: 36px 32px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
-                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13.5px; opacity: 0.94; font-weight: 400; color: #C7D2FE; }
-                                    .content { padding: 34px 30px; line-height: 1.6; }
-                                    .greeting { font-size: 20px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
                                     .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 36%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .status-tag { display: inline-block; background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #FDE68A; }
-                                    .feature-box { background: #EEF2FF; border-left: 4px solid #4F46E5; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
-                                    .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.5; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .status-tag { display: inline-block; background: #FEF3C7; color: #92400E; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #FDE68A; }
+                                    .feature-box { background-color: #F0FDF4; border: 1px solid #D1FAE5; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
+                                    .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.55; }
                                     .feature-item:last-child { margin-bottom: 0; }
-                                    .feature-item strong { color: #312E81; }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #818CF8; text-decoration: none; font-weight: 500; }
+                                    .feature-item strong { color: #065F46; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div class="logo-bar">
-                                        <a href="%s" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 52px; max-width: 180px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Registration Received 🐾</span>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">OFFICIAL WELCOME</span>
+                                        </div>
                                         <h1 class="brand-title">Zenve Doctors</h1>
-                                        <p class="brand-subtitle">Veterinary Practice Operating System</p>
+                                        <p class="brand-subtitle">India's Premier Clinical Practice &amp; Doctors Network</p>
                                       </div>
                                       <div class="content">
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Thank you for registering with <strong>Zenve Doctors</strong>! Your veterinary practitioner account has been successfully created and submitted to our administration team for credential verification.
+                                          Welcome to <strong>Zenve Doctors</strong>! Your practitioner registration has been received. We are excited to welcome you into a dedicated, collaborative ecosystem designed exclusively for healthcare and clinical professionals. Your registration has been submitted to our administration team for credential verification.
                                         </p>
 
                                         <table class="details-table">
                                           <tr>
-                                            <td class="label">Practitioner Name</td>
-                                            <td class="value">%s</td>
+                                            <td class="label">Website</td>
+                                            <td class="value"><a href="%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Registered Name</td>
+                                            <td class="value"><strong>%s</strong></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Registered Email</td>
-                                            <td class="value"><a href="mailto:%s" style="color: #4F46E5; text-decoration: none;">%s</a></td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Mobile Number</td>
@@ -865,150 +892,191 @@ public class EmailService {
                                             <td class="label">Account Status</td>
                                             <td class="value"><span class="status-tag">PENDING ADMIN VERIFICATION ⏳</span></td>
                                           </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
+                                          </tr>
                                         </table>
 
                                         <div class="feature-box">
                                           <div class="feature-item">
-                                            <strong>🔍 1. Document & Credential Review:</strong> Our administration team reviews your registration credentials to ensure a safe, verified clinical community.
+                                            <strong>📅 Smart Appointment Scheduling:</strong> Manage in-clinic consultations, walk-in token queues, and automated patient reminders.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>✉️ 2. Approval Email:</strong> As soon as your registration is verified, you will receive an official approval email.
+                                            <strong>💊 Instant Digital Prescriptions:</strong> Create standardized prescriptions with drug dosages, instructions, and instant branded PDF generation.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>🚀 3. Dashboard Access:</strong> Upon approval, you will have immediate full access to manage appointments, digital prescriptions, and pet patient histories.
+                                            <strong>🏥 Comprehensive Patient Records (EHR):</strong> Maintain complete clinical histories, previous diagnoses, lab reports, and treatment timelines.
+                                          </div>
+                                          <div class="feature-item">
+                                            <strong>💳 Seamless Billing &amp; Invoicing:</strong> Issue itemized invoices, record consultation fees, and send instant digital receipts.
                                           </div>
                                         </div>
 
-                                        <p style="font-size: 13.5px; color: #64748B; margin-top: 22px;">
-                                          Need assistance or have questions regarding your verification? Contact our clinical support team at <a href="mailto:support@zenvevet.com" style="color: #4F46E5; text-decoration: none; font-weight: 600;">support@zenvevet.com</a>.
-                                        </p>
+                                        <div class="help-box">
+                                          Need assistance or have questions? Our clinical support team is here to assist at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
+                                        </div>
                                       </div>
                                       <div class="footer">
-                                        Sent automatically by <strong>no-replyzenvedoctors@zenvevet.com</strong> &bull; Zenve Technologies Inc.<br>
-                                        Zenve Veterinary Practice OS &bull; <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated welcome message was sent to <strong style="color: #94A3B8;">%s</strong> from <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </body>
                                 </html>
                                 """
-                                .formatted(appUrl, doctorName, doctorName, email, email, phone, clinic, appUrl);
+                                .formatted(appUrl, doctorName, appUrl, appUrl, doctorName, email, email, phone, clinic, senderEmail, senderEmail, appUrl, email, senderEmail, uniqueDispatchRef());
         }
 
-        private String buildDoctorApprovedHtml(String doctorName, String email, String specialty, String clinic, String loginUrl) {
+        private String buildDoctorApprovedHtml(String doctorName, String email, String specialty, String clinic, String loginUrl, String appUrl, String senderEmail) {
                 return """
                                 <!DOCTYPE html>
                                 <html lang="en">
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Your Zenve Doctors Account is Approved</title>
+                                  <title>Welcome to Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 620px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .logo-bar { background-color: #FFFFFF; padding: 20px 28px; text-align: center; border-bottom: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #065F46 0%%, #059669 50%%, #0D9488 100%%); padding: 36px 32px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 20px; padding: 5px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
-                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13.5px; opacity: 0.94; font-weight: 400; color: #D1FAE5; }
-                                    .content { padding: 34px 30px; line-height: 1.6; }
-                                    .greeting { font-size: 20px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
                                     .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 36%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .status-tag-active { display: inline-block; background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #A7F3D0; }
-                                    .feature-box { background: #F0FDF4; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
-                                    .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.5; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .feature-box { background-color: #F0FDF4; border: 1px solid #D1FAE5; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
+                                    .feature-item { margin-bottom: 12px; font-size: 13.5px; color: #1E293B; line-height: 1.55; }
                                     .feature-item:last-child { margin-bottom: 0; }
                                     .feature-item strong { color: #065F46; }
                                     .cta-container { text-align: center; margin: 30px 0 24px 0; }
-                                    .cta-btn { display: inline-block; background: linear-gradient(135deg, #059669 0%%, #047857 100%%); color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 36px; border-radius: 9px; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35); }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #34D399; text-decoration: none; font-weight: 500; }
+                                    .cta-btn { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 34px; border-radius: 8px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35); letter-spacing: 0.02em; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div class="logo-bar">
-                                        <a href="%s" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 52px; max-width: 180px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Account Approved & Verified ✅</span>
-                                        <h1 class="brand-title">Welcome Aboard, %s! 🎉</h1>
-                                        <p class="brand-subtitle">Your Zenve Practice OS Dashboard is Ready</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">OFFICIAL WELCOME</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">India's Premier Clinical Practice &amp; Doctors Network</p>
                                       </div>
                                       <div class="content">
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Great news! Your <strong>Zenve Doctors</strong> registration has been reviewed and <strong>officially approved</strong> by the administrator. Your practice account is now active with immediate access to all clinical features.
+                                          Welcome to <strong>Zenve Doctors</strong>! Your practitioner account has been successfully created. We are excited to welcome you into a dedicated, collaborative ecosystem designed exclusively for healthcare and clinical professionals.
                                         </p>
 
                                         <table class="details-table">
                                           <tr>
-                                            <td class="label">Practitioner Name</td>
-                                            <td class="value">%s</td>
+                                            <td class="label">Website</td>
+                                            <td class="value"><a href="%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Login ID / Email</td>
-                                            <td class="value"><a href="mailto:%s" style="color: #059669; text-decoration: none;">%s</a></td>
+                                            <td class="label">Registered Name</td>
+                                            <td class="value"><strong>%s</strong></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Registered Email</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Clinical Specialty</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Clinic / Practice</td>
-                                            <td class="value">%s</td>
-                                          </tr>
-                                          <tr>
-                                            <td class="label">Account Status</td>
-                                            <td class="value"><span class="status-tag-active">ACTIVE & APPROVED 🟢</span></td>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                         </table>
 
                                         <div class="feature-box">
                                           <div class="feature-item">
-                                            <strong>📅 Smart Appointment Scheduling:</strong> Manage in-clinic appointments, video consultations, and token queues seamlessly.
+                                            <strong>📅 Smart Appointment Scheduling:</strong> Manage in-clinic consultations, walk-in token queues, and automated patient reminders.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>💊 Instant Digital Prescriptions:</strong> Create complete prescriptions with drug dosages and instant PDF exports.
+                                            <strong>💊 Instant Digital Prescriptions:</strong> Create standardized prescriptions with drug dosages, instructions, and instant branded PDF generation.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>🐾 Comprehensive Patient Records:</strong> Maintain vaccination schedules, medical histories, and diagnostic reports.
+                                            <strong>🏥 Comprehensive Patient Records (EHR):</strong> Maintain complete clinical histories, previous diagnoses, lab reports, and treatment timelines.
                                           </div>
                                           <div class="feature-item">
-                                            <strong>💬 Automated Communication:</strong> Reach pet parents automatically with appointment & vaccination reminders.
+                                            <strong>💳 Seamless Billing &amp; Invoicing:</strong> Issue itemized invoices, record consultation fees, and send instant digital receipts.
                                           </div>
                                         </div>
 
                                         <div class="cta-container">
-                                          <a href="%s" class="cta-btn">Sign In to Doctor Dashboard &rarr;</a>
+                                          <a href="%s" class="cta-btn">Access Your Zenve Doctors Account &rarr;</a>
                                         </div>
 
-                                        <p style="font-size: 13.5px; color: #64748B; margin-top: 22px;">
-                                          For any assistance setting up your clinic details, our team is always ready to support you at <a href="mailto:support@zenvevet.com" style="color: #059669; text-decoration: none; font-weight: 600;">support@zenvevet.com</a>.
-                                        </p>
+                                        <div class="help-box">
+                                          Need assistance or have questions? Our clinical support team is here to assist at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
+                                        </div>
                                       </div>
                                       <div class="footer">
-                                        Sent automatically by <strong>no-replyzenvedoctors@zenvevet.com</strong> &bull; Zenve Technologies Inc.<br>
-                                        Zenve Veterinary Practice OS &bull; <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated welcome message was sent to <strong style="color: #94A3B8;">%s</strong> from <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </body>
                                 </html>
                                 """
-                                .formatted(loginUrl, doctorName, doctorName, doctorName, email, email, specialty, clinic, loginUrl, loginUrl);
+                                .formatted(appUrl, doctorName, appUrl, appUrl, doctorName, email, email, specialty, senderEmail, senderEmail, loginUrl, appUrl, email, senderEmail, uniqueDispatchRef());
         }
 
         private String buildPasswordResetOtpHtml(String recipientName, String email, String otpCode, int expiryMinutes,
-                        String appUrl) {
+                        String appUrl, String senderEmail) {
                 String spacedOtp = otpCode != null ? String.join("  ", otpCode.split("")) : "• • • • • •";
 
                 return """
@@ -1017,90 +1085,126 @@ public class EmailService {
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Zenve Vet Password Reset OTP</title>
+                                  <title>Security Verification - Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #003822 0%%, #0D9488 60%%, #059669 100%%); padding: 34px 30px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13px; opacity: 0.92; font-weight: 400; }
-                                    .content { padding: 34px 30px; line-height: 1.6; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
                                     .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
-                                    .otp-card { background: #F0FDF4; border: 2px dashed #0D9488; border-radius: 12px; padding: 22px 20px; text-align: center; margin: 24px 0; }
-                                    .otp-label { display: block; font-size: 12px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
-                                    .otp-code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #003822; margin: 6px 0; }
-                                    .otp-meta { display: inline-block; font-size: 12px; color: #64748B; margin-top: 6px; font-weight: 500; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
+                                    .otp-card { background-color: #F0FDF4; border: 2px dashed #0D9488; border-radius: 12px; padding: 24px 20px; text-align: center; margin: 24px 0; }
+                                    .otp-label { display: block; font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
+                                    .otp-code { font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #0D9488; margin: 8px 0; }
+                                    .otp-meta { display: inline-block; font-size: 12px; color: #047857; margin-top: 6px; font-weight: 600; background: #D1FAE5; padding: 4px 14px; border-radius: 12px; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 10px 16px; border-bottom: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 35%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .alert-box { background: #FFFBEB; border-left: 4px solid #F59E0B; border-radius: 6px; padding: 14px 16px; margin: 22px 0; font-size: 13px; color: #92400E; }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .status-tag { display: inline-block; background: #FEF3C7; color: #92400E; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #FDE68A; }
+                                    .alert-box { background-color: #FFFBEB; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 14px 18px; margin: 24px 0; font-size: 13px; color: #92400E; line-height: 1.55; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Security Verification</span>
-                                        <h1 class="brand-title">ZENVE VET</h1>
-                                        <p class="brand-subtitle">The Professional Network for Animal Healthcare</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">SECURITY VERIFICATION</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">Practice Management &amp; Clinical Security</p>
                                       </div>
                                       <div class="content">
-                                        <div class="greeting">Hello %s,</div>
+                                        <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          We received a request to reset the password for your Zenve Vet account. Please use the One-Time Password (OTP) below to verify your request and set your new password.
+                                          We received a request to reset the password for your <strong>Zenve Doctors</strong> practitioner account. Please use the One-Time Password (OTP) verification code below to authorize this request and set your new password.
                                         </p>
 
                                         <div class="otp-card">
                                           <span class="otp-label">Verification Code (OTP)</span>
                                           <div class="otp-code">%s</div>
-                                          <span class="otp-meta">Expires in %d minutes • Single-use only</span>
+                                          <span class="otp-meta">⏳ Valid for %d minutes &nbsp;|&nbsp; Single-use only</span>
                                         </div>
 
                                         <table class="details-table">
                                           <tr>
                                             <td class="label">Account Email</td>
-                                            <td class="value">%s</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Validity</td>
+                                            <td class="label">Security Action</td>
+                                            <td class="value"><strong>Password Reset Verification</strong></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Code Validity</td>
                                             <td class="value">%d Minutes</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Portal</td>
-                                            <td class="value"><a href="%s" style="color: #0D9488; text-decoration: none; font-weight: 600;">%s</a></td>
+                                            <td class="label">Security Status</td>
+                                            <td class="value"><span class="status-tag">PENDING CONFIRMATION 🔒</span></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Clinical Portal</td>
+                                            <td class="value"><a href="%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
                                           </tr>
                                         </table>
 
                                         <div class="alert-box">
-                                          ⚠️ If you did not request a password reset, please ignore this email or contact support. Your password remains completely secure.
+                                          ⚠️ <strong>Security Notice:</strong> If you did not initiate this password reset request, please disregard this email. Your password and account remain completely safe and protected.
+                                        </div>
+
+                                        <div class="help-box">
+                                          Need assistance or suspect unauthorized access? Our clinical support team is here to assist at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
                                         </div>
                                       </div>
                                       <div class="footer">
-                                        Sent automatically by <strong>no-reply@zenvevet.com</strong> • Zenve Pets Healthcare Pvt. Ltd.<br>
-                                        <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated security verification was sent to <strong style="color: #94A3B8;">%s</strong> from <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </body>
                                 </html>
                                 """
-                                .formatted(recipientName, spacedOtp, expiryMinutes, email, expiryMinutes, appUrl,
-                                                appUrl, appUrl);
+                                .formatted(appUrl, recipientName, spacedOtp, expiryMinutes, email, email, expiryMinutes, senderEmail, senderEmail, appUrl, appUrl, appUrl, email, senderEmail, uniqueDispatchRef());
         }
 
         private String buildPasswordChangedSuccessHtml(String recipientName, String email, String timestamp,
-                        String appUrl) {
+                        String appUrl, String senderEmail) {
                 String loginUrl = appUrl.endsWith("/") ? (appUrl + "login") : (appUrl + "/login");
 
                 return """
@@ -1109,87 +1213,120 @@ public class EmailService {
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Password Changed Successfully - Zenve Vet</title>
+                                  <title>Password Changed Successfully - Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #003822 0%%, #0D9488 60%%, #059669 100%%); padding: 34px 30px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13px; opacity: 0.92; font-weight: 400; }
-                                    .content { padding: 34px 30px; line-height: 1.6; }
-                                    .status-badge { display: inline-flex; align-items: center; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 13px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .status-badge { display: inline-block; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
                                     .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 10px 16px; border-bottom: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 35%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .cta-container { text-align: center; margin: 28px 0 20px 0; }
-                                    .cta-btn { display: inline-block; background-color: #003822; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 56, 34, 0.25); }
-                                    .danger-box { background: #FEF2F2; border-left: 4px solid #EF4444; border-radius: 6px; padding: 14px 16px; margin: 24px 0 10px 0; font-size: 13px; color: #991B1B; }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .status-tag { display: inline-block; background: #ECFDF5; color: #047857; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #A7F3D0; }
+                                    .cta-container { text-align: center; margin: 30px 0 24px 0; }
+                                    .cta-btn { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 34px; border-radius: 8px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35); letter-spacing: 0.02em; }
+                                    .danger-box { background-color: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #EF4444; border-radius: 8px; padding: 14px 18px; margin: 24px 0 10px 0; font-size: 13px; color: #991B1B; line-height: 1.55; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Security Confirmation</span>
-                                        <h1 class="brand-title">ZENVE VET</h1>
-                                        <p class="brand-subtitle">The Professional Network for Animal Healthcare</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">SECURITY CONFIRMATION</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">Account Security &amp; Practice Protection</p>
                                       </div>
                                       <div class="content">
-                                        <div class="status-badge">✓ Password Updated Successfully</div>
+                                        <div class="status-badge">✓ PASSWORD UPDATED SUCCESSFULLY</div>
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          This notification confirms that the password for your Zenve Vet account registered under <strong>%s</strong> was successfully updated.
+                                          This notification confirms that the password for your <strong>Zenve Doctors</strong> practitioner account registered under <strong>%s</strong> was successfully updated.
                                         </p>
 
                                         <table class="details-table">
                                           <tr>
                                             <td class="label">Account Email</td>
-                                            <td class="value">%s</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Updated On</td>
-                                            <td class="value">%s</td>
+                                            <td class="value"><strong>%s</strong></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Status</td>
-                                            <td class="value" style="color: #047857; font-weight: 700;">Secured & Updated</td>
+                                            <td class="label">Security Status</td>
+                                            <td class="value"><span class="status-tag">ACTIVE &amp; SECURED</span></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Encryption</td>
-                                            <td class="value">Standard encryption (TLS)</td>
+                                            <td class="label">Encryption Standard</td>
+                                            <td class="value">TLS 1.3 / End-to-End Encrypted</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Clinical Portal</td>
+                                            <td class="value"><a href="%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
                                           </tr>
                                         </table>
 
                                         <div class="cta-container">
-                                          <a href="%s" class="cta-btn">Sign In to Your Account →</a>
+                                          <a href="%s" class="cta-btn">Sign In to Your Account &rarr;</a>
                                         </div>
 
                                         <div class="danger-box">
-                                          ⚠️ <strong>Didn't request this change?</strong> If you did not make this change, please reset your password immediately or contact our security team at support@zenvevet.com.
+                                          ⚠️ <strong>Didn't authorize this change?</strong> If you did not make this change, please reset your password immediately or contact our clinical security team at <a href="mailto:support@zenvevet.com" style="color: #991B1B; font-weight: 700; text-decoration: underline;">support@zenvevet.com</a>.
+                                        </div>
+
+                                        <div class="help-box">
+                                          Need assistance? Our clinical support team is here to assist at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
                                         </div>
                                       </div>
                                       <div class="footer">
-                                        Sent automatically by <strong>no-reply@zenvevet.com</strong> • Zenve Pets Healthcare Pvt. Ltd.<br>
-                                        <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated security confirmation was sent to <strong style="color: #94A3B8;">%s</strong> from <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </body>
                                 </html>
                                 """
-                                .formatted(recipientName, email, email, timestamp, loginUrl, appUrl);
+                                .formatted(appUrl, recipientName, email, email, email, timestamp, senderEmail, senderEmail, appUrl, appUrl, loginUrl, appUrl, email, senderEmail, uniqueDispatchRef());
         }
 
         private String buildPrescriptionEmailHtml(
@@ -1203,41 +1340,10 @@ public class EmailService {
                         String diagnosis,
                         String instructions,
                         String followUpDate,
-                        List<PrescriptionItem> items,
                         String attachmentFilename,
-                        String appUrl) {
-
-                StringBuilder medRows = new StringBuilder();
-                if (items != null && !items.isEmpty()) {
-                        int idx = 1;
-                        for (PrescriptionItem it : items) {
-                                String mName = (it.getMedicine() != null && it.getMedicine().getName() != null)
-                                                ? it.getMedicine().getName()
-                                                : "Medicine";
-                                String dos = it.getDosage() != null ? it.getDosage() : "—";
-                                String freq = it.getFrequency() != null ? it.getFrequency() : "—";
-                                String dur = it.getDuration() != null ? it.getDuration() : "—";
-                                String qty = it.getQuantity() != null ? it.getQuantity() : "—";
-                                String inst = it.getInstructions() != null ? it.getInstructions() : "—";
-                                medRows.append(String.format(
-                                                "<tr><td style='padding:8px;border-bottom:1px solid #E2E8F0;font-weight:600;'>%d</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A;'>%s</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;'>%s</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;'>%s</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;'>%s</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;'>%s</td>"
-                                                                +
-                                                                "<td style='padding:8px;border-bottom:1px solid #E2E8F0;font-size:12px;color:#475569;'>%s</td></tr>",
-                                                idx++, mName, dos, freq, dur, qty, inst));
-                        }
-                } else {
-                        medRows.append("<tr><td colspan='7' style='padding:12px;text-align:center;color:#64748B;'>No medications listed on this visit.</td></tr>");
-                }
+                        String appUrl,
+                        String toEmail,
+                        String senderEmail) {
 
                 return """
                                 <!DOCTYPE html>
@@ -1245,65 +1351,66 @@ public class EmailService {
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Prescription for %s</title>
+                                  <title>Prescription for %s - Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 650px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #0F766E 0%%, #0D9488 50%%, #059669 100%%); padding: 34px 30px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-                                    .brand-title { margin: 0; font-size: 25px; font-weight: 800; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13px; opacity: 0.94; }
-                                    .content { padding: 32px 28px; line-height: 1.6; }
-                                    .status-badge { display: inline-flex; align-items: center; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 13px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
-                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 8px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 20px; }
-                                    .details-table { width: 100%%; border-collapse: collapse; margin: 18px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 9px 14px; border-bottom: 1px solid #E2E8F0; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .status-badge { display: inline-block; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
+                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
+                                    .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 32%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .med-table { width: 100%%; border-collapse: collapse; margin: 16px 0; font-size: 12.5px; }
-                                    .med-table th { background: #0F766E; color: #FFFFFF; padding: 8px; text-align: left; font-size: 12px; }
-                                    .attachment-card { background: #F0FDF4; border: 2px dashed #059669; border-radius: 10px; padding: 16px; margin: 22px 0; text-align: center; }
-                                    .attachment-title { font-weight: 700; color: #065F46; font-size: 14px; margin-bottom: 4px; }
-                                    .attachment-sub { font-size: 12px; color: #047857; }
-                                    .notes-box { background: #FFFBEB; border-left: 4px solid #F59E0B; border-radius: 6px; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #92400E; }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .feature-box { background-color: #F0FDF4; border: 1px solid #D1FAE5; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
+                                    .notes-box { background-color: #FFFBEB; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 14px 18px; margin: 22px 0; font-size: 13px; color: #92400E; line-height: 1.55; }
+                                    .attachment-box { background-color: #F0FDF4; border: 2px dashed #0D9488; border-radius: 10px; padding: 18px 20px; margin: 22px 0; text-align: center; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Official Digital Prescription</span>
-                                        <h1 class="brand-title">Zenve Vet Care 🐾</h1>
-                                        <p class="brand-subtitle">%s</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">OFFICIAL PRESCRIPTION</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">%s &nbsp;|&nbsp; Certified Clinical Prescription</p>
                                       </div>
                                       <div class="content">
-                                        <div class="status-badge">📎 Official Prescription PDF Attached</div>
+                                        <div class="status-badge">📎 OFFICIAL PRESCRIPTION PDF ATTACHED</div>
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Dr. <strong>%s</strong> from <strong>%s</strong> has issued a digital veterinary prescription for <strong>%s</strong> on %s.
+                                          Dr. <strong>%s</strong> from <strong>%s</strong> has issued an official clinical prescription for <strong>%s</strong> on %s.
                                         </p>
 
                                         <table class="details-table">
                                           <tr>
-                                            <td class="label">Patient (Pet)</td>
+                                            <td class="label">Patient Name</td>
                                             <td class="value"><strong>%s</strong></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Pet Parent</td>
+                                            <td class="label">Guardian / Owner</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
                                             <td class="label">Attending Doctor</td>
-                                            <td class="value">%s</td>
+                                            <td class="value"><strong>%s</strong></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Clinic / Hospital</td>
@@ -1315,42 +1422,59 @@ public class EmailService {
                                           </tr>
                                           <tr>
                                             <td class="label">Clinical Diagnosis</td>
-                                            <td class="value" style="color: #0F766E; font-weight: 700;">%s</td>
+                                            <td class="value"><strong style="color: #0D9488;">%s</strong></td>
                                           </tr>
-                                        </table>
-
-                                        <h4 style="margin: 20px 0 8px 0; color: #0F172A;">Prescribed Medications (Rx)</h4>
-                                        <table class="med-table">
-                                          <thead>
-                                            <tr>
-                                              <th>#</th>
-                                              <th>Medicine</th>
-                                              <th>Dosage</th>
-                                              <th>Frequency</th>
-                                              <th>Duration</th>
-                                              <th>Qty</th>
-                                              <th>Instructions</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            %s
-                                          </tbody>
+                                          <tr>
+                                            <td class="label">Follow-Up Date</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
+                                          </tr>
                                         </table>
 
                                         %s
 
-                                        <div class="attachment-card">
-                                          <div class="attachment-title">📎 Attached: %s</div>
-                                          <div class="attachment-sub">Full A4 Prescription Document with clinic branding and doctor certification. Download or print for pharmacy dispensing.</div>
+                                        <div class="attachment-box">
+                                          <div style="font-weight: 700; color: #065F46; font-size: 14.5px; margin-bottom: 4px;">📎 Attached: %s</div>
+                                          <div style="font-size: 12.5px; color: #047857; line-height: 1.5;">Complete printable digital prescription with clinic header, valid license certification, and doctor signature. Ready for pharmacy dispensing.</div>
                                         </div>
 
-                                        <p style="font-size: 12.5px; color: #64748B; margin-top: 16px;">
-                                          Hospital Contact: <strong>%s</strong> • Address: %s
-                                        </p>
+                                        <table class="details-table" style="margin-top: 18px;">
+                                          <tr>
+                                            <td class="label">Clinic Phone</td>
+                                            <td class="value"><a href="tel:%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Clinic Address</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                        </table>
+
+                                        <div class="help-box">
+                                          Need assistance or have prescription queries? Contact <strong>%s</strong> or email our clinical support at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
+                                        </div>
                                       </div>
                                       <div class="footer">
-                                        Sent on behalf of <strong>%s</strong> by Zenve Vet Care.<br>
-                                        Certified Veterinary Medical Platform • <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This official prescription was sent to <strong style="color: #94A3B8;">%s</strong> on behalf of <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1358,20 +1482,27 @@ public class EmailService {
                                 </html>
                                 """
                                 .formatted(
-                                                petName, clinicName, ownerName, doctorName, clinicName, petName,
-                                                dateStr,
+                                                petName,
+                                                appUrl,
+                                                clinicName,
+                                                ownerName, doctorName, clinicName, petName, dateStr,
                                                 petName, ownerName, doctorName, clinicName, dateStr,
                                                 diagnosis != null ? diagnosis : "General Health Examination",
-                                                medRows.toString(),
+                                                followUpDate != null && !followUpDate.isBlank() ? followUpDate : "As needed",
+                                                senderEmail, senderEmail,
                                                 (instructions != null && !instructions.isBlank())
-                                                                ? ("<div class='notes-box'><strong>Care Instructions & Advice:</strong><br>"
+                                                                ? ("<div class='notes-box'><strong>Care Instructions &amp; Advice:</strong><br>"
                                                                                 + instructions + "</div>")
                                                                 : "",
                                                 attachmentFilename,
                                                 clinicPhone != null ? clinicPhone : "—",
+                                                clinicPhone != null ? clinicPhone : "—",
                                                 clinicAddress != null ? clinicAddress : "Zenve Clinical Network",
                                                 clinicName,
-                                                appUrl);
+                                                appUrl,
+                                                toEmail,
+                                                clinicName,
+                                                uniqueDispatchRef());
         }
 
         private String buildPaymentReceiptHtml(
@@ -1385,7 +1516,9 @@ public class EmailService {
                         String dueAmount,
                         String paymentMethod,
                         String timeStr,
-                        String appUrl) {
+                        String appUrl,
+                        String toEmail,
+                        String senderEmail) {
 
                 return """
                                 <!DOCTYPE html>
@@ -1393,56 +1526,62 @@ public class EmailService {
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Payment Receipt - %s</title>
+                                  <title>Payment Receipt - %s - Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #003822 0%%, #0D9488 60%%, #059669 100%%); padding: 34px 30px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-                                    .brand-title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13px; opacity: 0.92; font-weight: 400; }
-                                    .content { padding: 34px 30px; line-height: 1.6; }
-                                    .status-badge { display: inline-flex; align-items: center; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 13px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
-                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 10px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; }
-                                    .amount-card { background: #F0FDF4; border: 1px solid #A7F3D0; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
-                                    .amount-label { font-size: 12px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.08em; }
-                                    .amount-val { font-size: 34px; font-weight: 800; color: #003822; margin: 6px 0; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .status-badge { display: inline-block; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
+                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
+                                    .amount-card { background-color: #F0FDF4; border: 1px solid #D1FAE5; border-radius: 12px; padding: 22px 20px; text-align: center; margin: 24px 0; }
+                                    .amount-label { font-size: 12px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+                                    .amount-val { font-size: 38px; font-weight: 800; color: #065F46; margin: 6px 0; }
+                                    .amount-mode { display: inline-block; background: #D1FAE5; color: #065F46; padding: 4px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; }
                                     .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 10px 16px; border-bottom: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 38%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .cta-container { text-align: center; margin: 28px 0 16px 0; }
-                                    .cta-btn { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3); }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .status-tag { display: inline-block; background: #ECFDF5; color: #047857; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid #A7F3D0; }
+                                    .cta-container { text-align: center; margin: 30px 0 24px 0; }
+                                    .cta-btn { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; font-weight: 700; font-size: 14.5px; padding: 13px 34px; border-radius: 8px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35); letter-spacing: 0.02em; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Official Payment Receipt</span>
-                                        <h1 class="brand-title">ZENVE VET</h1>
-                                        <p class="brand-subtitle">%s</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">OFFICIAL PAYMENT RECEIPT</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">%s &nbsp;|&nbsp; Billing &amp; Practice Network</p>
                                       </div>
                                       <div class="content">
-                                        <div class="status-badge">✓ Payment Received Successfully</div>
+                                        <div class="status-badge">✓ PAYMENT RECEIVED SUCCESSFULLY</div>
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Thank you for your payment. This email confirms that we have successfully received your payment for <strong>%s</strong>'s veterinary care at <strong>%s</strong>.
+                                          Thank you for your payment. This email confirms that we have successfully received payment for <strong>%s</strong> at <strong>%s</strong>.
                                         </p>
 
                                         <div class="amount-card">
                                           <div class="amount-label">Amount Paid</div>
                                           <div class="amount-val">₹%s</div>
-                                          <div style="font-size: 12px; color: #059669; font-weight: 600;">Payment Mode: %s</div>
+                                          <div class="amount-mode">Payment Mode: %s</div>
                                         </div>
 
                                         <table class="details-table">
@@ -1455,15 +1594,15 @@ public class EmailService {
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Patient (Pet)</td>
+                                            <td class="label">Patient Name</td>
                                             <td class="value"><strong>%s</strong></td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Pet Parent</td>
+                                            <td class="label">Billed To</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Date & Time</td>
+                                            <td class="label">Date &amp; Time</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
@@ -1472,21 +1611,45 @@ public class EmailService {
                                           </tr>
                                           <tr>
                                             <td class="label">Remaining Balance Due</td>
-                                            <td class="value" style="color: #D97706; font-weight: 700;">₹%s</td>
+                                            <td class="value"><strong style="color: #D97706;">₹%s</strong></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Payment Status</td>
-                                            <td class="value" style="color: #047857; font-weight: 700;">SUCCESS</td>
+                                            <td class="value"><span class="status-tag">SUCCESS ✓</span></td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                         </table>
 
                                         <div class="cta-container">
-                                          <a href="%s" class="cta-btn">View Invoice & Medical Records →</a>
+                                          <a href="%s" class="cta-btn">View Invoice &amp; Medical Records &rarr;</a>
+                                        </div>
+
+                                        <div class="help-box">
+                                          Need billing assistance or have questions? Contact <strong>%s</strong> or email our billing support team at <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
                                         </div>
                                       </div>
                                       <div class="footer">
-                                        Sent on behalf of <strong>%s</strong> by Zenve Vet Care.<br>
-                                        Official Veterinary Billing & Practice Network • <a href="%s">https://doctor.zenvevet.com</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated payment receipt was sent to <strong style="color: #94A3B8;">%s</strong> on behalf of <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1494,10 +1657,19 @@ public class EmailService {
                                 </html>
                                 """
                                 .formatted(
-                                                clinicName, clinicName, ownerName, petName, clinicName,
-                                                amountPaid, paymentMethod, transactionId, invoiceNumber,
-                                                petName, ownerName, timeStr, totalAmount, dueAmount,
-                                                appUrl, clinicName, appUrl);
+                                                clinicName,
+                                                appUrl,
+                                                clinicName,
+                                                ownerName, petName, clinicName,
+                                                amountPaid, paymentMethod,
+                                                transactionId, invoiceNumber, petName, ownerName, timeStr, totalAmount, dueAmount,
+                                                senderEmail, senderEmail,
+                                                appUrl,
+                                                clinicName,
+                                                appUrl,
+                                                toEmail,
+                                                clinicName,
+                                                uniqueDispatchRef());
         }
 
         private String buildAppointmentConfirmationEmailHtml(
@@ -1515,10 +1687,12 @@ public class EmailService {
                         String reason,
                         String notes,
                         String status,
-                        String appUrl) {
+                        String appUrl,
+                        String toEmail,
+                        String senderEmail) {
 
                 String breedText = (breed != null && !breed.isBlank()) ? (" • " + breed) : "";
-                String speciesText = (species != null && !species.isBlank()) ? species : "Pet";
+                String speciesText = (species != null && !species.isBlank()) ? species : "Patient";
                 String reasonText = (reason != null && !reason.isBlank()) ? reason : "General Health Consultation";
                 String addressText = (clinicAddress != null && !clinicAddress.isBlank()) ? clinicAddress : "Clinic Premises";
                 String phoneText = (clinicPhone != null && !clinicPhone.isBlank()) ? clinicPhone : "Available in portal";
@@ -1526,68 +1700,96 @@ public class EmailService {
                                 ? String.format("<div class=\"notes-box\"><strong>Doctor's / Clinical Notes:</strong><br>%s</div>", notes)
                                 : "";
 
+                boolean isCancelled = "Cancelled".equalsIgnoreCase(status);
+                boolean isRescheduled = "Rescheduled".equalsIgnoreCase(status);
+
+                String badgeText = isCancelled ? "APPOINTMENT CANCELLED"
+                                : isRescheduled ? "APPOINTMENT RESCHEDULED"
+                                : "APPOINTMENT CONFIRMATION";
+
+                String statusBadgeHtml = isCancelled
+                                ? "<div style=\"display: inline-block; background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px;\">✕ APPOINTMENT CANCELLED</div>"
+                                : isRescheduled
+                                ? "<div style=\"display: inline-block; background: #FEF3C7; border: 1px solid #FDE68A; color: #D97706; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px;\">🔄 APPOINTMENT RESCHEDULED</div>"
+                                : "<div class=\"status-badge\">✓ APPOINTMENT " + (status != null ? status.toUpperCase() : "CONFIRMED") + "</div>";
+
+                String statusTagHtml = isCancelled
+                                ? "<span class=\"status-tag\" style=\"background: #FEF2F2; color: #DC2626; border-color: #FECACA;\">CANCELLED</span>"
+                                : isRescheduled
+                                ? "<span class=\"status-tag\" style=\"background: #FEF3C7; color: #D97706; border-color: #FDE68A;\">RESCHEDULED</span>"
+                                : "<span class=\"status-tag\" style=\"background: #ECFDF5; color: #047857; border-color: #A7F3D0;\">" + (status != null ? status.toUpperCase() : "CONFIRMED") + "</span>";
+
+                String introText = isCancelled
+                                ? String.format("Your scheduled appointment for <strong>%s</strong> with <strong>%s</strong> at <strong>%s</strong> has been cancelled.", petName, doctorName, clinicName)
+                                : isRescheduled
+                                ? String.format("Your appointment for <strong>%s</strong> with <strong>%s</strong> at <strong>%s</strong> has been rescheduled to the updated date and time below.", petName, doctorName, clinicName)
+                                : String.format("Your appointment for <strong>%s</strong> has been successfully booked with <strong>%s</strong> at <strong>%s</strong>.", petName, doctorName, clinicName);
+
                 return """
                                 <!DOCTYPE html>
                                 <html lang="en">
                                 <head>
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                  <title>Appointment Confirmed - %s</title>
+                                  <title>Appointment - %s - Zenve Doctors</title>
                                   <style>
                                     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; }
-                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0; }
-                                    .header { background: linear-gradient(135deg, #003822 0%%, #0D9488 50%%, #059669 100%%); padding: 34px 30px; text-align: center; color: #FFFFFF; }
-                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-                                    .brand-title { margin: 0; font-size: 25px; font-weight: 800; }
-                                    .brand-subtitle { margin: 6px 0 0 0; font-size: 13px; opacity: 0.94; }
-                                    .content { padding: 32px 28px; line-height: 1.6; }
-                                    .status-badge { display: inline-flex; align-items: center; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
-                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 8px; }
-                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 20px; }
-                                    .date-card { background: #F0FDF4; border: 2px solid #0D9488; border-radius: 12px; padding: 18px 20px; text-align: center; margin: 20px 0; }
-                                    .date-main { font-size: 20px; font-weight: 800; color: #003822; margin-bottom: 4px; }
-                                    .time-sub { font-size: 15px; font-weight: 700; color: #059669; }
-                                    .details-table { width: 100%%; border-collapse: collapse; margin: 20px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
-                                    .details-table td { padding: 10px 14px; border-bottom: 1px solid #E2E8F0; }
+                                    .wrapper { width: 100%%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0; }
+                                    .header { background: linear-gradient(135deg, #00875A 0%%, #059669 50%%, #0D9488 100%%); padding: 38px 24px 34px 24px; text-align: center; color: #FFFFFF; }
+                                    .logo-badge { background-color: #FFFFFF; border-radius: 12px; display: inline-block; padding: 10px 22px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); border: 1px solid rgba(255, 255, 255, 0.5); }
+                                    .brand-badge { display: inline-block; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 5px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #FFFFFF; }
+                                    .brand-title { margin: 12px 0 0 0; font-size: 27px; font-weight: 800; letter-spacing: -0.01em; color: #FFFFFF; }
+                                    .brand-subtitle { margin: 8px 0 0 0; font-size: 13.5px; opacity: 0.95; font-weight: 400; color: #E6FFFA; }
+                                    .content { padding: 34px 28px; line-height: 1.65; color: #334155; }
+                                    .status-badge { display: inline-block; background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 6px 16px; margin-bottom: 16px; }
+                                    .greeting { font-size: 19px; font-weight: 700; color: #0F172A; margin-bottom: 12px; }
+                                    .intro { font-size: 14.5px; color: #475569; margin-bottom: 22px; line-height: 1.6; }
+                                    .date-card { background-color: #F0FDF4; border: 2px solid #0D9488; border-radius: 12px; padding: 20px; text-align: center; margin: 22px 0; }
+                                    .date-main { font-size: 21px; font-weight: 800; color: #065F46; margin-bottom: 6px; }
+                                    .time-sub { font-size: 15px; font-weight: 700; color: #0D9488; }
+                                    .details-table { width: 100%%; border-collapse: collapse; margin: 22px 0; font-size: 13.5px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; }
+                                    .details-table td { padding: 11px 16px; border-bottom: 1px solid #E2E8F0; }
                                     .details-table tr:last-child td { border-bottom: none; }
-                                    .details-table .label { color: #64748B; font-weight: 600; width: 34%%; }
-                                    .details-table .value { color: #0F172A; font-weight: 500; }
-                                    .checklist-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 16px 20px; margin: 22px 0; font-size: 13px; color: #334155; }
-                                    .checklist-title { font-weight: 700; color: #0F172A; margin-bottom: 8px; font-size: 13.5px; }
-                                    .checklist-list { margin: 0; padding-left: 18px; line-height: 1.7; }
-                                    .notes-box { background: #FFFBEB; border-left: 4px solid #F59E0B; border-radius: 6px; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #92400E; }
-                                    .footer { background-color: #0F172A; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
-                                    .footer a { color: #14B8A6; text-decoration: none; }
+                                    .details-table .label { color: #475569; font-weight: 600; width: 38%%; font-size: 13px; }
+                                    .details-table .value { color: #0F172A; font-weight: 500; font-size: 13.5px; }
+                                    .status-tag { display: inline-block; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; border: 1px solid transparent; }
+                                    .feature-box { background-color: #F0FDF4; border: 1px solid #D1FAE5; border-left: 4px solid #10B981; border-radius: 8px; padding: 18px 20px; margin: 24px 0; }
+                                    .notes-box { background-color: #FFFBEB; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 13px; color: #92400E; line-height: 1.55; }
+                                    .help-box { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; text-align: center; font-size: 13px; color: #475569; margin: 24px 0; }
+                                    .footer { background-color: #0B132B; padding: 24px 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; border-top: 1px solid #1E293B; }
+                                    .footer a { color: #2DD4BF; text-decoration: none; font-weight: 500; }
                                   </style>
                                 </head>
                                 <body>
                                   <div style="background-color: #F8FAFC; padding: 32px 16px;">
                                     <div class="wrapper">
-                                      <div style="background-color: #FFFFFF; padding: 18px 24px; text-align: center; border-bottom: 1px solid #E2E8F0;">
-                                        <a href="https://doctor.zenvevet.com" target="_blank" style="text-decoration: none;">
-                                          <img src="cid:zenveLogo" alt="Zenve VetCare" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
-                                        </a>
-                                      </div>
                                       <div class="header">
-                                        <span class="brand-badge">Appointment Confirmation</span>
-                                        <h1 class="brand-title">%s</h1>
-                                        <p class="brand-subtitle">Veterinary Healthcare & Clinical Services</p>
+                                        <div class="logo-badge">
+                                          <a href="%s" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="cid:zenveLogo" alt="Zenve Doctors" style="max-height: 48px; max-width: 170px; height: auto; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </a>
+                                        </div>
+                                        <div>
+                                          <span class="brand-badge">%s</span>
+                                        </div>
+                                        <h1 class="brand-title">Zenve Doctors</h1>
+                                        <p class="brand-subtitle">%s &nbsp;|&nbsp; Clinical Healthcare Network</p>
                                       </div>
                                       <div class="content">
-                                        <div class="status-badge">✓ Appointment %s</div>
+                                        %s
                                         <div class="greeting">Dear %s,</div>
                                         <p class="intro">
-                                          Your veterinary appointment for <strong>%s</strong> has been successfully booked with <strong>%s</strong> at <strong>%s</strong>.
+                                          %s
                                         </p>
 
                                         <div class="date-card">
                                           <div class="date-main">%s</div>
-                                          <div class="time-sub">⏰ %s • %s</div>
+                                          <div class="time-sub">⏰ %s &nbsp;|&nbsp; %s</div>
                                         </div>
 
                                         <table class="details-table">
                                           <tr>
-                                            <td class="label">Patient (Pet)</td>
+                                            <td class="label">Patient Name</td>
                                             <td class="value"><strong>%s</strong> (%s%s)</td>
                                           </tr>
                                           <tr>
@@ -1604,33 +1806,57 @@ public class EmailService {
                                           </tr>
                                           <tr>
                                             <td class="label">Contact Phone</td>
-                                            <td class="value">%s</td>
+                                            <td class="value"><a href="tel:%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a></td>
                                           </tr>
                                           <tr>
                                             <td class="label">Reason for Visit</td>
                                             <td class="value">%s</td>
                                           </tr>
                                           <tr>
-                                            <td class="label">Status</td>
-                                            <td class="value" style="color: #047857; font-weight: 700;">%s</td>
+                                            <td class="label">Appointment Status</td>
+                                            <td class="value">%s</td>
+                                          </tr>
+                                          <tr>
+                                            <td class="label">Sender</td>
+                                            <td class="value"><a href="mailto:%s" style="color: #0D9488; text-decoration: underline;">%s</a></td>
                                           </tr>
                                         </table>
 
                                         %s
 
-                                        <div class="checklist-box">
-                                          <div class="checklist-title">📋 Important Appointment Checklist:</div>
-                                          <ul class="checklist-list">
+                                        <div class="feature-box">
+                                          <div style="font-weight: 700; color: #065F46; margin-bottom: 8px; font-size: 13.5px;">📋 Important Appointment Checklist:</div>
+                                          <ul style="margin: 0; padding-left: 18px; line-height: 1.7; font-size: 13px; color: #1E293B;">
                                             <li>Please arrive 10 minutes prior to your scheduled consultation time.</li>
-                                            <li>Bring any previous vaccination certificates or treatment history.</li>
-                                            <li>For safety, please secure dogs on a leash and place cats in a carrier.</li>
-                                            <li>If you need to reschedule or have questions, please call %s.</li>
+                                            <li>Bring any previous medical reports, prescriptions, or investigation records.</li>
+                                            <li>Carry a valid photo ID and this appointment confirmation for smooth check-in.</li>
+                                            <li>If you need to reschedule or have questions, please contact %s.</li>
                                           </ul>
+                                        </div>
+
+                                        <div class="help-box">
+                                          Need assistance or have questions? Contact <strong>%s</strong> at <a href="tel:%s" style="color: #0D9488; text-decoration: underline; font-weight: 600;">%s</a> or email <a href="mailto:support@zenvevet.com" style="color: #0D9488; text-decoration: underline; font-weight: 600;">support@zenvevet.com</a>.
                                         </div>
                                       </div>
                                       <div class="footer">
-                                        Sent on behalf of <strong>%s</strong> by <strong>Zenve Appointments</strong> (<a href="mailto:no-replyzenveappointments@zenvevet.com" style="color:#14B8A6;">no-replyzenveappointments@zenvevet.com</a>).<br>
-                                        India's Premier Veterinary Practice OS • <a href="%s">%s</a>
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                          <span style="display: inline-block; background-color: #FFFFFF; border-radius: 4px; padding: 2px 6px; margin-right: 8px; vertical-align: middle; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                            <img src="cid:zenveLogo" alt="Zenve Logo" style="height: 16px; width: auto; max-width: 48px; object-fit: contain; vertical-align: middle; border: 0;" />
+                                          </span>
+                                          <span style="font-weight: 700; color: #FFFFFF; font-size: 13.5px; vertical-align: middle; display: inline-block; letter-spacing: 0.01em;">
+                                            Zenve Healthcare Pvt. Ltd.
+                                          </span>
+                                        </div>
+                                        <div style="margin-bottom: 12px; font-size: 12px; color: #94A3B8;">
+                                          Bengaluru, Karnataka, India &nbsp;|&nbsp; <a href="%s" style="color: #2DD4BF; text-decoration: none;">https://doctor.zenvevet.com</a>
+                                        </div>
+                                        <div style="font-size: 11px; color: #64748B; line-height: 1.5;">
+                                          This automated appointment notification was sent to <strong style="color: #94A3B8;">%s</strong> from <strong style="color: #94A3B8;">%s</strong>.<br>
+                                          Please do not reply directly to this email address.
+                                        </div>
+                                        <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent; mso-hide: all; opacity: 0;">
+                                          [ref: %s]
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1638,13 +1864,25 @@ public class EmailService {
                                 </html>
                                 """
                                 .formatted(
-                                                clinicName, clinicName, status, ownerName, petName, doctorName, clinicName,
+                                                clinicName,
+                                                appUrl,
+                                                badgeText,
+                                                clinicName,
+                                                statusBadgeHtml,
+                                                ownerName,
+                                                introText,
                                                 dateFormatted, timeFormatted, appointmentType,
                                                 petName, speciesText, breedText,
-                                                doctorName, clinicName, addressText, phoneText,
-                                                reasonText, status, notesHtml,
-                                                phoneText, clinicName, appUrl, appUrl
-                                );
+                                                doctorName, clinicName, addressText, phoneText, phoneText,
+                                                reasonText, statusTagHtml,
+                                                senderEmail, senderEmail,
+                                                notesHtml,
+                                                clinicName,
+                                                clinicName, phoneText, phoneText,
+                                                appUrl,
+                                                toEmail,
+                                                senderEmail,
+                                                uniqueDispatchRef());
         }
 
         private String LocalDateNowStr() {

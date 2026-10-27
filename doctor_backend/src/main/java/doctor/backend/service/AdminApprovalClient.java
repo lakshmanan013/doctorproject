@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -47,7 +48,7 @@ public class AdminApprovalClient {
     public void notifyDoctorRegistered(User user, String clinicHospital, String qualification) {
         String url = properties.getBaseUrl() + "/doctors/register";
 
-        Map<String, String> body = new java.util.HashMap<>();
+        Map<String, String> body = new HashMap<>();
         body.put("fullName", user.getFullName());
         body.put("email", user.getEmail());
         body.put("phone", user.getPhone() == null ? "" : user.getPhone());
@@ -73,7 +74,7 @@ public class AdminApprovalClient {
         if (email == null || email.isBlank()) return;
         String url = properties.getBaseUrl() + "/doctors/profile-sync";
 
-        java.util.Map<String, String> body = new java.util.HashMap<>();
+        Map<String, String> body = new HashMap<>();
         body.put("email", email);
         if (fullName != null) body.put("fullName", fullName);
         if (phone != null) body.put("phone", phone);

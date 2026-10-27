@@ -1,13 +1,11 @@
 package doctor.backend.dto.auth;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Enter a valid email address")
+    @NotBlank(message = "Email or mobile number is required")
     private String email;
 
     @NotBlank(message = "Reset token is required")

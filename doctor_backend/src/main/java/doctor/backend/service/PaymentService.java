@@ -262,16 +262,16 @@ public class PaymentService {
             if (ownerId != null) {
                 ownerRepository.findById(ownerId).ifPresent(owner -> {
                     if (owner.getEmail() != null && !owner.getEmail().isBlank()) {
-                        String petName = "Your Pet";
+                        String petName = "Patient";
                         if (savedPayment.getPatientId() != null) {
                             petName = patientRepository.findById(savedPayment.getPatientId())
                                     .map(p -> p.getName())
-                                    .orElse("Your Pet");
+                                    .orElse("Patient");
                         }
                         doctor.backend.entity.DoctorProfile dp = doctorProfileRepository.findByUserId(doctorId).orElse(null);
                         String clinicName = (dp != null && dp.getClinicHospital() != null && !dp.getClinicHospital().isBlank())
-                                ? dp.getClinicHospital() : "Zenve Veterinary Clinic";
-                        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Veterinary Doctor";
+                                ? dp.getClinicHospital() : "Zenve Doctors Clinic";
+                        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Consulting Doctor";
                         String invNum = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : ("INV-" + invoice.getId());
 
                         emailService.sendPaymentReceiptEmail(
@@ -324,19 +324,19 @@ public class PaymentService {
             throw new RuntimeException("No recipient email address on file. Please provide an email address.");
         }
 
-        String petName = "Your Pet";
+        String petName = "Patient";
         if (payment.getPatientId() != null) {
             petName = patientRepository.findById(payment.getPatientId())
                     .map(p -> p.getName())
-                    .orElse("Your Pet");
+                    .orElse("Patient");
         }
 
         doctor.backend.entity.DoctorProfile dp = doctorProfileRepository.findByUserId(doctorId).orElse(null);
         String clinicName = (dp != null && dp.getClinicHospital() != null && !dp.getClinicHospital().isBlank())
-                ? dp.getClinicHospital() : "Zenve Veterinary Clinic";
-        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Veterinary Doctor";
+                ? dp.getClinicHospital() : "Zenve Doctors Clinic";
+        String docName = (dp != null && dp.getFullName() != null) ? dp.getFullName() : "Consulting Doctor";
         String invNum = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : ("INV-" + invoice.getId());
-        String ownerName = owner != null ? owner.getFullName() : "Pet Parent";
+        String ownerName = owner != null ? owner.getFullName() : "Patient Guardian";
 
         return emailService.sendPaymentReceiptEmail(
                 targetEmail,

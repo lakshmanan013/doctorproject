@@ -208,7 +208,7 @@ public class EmailController {
     public ResponseEntity<EmailResponse> testDoctorWelcome(
             @RequestParam String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
-            @RequestParam(required = false, defaultValue = "Veterinary Medicine & Surgery") String specialty) {
+            @RequestParam(required = false, defaultValue = "General Medicine & Surgery") String specialty) {
         return ResponseEntity.ok(emailService.sendDoctorWelcomeEmail(toEmail, doctorName, specialty));
     }
 
@@ -216,7 +216,7 @@ public class EmailController {
     public ResponseEntity<EmailResponse> testDoctorRegistrationWelcome(
             @RequestParam String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
-            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital,
+            @RequestParam(required = false, defaultValue = "Zenve Doctors Clinic") String clinicHospital,
             @RequestParam(required = false, defaultValue = "+91 9876543210") String phone) {
         return ResponseEntity.ok(emailService.sendDoctorRegistrationWelcomeEmail(toEmail, doctorName, clinicHospital, phone));
     }
@@ -225,8 +225,8 @@ public class EmailController {
     public ResponseEntity<EmailResponse> testDoctorApproved(
             @RequestParam String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
-            @RequestParam(required = false, defaultValue = "Veterinary Medicine & Surgery") String specialty,
-            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital) {
+            @RequestParam(required = false, defaultValue = "General Medicine & Clinical Practice") String specialty,
+            @RequestParam(required = false, defaultValue = "Zenve Doctors Clinic") String clinicHospital) {
         return ResponseEntity.ok(emailService.sendDoctorApprovedEmail(toEmail, doctorName, specialty, clinicHospital));
     }
 
@@ -256,7 +256,7 @@ public class EmailController {
                 ownerName,
                 petName,
                 "Dr. Jane Doe",
-                "Zenve Veterinary Care",
+                "Zenve Doctors Clinic",
                 "INV-10029",
                 "TXN-" + System.currentTimeMillis(),
                 amount,
@@ -275,7 +275,7 @@ public class EmailController {
             @RequestParam(required = false, defaultValue = "Canine") String species,
             @RequestParam(required = false, defaultValue = "Golden Retriever") String breed,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
-            @RequestParam(required = false, defaultValue = "Zenve Animal Care Center") String clinicHospital,
+            @RequestParam(required = false, defaultValue = "Zenve Doctors Clinic") String clinicHospital,
             @RequestParam(required = false, defaultValue = "Confirmed") String status) {
         return ResponseEntity.ok(emailService.sendAppointmentConfirmationEmail(
                 toEmail,

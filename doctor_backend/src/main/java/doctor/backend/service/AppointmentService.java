@@ -492,7 +492,7 @@ public class AppointmentService {
         DoctorProfile profile = doctor != null ? doctorProfileRepository.findByUserId(doctor.getId()).orElse(null) : null;
         String clinicName = (profile != null && profile.getClinicHospital() != null && !profile.getClinicHospital().isBlank())
                 ? profile.getClinicHospital()
-                : "Zenve Veterinary Clinic";
+                : "Zenve Doctors Clinic";
 
         StringBuilder addressBuilder = new StringBuilder();
         if (profile != null) {
@@ -515,7 +515,7 @@ public class AppointmentService {
         String docName = (appointment.getDoctorName() != null && !appointment.getDoctorName().isBlank())
                 ? appointment.getDoctorName()
                 : (profile != null && profile.getFullName() != null ? profile.getFullName()
-                : (doctor != null ? doctor.getFullName() : "Veterinary Doctor"));
+                : (doctor != null ? doctor.getFullName() : "Consulting Doctor"));
 
         String ownerName = (patient != null && patient.getOwner() != null && patient.getOwner().getFullName() != null)
                 ? patient.getOwner().getFullName()

@@ -202,7 +202,7 @@ public class AuthService {
         zippyCrmSyncService.syncDoctor(saved, profile);
 
         try {
-            emailService.sendDoctorApprovedEmail(saved.getEmail(), saved.getFullName(), "Veterinary Medicine", null);
+            emailService.sendDoctorApprovedEmail(saved.getEmail(), saved.getFullName(), "General Medicine & Surgery", null);
         } catch (Exception ex) {
             log.warn("Could not dispatch approval email to {}: {}", saved.getEmail(), ex.getMessage());
         }
@@ -325,18 +325,27 @@ public class AuthService {
         userRepository.save(user);
 
         DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
-        zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
 
-        if ("APPROVED".equalsIgnoreCase(status)) {
+        // Run external image import and approval email asynchronously so the admin backend responds immediately
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
-                String spec = (profile != null && profile.getSpeciality() != null && !profile.getSpeciality().isBlank())
-                        ? profile.getSpeciality() : "Veterinary Medicine & Surgery";
-                String clinic = profile != null ? profile.getClinicHospital() : null;
-                emailService.sendDoctorApprovedEmail(user.getEmail(), user.getFullName(), spec, clinic);
+                zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
             } catch (Exception ex) {
-                log.warn("Could not dispatch approval email to {}: {}", user.getEmail(), ex.getMessage());
+                log.warn("Could not import doctor images from Zippy CRM for {}: {}", user.getEmail(), ex.getMessage());
             }
-        }
+
+            if ("APPROVED".equalsIgnoreCase(status)) {
+                try {
+                    String spec = (profile != null && profile.getSpeciality() != null && !profile.getSpeciality().isBlank())
+                            ? profile.getSpeciality() : "Veterinary Medicine & Surgery";
+                    String clinic = profile != null ? profile.getClinicHospital() : null;
+                    emailService.sendDoctorApprovedEmail(user.getEmail(), user.getFullName(), spec, clinic);
+                    log.info("[Approval Notification] Dispatched doctor approved email to {}", user.getEmail());
+                } catch (Exception ex) {
+                    log.warn("Could not dispatch approval email to {}: {}", user.getEmail(), ex.getMessage());
+                }
+            }
+        });
     }
 
     // =====================================================
@@ -643,15 +652,28 @@ public class AuthService {
         return "+91 ******" + lastFour;
     }
 
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return email != null ? email : "";
+        int atIdx = email.indexOf('@');
+        if (atIdx <= 2) return email;
+        return email.charAt(0) + "***" + email.charAt(atIdx - 1) + email.substring(atIdx);
+    }
+
     // =====================================================
     // FORGOT PASSWORD
     // =====================================================
 
-    public ForgotPasswordResponse forgotPassword(String email) {
-        String normalized = email.trim().toLowerCase();
+    public ForgotPasswordResponse forgotPassword(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new BadRequestException("Please enter your registered email address or mobile number.");
+        }
 
-        User user = userRepository.findByEmail(normalized)
-                .orElseThrow(() -> new BadRequestException("No account found with this email address"));
+        String clean = identifier.trim();
+        String normalized = clean.toLowerCase();
+        String digitsOnly = clean.replaceAll("[^0-9]", "");
+
+        User user = findUserByIdentifier(normalized, digitsOnly)
+                .orElseThrow(() -> new BadRequestException("No account found with this email or mobile number: " + clean));
 
         String otp = OtpUtil.generateOtp();
         String sessionToken = UUID.randomUUID().toString();
@@ -663,15 +685,57 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
 
-        passwordResetMailer.sendOtp(user.getEmail(), user.getFullName(), otp);
+        boolean emailSent = false;
+        boolean smsSent = false;
 
-        return new ForgotPasswordResponse("An OTP has been sent to your email address.", sessionToken);
+        // 1. Dispatch OTP via Email (branded Welcome-mail design system)
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            try {
+                passwordResetMailer.sendOtp(user.getEmail(), user.getFullName(), otp);
+                emailSent = true;
+                log.info("[Password Reset] Dispatched OTP {} to email: {}", otp, user.getEmail());
+            } catch (Exception ex) {
+                log.error("[Password Reset] Failed to email OTP to {}: {}", user.getEmail(), ex.getMessage());
+            }
+        }
+
+        // 2. Dispatch OTP via APITXT SMS to mobile phone
+        String phone = user.getPhone();
+        String targetPhone = (phone != null && !phone.isBlank()) ? phone.replaceAll("[^0-9]", "") : digitsOnly;
+        if (targetPhone != null && !targetPhone.isBlank()) {
+            try {
+                messagingProviderService.sendOtp(targetPhone, otp);
+                smsSent = true;
+                log.info("[Password Reset] Dispatched APITXT OTP {} to mobile: {}", otp, targetPhone);
+            } catch (Exception ex) {
+                log.error("[Password Reset] Failed to send APITXT SMS OTP to {}: {}", targetPhone, ex.getMessage());
+            }
+        }
+
+        String maskedEmail = maskEmail(user.getEmail());
+        String maskedPhone = maskPhoneNumber(targetPhone);
+
+        String message;
+        if (emailSent && smsSent) {
+            message = "An OTP has been sent to your registered email (" + maskedEmail + ") and mobile (" + maskedPhone + ").";
+        } else if (emailSent) {
+            message = "An OTP has been sent to your registered email (" + maskedEmail + ").";
+        } else if (smsSent) {
+            message = "An OTP has been sent to your registered mobile (" + maskedPhone + ").";
+        } else {
+            throw new BadRequestException("Could not dispatch OTP to email or mobile. Please contact support.");
+        }
+
+        return new ForgotPasswordResponse(message, sessionToken, user.getEmail(), maskedEmail, maskedPhone);
     }
 
     public VerifyOtpResponse verifyOtp(String email, String otp, String resetToken) {
-        String normalized = email.trim().toLowerCase();
+        String clean = email != null ? email.trim() : "";
+        String normalized = clean.toLowerCase();
+        String digitsOnly = clean.replaceAll("[^0-9]", "");
 
-        User user = userRepository.findByEmail(normalized)
+        User user = findUserByIdentifier(normalized, digitsOnly)
+                .or(() -> (resetToken != null && !resetToken.isBlank()) ? userRepository.findByResetToken(resetToken) : Optional.empty())
                 .orElseThrow(() -> new BadRequestException("Invalid request"));
 
         if (user.getResetToken() == null
@@ -702,9 +766,12 @@ public class AuthService {
     }
 
     public MessageResponse resetPassword(String email, String resetToken, String newPassword) {
-        String normalized = email.trim().toLowerCase();
+        String clean = email != null ? email.trim() : "";
+        String normalized = clean.toLowerCase();
+        String digitsOnly = clean.replaceAll("[^0-9]", "");
 
-        User user = userRepository.findByEmail(normalized)
+        User user = findUserByIdentifier(normalized, digitsOnly)
+                .or(() -> (resetToken != null && !resetToken.isBlank()) ? userRepository.findByResetToken(resetToken) : Optional.empty())
                 .orElseThrow(() -> new BadRequestException("Invalid request"));
 
         if (!user.isOtpVerified()

@@ -24,6 +24,8 @@ export default function ForgotPassword() {
   const [serverError, setServerError] = useState("");
 
   const [email, setEmail] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
+  const [maskedPhone, setMaskedPhone] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [otp, setOtp] = useState(EMPTY_OTP);
   const otpRefs = useRef([]);
@@ -41,21 +43,23 @@ export default function ForgotPassword() {
     error?.response?.data?.message || fallback;
 
   // =====================================================
-  // STEP 1 — email -> send OTP
+  // STEP 1 — email or mobile -> send OTP via Email & APITXT SMS
   // =====================================================
 
   const handleSendOtp = async (values) => {
-    const cleanEmail = values.email.trim().toLowerCase();
+    const cleanIdentifier = values.email.trim();
     setServerError("");
     setSubmitting(true);
 
     try {
-      const data = await forgotPassword({ email: cleanEmail });
+      const data = await forgotPassword({ email: cleanIdentifier });
 
-      setEmail(cleanEmail);
+      setEmail(data.email || cleanIdentifier);
+      setMaskedEmail(data.maskedEmail || "");
+      setMaskedPhone(data.maskedPhone || "");
       setResetToken(data.resetToken);
       setOtp(EMPTY_OTP);
-      toast.success(data.message || "OTP sent to your email.");
+      toast.success(data.message || "OTP sent to your email and mobile.");
       setStep(2);
     } catch (error) {
       const message = extractErrorMessage(error, "Could not send OTP. Please try again.");
@@ -123,9 +127,11 @@ export default function ForgotPassword() {
       const data = await forgotPassword({ email });
 
       setResetToken(data.resetToken);
+      if (data.maskedEmail) setMaskedEmail(data.maskedEmail);
+      if (data.maskedPhone) setMaskedPhone(data.maskedPhone);
       setOtp(EMPTY_OTP);
       otpRefs.current[0]?.focus();
-      toast.success(data.message || "A new OTP has been sent.");
+      toast.success(data.message || "A new OTP has been sent to your email and mobile.");
     } catch (error) {
       const message = extractErrorMessage(error, "Unable to resend OTP.");
       setServerError(message);
@@ -138,6 +144,8 @@ export default function ForgotPassword() {
   const handleChangeEmail = () => {
     setStep(1);
     setOtp(EMPTY_OTP);
+    setMaskedEmail("");
+    setMaskedPhone("");
     setResetToken("");
     setServerError("");
   };
@@ -188,7 +196,7 @@ export default function ForgotPassword() {
       <AuthLayout className="auth-shell-forgot">
         <div className="auth-form-header">
           <h2>Forgot password</h2>
-          <p>Enter your account email and we&apos;ll send you a 6-digit OTP.</p>
+          <p>Enter your account email or registered mobile to receive a 6-digit OTP via Email and SMS.</p>
         </div>
 
         <ErrorAlert />
@@ -198,23 +206,19 @@ export default function ForgotPassword() {
           onSubmit={emailForm.handleSubmit(handleSendOtp)}
           noValidate
         >
-          <Field label="Email address">
+          <Field label="Email or Mobile Number">
             <div className="auth-input-wrap">
               <span className="auth-input-icon">
                 <FiMail size={16} />
               </span>
 
               <input
-                type="email"
+                type="text"
                 className={`input${emailForm.formState.errors.email ? " input-error" : ""}`}
-                placeholder="you@clinic.com"
-                autoComplete="email"
+                placeholder="you@clinic.com or 10-digit mobile"
+                autoComplete="username"
                 {...emailForm.register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Enter a valid email address",
-                  },
+                  required: "Email or mobile number is required",
                 })}
               />
             </div>
@@ -244,7 +248,16 @@ export default function ForgotPassword() {
         <div className="auth-form-header">
           <h2>Verify OTP</h2>
           <p>
-            Enter the 6-digit code sent to <strong>{email}</strong>
+            Enter the 6-digit code sent to{" "}
+            {maskedEmail && maskedPhone ? (
+              <>
+                <strong>{maskedEmail}</strong> and mobile <strong>{maskedPhone}</strong>
+              </>
+            ) : maskedPhone ? (
+              <strong>mobile {maskedPhone}</strong>
+            ) : (
+              <strong>{maskedEmail || email}</strong>
+            )}
           </p>
         </div>
 
@@ -290,7 +303,7 @@ export default function ForgotPassword() {
             onClick={handleChangeEmail}
             disabled={submitting}
           >
-            Change email
+            Change account
           </button>
         </div>
 
