@@ -8,9 +8,9 @@ import {
   FiEye,
   FiEyeOff,
   FiAlertCircle,
-  FiShield,
   FiSmartphone,
   FiArrowLeft,
+  FiArrowRight,
   FiCheckCircle,
   FiRefreshCw
 } from "react-icons/fi";
@@ -21,6 +21,7 @@ import AuthLayout from "../../layouts/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { sendLoginPhoneOtp, resendLoginOtp } from "../../services/authService";
 import { ROUTES } from "../../constants/routes";
+import AnimatedOtpScreen from "../../components/auth/AnimatedOtpScreen";
 
 import "./Auth.css";
 
@@ -29,7 +30,7 @@ const EMPTY_OTP = ["", "", "", "", "", ""];
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, verifyLoginOtp } = useAuth();
+  const { login, verifyLoginOtp, persistSession } = useAuth();
 
   // Mode: "CREDENTIALS" | "2FA_OTP"
   const [step, setStep] = useState("CREDENTIALS");
@@ -306,34 +307,15 @@ export default function Login() {
       {step === "CREDENTIALS" ? (
         <>
           <div className="auth-form-header">
-            <div className="auth-header-badge">
-              <svg
-                className="auth-paw-cross-svg"
-                viewBox="0 0 48 48"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* 4 Paw Toes */}
-                <ellipse cx="14" cy="16" rx="3.5" ry="5.5" transform="rotate(-15 14 16)" fill="#3730a3" />
-                <ellipse cx="21" cy="11.5" rx="3.5" ry="5.5" transform="rotate(-5 21 11.5)" fill="#3730a3" />
-                <ellipse cx="29" cy="11.5" rx="3.5" ry="5.5" transform="rotate(5 29 11.5)" fill="#3730a3" />
-                <ellipse cx="36" cy="16" rx="3.5" ry="5.5" transform="rotate(15 36 16)" fill="#3730a3" />
-
-                {/* Main Paw Pad */}
-                <path
-                  d="M15 28C13.5 32.5 16.5 39 25 39C33.5 39 36.5 32.5 35 28C33.5 23.5 28.5 23.5 25 25.5C21.5 23.5 16.5 23.5 15 28Z"
-                  fill="#3730a3"
-                />
-                {/* White Medical Cross inside main pad */}
-                <path
-                  d="M23.5 29H26.5V32H29.5V35H26.5V38H23.5V35H20.5V32H23.5V29Z"
-                  fill="#FFFFFF"
-                />
-              </svg>
+            <div className="auth-card-top-logo">
+              <img
+                src="/zenve.png"
+                alt="Zenve Logo"
+                className="auth-card-logo-img"
+              />
             </div>
-
-            <h2>Welcome Doctor</h2>
-            <p>Sign in to manage your clinic, patients, and schedule.</p>
+            <span className="auth-header-welcome">Welcome to</span>
+            <h2 className="auth-header-title">Zenve Doctors</h2>
           </div>
 
           {/* Login Method Tabs */}
@@ -443,7 +425,8 @@ export default function Login() {
                 className="auth-submit"
                 disabled={submitting}
               >
-                {submitting ? "Signing in..." : "Sign in"}
+                <FiArrowRight size={16} strokeWidth={2.4} />
+                <span>{submitting ? "Signing in..." : "Sign in"}</span>
               </Button>
             </form>
           ) : (
@@ -475,7 +458,7 @@ export default function Login() {
               </Field>
 
               <div className="auth-phone-helper-hint">
-                We&apos;ll send a 6-digit verification code to this number to verify and sign you in.
+                We&apos;ll send a 4-digit verification code to this number to verify and sign you in.
               </div>
 
               <Button
@@ -484,7 +467,8 @@ export default function Login() {
                 className="auth-submit"
                 disabled={submitting}
               >
-                {submitting ? "Sending OTP..." : "Get Login OTP"}
+                <FiArrowRight size={16} strokeWidth={2.4} />
+                <span>{submitting ? "Sending OTP..." : "Get Login OTP"}</span>
               </Button>
             </form>
           )}
@@ -497,115 +481,55 @@ export default function Login() {
           </p>
         </>
       ) : (
-        /* 2FA PHONE OTP VERIFICATION STEP */
-        <div className="auth-2fa-step-container">
-          <div className="auth-form-header">
-            <div className="auth-header-badge auth-2fa-badge">
-              <FiSmartphone size={24} color="#4338ca" />
-            </div>
-
-            <h2>Mobile Verification</h2>
-            <p>
-              We sent a 6-digit verification code to:{" "}
-              <strong style={{ color: "#1e1b4b", display: "inline-block", marginTop: 4 }}>
-                {twoFaData.maskedPhone}
-              </strong>
-            </p>
-          </div>
-
-          {serverError && (
-            <div className="auth-alert" style={{ marginBottom: 18 }}>
-              <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{serverError}</span>
-            </div>
-          )}
-
-          <div className="auth-phone-otp-card" style={{ marginTop: 0 }}>
-            <div className="auth-phone-otp-header">
-              <span>Enter 6-Digit OTP</span>
-              <span className="auth-phone-otp-hint">Code expires in 10 minutes</span>
-            </div>
-
-            <div className="auth-phone-otp-inputs">
-              {otp.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={(el) => (otpInputRefs.current[idx] = el)}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  onPaste={handleOtpPaste}
-                  className="auth-phone-otp-box"
-                  autoComplete="one-time-code"
-                />
-              ))}
-            </div>
-
-            <div className="auth-phone-otp-actions" style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                disabled={resendCooldown > 0 || resendingOtp}
-                className="auth-phone-resend-btn"
-              >
-                <FiRefreshCw
-                  size={13}
-                  className={resendingOtp ? "auth-spin-icon" : ""}
-                  style={{ marginRight: 4 }}
-                />
-                {resendingOtp
-                  ? "Resending..."
-                  : resendCooldown > 0
-                    ? `Resend OTP (${resendCooldown}s)`
-                    : "Resend OTP"}
-              </button>
-
-              <Button
-                type="button"
-                onClick={() => handleVerifyOtp(otp.join(""))}
-                disabled={verifyingOtp || otp.join("").length !== 6}
-                size="md"
-                style={{ minWidth: 140 }}
-              >
-                {verifyingOtp ? "Verifying..." : "Verify & Sign In"}
-              </Button>
-            </div>
-          </div>
-
-          <div className="auth-back-to-login-wrap">
-            <button
-              type="button"
-              onClick={handleBackToCredentials}
-              className="auth-link"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 14,
-              }}
-            >
-              <FiArrowLeft size={16} />
-              Sign in with a different account or method
-            </button>
-          </div>
-        </div>
+        /* 2FA PHONE OTP VERIFICATION STEP (INLINE ANIMATED SCREEN) */
+        <AnimatedOtpScreen
+          isInline={true}
+          length={4}
+          destination={twoFaData.maskedPhone || "your registered phone"}
+          heading="Two-Factor Verification"
+          subtitle={
+            <>
+              Enter the 4-digit code sent to{" "}
+              <strong style={{ color: "#1e1b4b" }}>{twoFaData.maskedPhone || "your phone"}</strong>.
+              <br />
+              It will auto-verify once entered.
+            </>
+          }
+          onVerify={async (code) => {
+            const data = await verifyLoginOtp(
+              {
+                email: twoFaData.email,
+                phone: twoFaData.phone,
+                loginSessionToken: twoFaData.loginSessionToken,
+                otp: code,
+              },
+              false
+            );
+            return data;
+          }}
+          onResend={async () => {
+            let data;
+            if (twoFaData.email || twoFaData.loginSessionToken) {
+              data = await resendLoginOtp({
+                email: twoFaData.email,
+                loginSessionToken: twoFaData.loginSessionToken,
+              });
+            } else if (twoFaData.phone) {
+              data = await sendLoginPhoneOtp({ phone: twoFaData.phone });
+            }
+            toast.success(data?.message || "A new OTP has been sent to your registered mobile number.");
+            return data;
+          }}
+          onBack={handleBackToCredentials}
+          onSuccess={(data) => {
+            if (data?.token) persistSession(data);
+            toast.success(`Welcome back, Dr. ${data?.fullName?.split(" ")[0] || ""}`.trim());
+            navigate(redirectTo, { replace: true });
+          }}
+          redirectPath={redirectTo}
+          initialCooldown={resendCooldown || 30}
+        />
       )}
-
-      {/* Security Assurance Badge */}
-      <div className="auth-security-badge">
-        <span className="auth-security-line" />
-        <span className="auth-security-content">
-          <FiShield className="auth-security-icon" size={16} />
-          Secure veterinary practice management
-        </span>
-        <span className="auth-security-line" />
-      </div>
     </AuthLayout>
   );
 }

@@ -73,6 +73,10 @@ public class User {
 
     private LocalDateTime loginOtpExpiry;
 
+    private Integer loginOtpAttempts = 0;
+
+    private LocalDateTime loginOtpLastSentAt;
+
     // =========================
     // Image & Upload fields
     // =========================
@@ -272,6 +276,22 @@ public class User {
 
     public void setLoginOtpExpiry(LocalDateTime loginOtpExpiry) {
         this.loginOtpExpiry = loginOtpExpiry;
+    }
+
+    public Integer getLoginOtpAttempts() {
+        return loginOtpAttempts != null ? loginOtpAttempts : 0;
+    }
+
+    public void setLoginOtpAttempts(Integer loginOtpAttempts) {
+        this.loginOtpAttempts = loginOtpAttempts;
+    }
+
+    public LocalDateTime getLoginOtpLastSentAt() {
+        return loginOtpLastSentAt;
+    }
+
+    public void setLoginOtpLastSentAt(LocalDateTime loginOtpLastSentAt) {
+        this.loginOtpLastSentAt = loginOtpLastSentAt;
     }
 
     public String getProfileImage() {

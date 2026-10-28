@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import AnimatedCounter from "../common/AnimatedCounter";
 
 const TONE_MAP = {
   teal: "tone-primary",
@@ -73,7 +74,11 @@ export function StatCard({
           </span>
 
           <h2 className="stat-card-value">
-            {value}
+            {typeof value === "number" || typeof value === "string" ? (
+              <AnimatedCounter value={value} />
+            ) : (
+              value
+            )}
           </h2>
 
           {sub && (

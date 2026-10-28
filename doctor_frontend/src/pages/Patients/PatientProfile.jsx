@@ -18,6 +18,7 @@ import Badge from "../../components/ui/Badge";
 import NewVisitModal from "../../components/modals/NewVisitModal";
 import Modal from "../../components/ui/Modal";
 import Input, { Field, Select, Textarea } from "../../components/ui/Input";
+import { formatPetAge } from "../../utils/ageUtils";
 
 import { getPatientById } from "../../services/patientService";
 import { getMedicalRecordsByPatient } from "../../services/medicalRecordService";
@@ -412,8 +413,12 @@ export default function PatientProfile() {
         {/* DETAILS GRID */}
         <div className="patient-profile-vitals-grid">
           <div className="vital-item">
-            <p className="eyebrow">Date of Birth</p>
-            <p className="cell-title">{patient.dateOfBirth || "—"}</p>
+            <p className="eyebrow">Date of Birth / Age</p>
+            <p className="cell-title">
+              {patient.dateOfBirth
+                ? `${patient.dateOfBirth} (${patient.age || formatPetAge(patient.dateOfBirth)})`
+                : "—"}
+            </p>
           </div>
           <div className="vital-item">
             <p className="eyebrow">Weight</p>

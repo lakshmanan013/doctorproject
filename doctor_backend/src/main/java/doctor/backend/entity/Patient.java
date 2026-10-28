@@ -185,12 +185,24 @@ public class Patient {
 
     public String getAge() {
         if (dateOfBirth == null) return null;
-        int years = java.time.Period.between(dateOfBirth, java.time.LocalDate.now()).getYears();
-        int months = java.time.Period.between(dateOfBirth, java.time.LocalDate.now()).getMonths();
+        java.time.Period period = java.time.Period.between(dateOfBirth, java.time.LocalDate.now());
+        int years = period.getYears();
+        int months = period.getMonths();
         if (years > 0) {
-            return years + (years == 1 ? " yr" : " yrs");
+            String yStr = years + (years == 1 ? " yr" : " yrs");
+            if (months > 0) {
+                return yStr + " " + months + (months == 1 ? " mo" : " mos");
+            }
+            return yStr;
         }
-        return months + (months == 1 ? " mo" : " mos");
+        if (months > 0) {
+            return months + (months == 1 ? " mo" : " mos");
+        }
+        int days = period.getDays();
+        if (days > 0) {
+            return days + (days == 1 ? " day" : " days");
+        }
+        return "0 mos";
     }
 
 

@@ -13,9 +13,16 @@ public class OtpUtil {
     private OtpUtil() {
     }
 
-    /** Returns a zero-padded 6-digit code, e.g. "042817". */
+    /** Returns a zero-padded 4-digit code, e.g. "4545". */
     public static String generateOtp() {
-        int code = RANDOM.nextInt(1_000_000);
-        return String.format("%06d", code);
+        return generateOtp(4);
+    }
+
+    /** Returns a zero-padded numeric code of specified length using SecureRandom. */
+    public static String generateOtp(int length) {
+        if (length <= 0) length = 4;
+        int max = (int) Math.pow(10, length);
+        int code = RANDOM.nextInt(max);
+        return String.format("%0" + length + "d", code);
     }
 }

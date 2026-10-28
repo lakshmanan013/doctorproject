@@ -21,10 +21,11 @@ import AuthLayout from "../../layouts/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { ROUTES } from "../../constants/routes";
 import { sendPhoneOtp, verifyPhoneOtp } from "../../services/authService";
+import AnimatedOtpScreen from "../../components/auth/AnimatedOtpScreen";
 
 import "./Auth.css";
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4;
 const EMPTY_OTP = Array(OTP_LENGTH).fill("");
 
 export default function Register() {
@@ -229,13 +230,19 @@ export default function Register() {
   return (
     <AuthLayout className="auth-shell-register">
       <div className="auth-form-header">
-        <h2>Create Doctor Account</h2>
-        <p>Set up your veterinary dashboard & profile in a couple of minutes.</p>
+        <div className="auth-card-top-logo">
+          <img
+            src="/zenve.png"
+            alt="Zenve Logo"
+            className="auth-card-logo-img"
+          />
+        </div>
+        <h2 className="auth-header-title">Create Doctor Account</h2>
+        <p className="auth-header-sub">Veterinary Practice OS</p>
       </div>
-
       {serverError && (
-        <div className="auth-alert" style={{ marginBottom: 18 }}>
-          <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+        <div className="auth-alert">
+          <FiAlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>{serverError}</span>
         </div>
       )}
@@ -346,64 +353,48 @@ export default function Register() {
           </div>
           {errors.phone && <span className="field-error">{errors.phone.message}</span>}
 
-          {/* OTP INPUT SECTION (Expands when OTP is sent & not yet verified) */}
+          {/* ANIMATED OTP VERIFICATION MODAL OVERLAY */}
           {phoneOtpSent && !phoneVerified && (
-            <div className="auth-phone-otp-card">
-              <div className="auth-phone-otp-header">
-                <span className="auth-phone-otp-title">
-                  <FiShield size={15} color="#4f46e5" />
-                  <span>Enter 6-digit OTP sent to {phoneValue}</span>
-                </span>
-              </div>
-
-              <div className="auth-phone-otp-boxes" onPaste={handleOtpPaste}>
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => (otpRefs.current[index] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(e.target.value, index)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                    className="auth-phone-otp-box"
-                    autoFocus={index === 0}
-                  />
-                ))}
-              </div>
-
-              <div className="auth-phone-otp-footer">
-                <button
-                  type="button"
-                  className="auth-phone-verify-btn"
-                  onClick={handleVerifyOtp}
-                  disabled={verifyingOtp || otp.join("").length !== OTP_LENGTH}
-                >
-                  {verifyingOtp ? (
+            <div className="otp-modal-overlay">
+              <div
+                className="otp-modal-backdrop"
+                onClick={() => setPhoneOtpSent(false)}
+              />
+              <div className="otp-modal-content">
+                <AnimatedOtpScreen
+                  isModal={true}
+                  length={4}
+                  destination={phoneValue || "your phone"}
+                  heading="Let's verify your number"
+                  subtitle={
                     <>
-                      <FiRefreshCw className="spin" size={14} />
-                      <span>Verifying...</span>
+                      We&apos;ve sent a 4-digit code to{" "}
+                      <strong style={{ color: "#ffffff" }}>{phoneValue}</strong>.
+                      <br />
+                      It&apos;ll auto-verify once entered.
                     </>
-                  ) : (
-                    <>
-                      <FiCheckCircle size={14} />
-                      <span>Verify OTP</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="auth-phone-resend-text">
-                  Didn&apos;t receive code?{" "}
-                  <button
-                    type="button"
-                    className="auth-phone-resend-link"
-                    onClick={handleSendOtp}
-                    disabled={sendingOtp || timer > 0}
-                  >
-                    {timer > 0 ? `Resend in ${timer}s` : "Resend OTP"}
-                  </button>
-                </div>
+                  }
+                  onVerify={async (code) => {
+                    const data = await verifyPhoneOtp({
+                      phone: (phoneValue || "").trim(),
+                      otp: code,
+                    });
+                    return data;
+                  }}
+                  onResend={async () => {
+                    const res = await sendPhoneOtp({ phone: (phoneValue || "").trim() });
+                    toast.success(res?.message || "New OTP dispatched to your phone.");
+                    return res;
+                  }}
+                  onBack={() => setPhoneOtpSent(false)}
+                  onSuccess={() => {
+                    setPhoneVerified(true);
+                    setPhoneOtpSent(false);
+                    clearErrors("phone");
+                    toast.success("Phone number verified successfully!");
+                  }}
+                  initialCooldown={timer || 30}
+                />
               </div>
             </div>
           )}
@@ -435,7 +426,7 @@ export default function Register() {
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
               </button>
             </div>
             {errors.password && <span className="field-error">{errors.password.message}</span>}
@@ -466,7 +457,7 @@ export default function Register() {
                 tabIndex={-1}
                 aria-label={showConfirm ? "Hide password" : "Show password"}
               >
-                {showConfirm ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                {showConfirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}
               </button>
             </div>
             {errors.confirmPassword && (
@@ -491,6 +482,7 @@ export default function Register() {
           Sign in
         </Link>
       </p>
+
     </AuthLayout>
   );
 }

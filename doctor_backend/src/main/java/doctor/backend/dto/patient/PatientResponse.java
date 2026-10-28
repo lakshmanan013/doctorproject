@@ -19,6 +19,8 @@ public class PatientResponse {
 
     private LocalDate dateOfBirth;
 
+    private String age;
+
     private Double weight;
 
     private String color;
@@ -121,6 +123,14 @@ public class PatientResponse {
 
     public void setDateOfBirth(LocalDate dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getAge() {
+        return age;
+    }
+
+    public void setAge(String age) {
+        this.age = age;
     }
 
     public Double getWeight() {

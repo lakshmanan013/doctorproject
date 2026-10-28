@@ -47,27 +47,28 @@ public class MessagingProviderService {
     public String sendOtp(String rawPhone, String otp) {
         String cleanPhone = rawPhone.replaceAll("[^0-9]", "");
         String provider = resolveSmsProvider();
+        String maskedPhone = cleanPhone.length() > 4 ? cleanPhone.substring(0, 3) + "****" + cleanPhone.substring(cleanPhone.length() - 2) : "****";
 
-        log.info("Sending OTP {} to {} via provider [{}]", otp, cleanPhone, provider);
+        log.info("Sending OTP ({} digits) to {} via provider [{}]", (otp != null ? otp.length() : 0), maskedPhone, provider);
 
         if ("APITXT".equalsIgnoreCase(provider)) {
             if (properties.getSmsApiKey() == null || properties.getSmsApiKey().isBlank()) {
-                log.warn("SMS API key is missing. Falling back to MOCK OTP for {}", cleanPhone);
-                log.info("[MOCK SMS GATEWAY] To: {} | OTP: {} | Status: SIMULATED_SENT", cleanPhone, otp);
+                log.warn("SMS API key is missing. Falling back to MOCK OTP for {}", maskedPhone);
+                log.info("[MOCK SMS GATEWAY] To: {} | OTP: [PROTECTED] | Status: SIMULATED_SENT", maskedPhone);
                 return "MOCK_OTP_" + UUID.randomUUID().toString().substring(0, 8);
             }
             try {
                 return sendApiTxtOtp(cleanPhone, otp);
             } catch (Exception ex) {
-                log.error("Failed to send OTP to {} via APITXT: {}", cleanPhone, ex.getMessage());
-                log.warn("APITXT failed. Falling back to simulated OTP for {}", cleanPhone);
-                log.info("[FALLBACK OTP] To: {} | OTP: {}", cleanPhone, otp);
+                log.error("Failed to send OTP to {} via APITXT: {}", maskedPhone, ex.getMessage());
+                log.warn("APITXT failed. Falling back to simulated OTP for {}", maskedPhone);
+                log.info("[FALLBACK OTP] To: {} | OTP: [PROTECTED]", maskedPhone);
                 return "MOCK_OTP_FALLBACK";
             }
         }
 
         if ("MOCK".equalsIgnoreCase(provider)) {
-            log.info("[MOCK SMS GATEWAY (Testing Only)] To: {} | OTP: {} | Status: SIMULATED_SENT", cleanPhone, otp);
+            log.info("[MOCK SMS GATEWAY (Testing Only)] To: {} | OTP: [PROTECTED] | Status: SIMULATED_SENT", maskedPhone);
             return "MOCK_OTP_" + UUID.randomUUID().toString().substring(0, 8);
         }
 

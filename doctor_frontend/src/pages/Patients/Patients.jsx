@@ -53,37 +53,39 @@ const ICONS = {
 // =====================================================
 
 function ageFromDob(dateOfBirth) {
-  if (!dateOfBirth) {
-    return "—";
-  }
+  if (!dateOfBirth) return "—";
 
   const dob = new Date(dateOfBirth);
-
-  if (Number.isNaN(dob.getTime())) {
-    return "—";
-  }
+  if (Number.isNaN(dob.getTime())) return "—";
 
   const now = new Date();
+  if (dob > now) return "0m";
 
-  let age =
-    now.getFullYear() -
-    dob.getFullYear();
+  let years = now.getFullYear() - dob.getFullYear();
+  let months = now.getMonth() - dob.getMonth();
+  let days = now.getDate() - dob.getDate();
 
-  const monthDifference =
-    now.getMonth() -
-    dob.getMonth();
-
-  if (
-    monthDifference < 0 ||
-    (
-      monthDifference === 0 &&
-      now.getDate() < dob.getDate()
-    )
-  ) {
-    age -= 1;
+  if (days < 0) {
+    months -= 1;
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
   }
 
-  return `${Math.max(age, 0)}y`;
+  years = Math.max(years, 0);
+  months = Math.max(months, 0);
+
+  if (years === 0 && months === 0) {
+    return "< 1m";
+  }
+  if (years === 0) {
+    return `${months}m`;
+  }
+  if (months === 0) {
+    return `${years}y`;
+  }
+  return `${years}y ${months}m`;
 }
 
 // =====================================================

@@ -8,6 +8,7 @@ import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import OtpVerificationPage from "../pages/Auth/OtpVerificationPage";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
 import AppointmentPage from "../pages/Appointments/AppointmentPage";
@@ -65,6 +66,24 @@ function AppRoutes() {
         element={
           <PublicRoute>
             <ResetPassword />
+          </PublicRoute>
+        }
+      />
+
+      <Route
+        path="/verify-otp"
+        element={
+          <PublicRoute>
+            <OtpVerificationPage />
+          </PublicRoute>
+        }
+      />
+
+      <Route
+        path="/otp-verification"
+        element={
+          <PublicRoute>
+            <OtpVerificationPage />
           </PublicRoute>
         }
       />

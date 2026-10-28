@@ -53,12 +53,6 @@ const HERO_FEATURES = [
   },
 ]
 
-const CARD_BADGES = [
-  { icon: Users, text: 'Review sign-ups' },
-  { icon: Bell, text: 'Instant alerts' },
-  { icon: ShieldCheck, text: 'One-click approve' },
-]
-
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -370,22 +364,6 @@ export default function Login() {
                 <span>{submitting ? 'Signing in…' : 'Sign in'}</span>
               </button>
             </form>
-
-            {/* Bottom 3 Badges inside the Card */}
-            <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
-              {CARD_BADGES.map(({ icon: Icon, text }, idx) => (
-                <div key={text} className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Icon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 shrink-0" />
-                    <span className="whitespace-nowrap">{text}</span>
-                  </div>
-                  {idx < CARD_BADGES.length - 1 && (
-                    <span className="text-slate-300 dark:text-slate-700 select-none pl-1 sm:pl-2">
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </motion.div>
       </div>

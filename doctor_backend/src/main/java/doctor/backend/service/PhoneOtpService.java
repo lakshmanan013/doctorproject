@@ -23,12 +23,16 @@ public class PhoneOtpService {
     private static class OtpEntry {
         final String otp;
         final LocalDateTime expiry;
+        final LocalDateTime lastSentAt;
+        int attempts;
         boolean verified;
         LocalDateTime verifiedAt;
 
         OtpEntry(String otp, LocalDateTime expiry) {
             this.otp = otp;
             this.expiry = expiry;
+            this.lastSentAt = LocalDateTime.now();
+            this.attempts = 0;
             this.verified = false;
         }
     }
@@ -52,15 +56,22 @@ public class PhoneOtpService {
             throw new BadRequestException("An account with this phone number already exists.");
         }
 
-        String otp = OtpUtil.generateOtp();
+        OtpEntry existing = otpStore.get(normalizedPhone);
+        if (existing != null && existing.lastSentAt != null &&
+                existing.lastSentAt.plusSeconds(30).isAfter(LocalDateTime.now())) {
+            long remaining = java.time.Duration.between(LocalDateTime.now(), existing.lastSentAt.plusSeconds(30)).getSeconds();
+            throw new BadRequestException("Please wait " + (remaining > 0 ? remaining : 1) + " seconds before requesting another OTP.");
+        }
+
+        String otp = OtpUtil.generateOtp(4);
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(10);
         otpStore.put(normalizedPhone, new OtpEntry(otp, expiry));
 
-        log.info("Generated registration phone OTP for {}", normalizedPhone);
+        log.info("Generated 4-digit registration phone OTP for {}", maskPhone(normalizedPhone));
 
         try {
             messagingProviderService.sendOtp(normalizedPhone, otp);
-            log.info("Sent phone verification OTP to {}", normalizedPhone);
+            log.info("Sent phone verification OTP to {}", maskPhone(normalizedPhone));
         } catch (Exception ex) {
             log.error("Failed to send SMS OTP via provider: {}", ex.getMessage());
             throw new BadRequestException("Failed to send OTP SMS to your mobile number: " + ex.getMessage());
@@ -77,18 +88,34 @@ public class PhoneOtpService {
             throw new BadRequestException("OTP has expired or was not requested. Please request a new OTP.");
         }
 
+        if (entry.attempts >= 5) {
+            otpStore.remove(normalizedPhone);
+            throw new BadRequestException("Too many incorrect attempts. This OTP has been invalidated for security. Please request a new code.");
+        }
+
         boolean matchesOtp = entry.otp != null && entry.otp.equals(enteredOtp != null ? enteredOtp.trim() : "");
 
         if (enteredOtp == null || !matchesOtp) {
-            throw new BadRequestException("Invalid OTP. Please check the 6-digit code and try again.");
+            entry.attempts++;
+            if (entry.attempts >= 5) {
+                otpStore.remove(normalizedPhone);
+                throw new BadRequestException("Too many incorrect attempts. This OTP has been invalidated for security. Please request a new code.");
+            }
+            int remaining = 5 - entry.attempts;
+            throw new BadRequestException("Invalid OTP code. " + remaining + " attempt" + (remaining > 1 ? "s" : "") + " remaining.");
         }
 
         entry.verified = true;
         entry.verifiedAt = LocalDateTime.now();
 
-        log.info("Phone number {} verified successfully via OTP.", normalizedPhone);
+        log.info("Phone number {} verified successfully via OTP.", maskPhone(normalizedPhone));
 
         return new VerifyPhoneOtpResponse(true, "Phone number verified successfully.", rawPhone.trim());
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() <= 4) return "****";
+        return phone.substring(0, Math.min(3, phone.length())) + "****" + phone.substring(phone.length() - 2);
     }
 
     public boolean isPhoneVerified(String rawPhone) {

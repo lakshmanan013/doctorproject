@@ -28,6 +28,7 @@ import { getPrescriptions } from "../../services/prescriptionService";
 import { getInvoices } from "../../services/billingService";
 import { getVaccinations } from "../../services/vaccinationService";
 import BillingHologramCoin from "../../components/common/BillingHologramCoin";
+import AnimatedCounter from "../../components/common/AnimatedCounter";
 import "./Dashboard.css";
 
 const SPECIES_ICONS = {
@@ -506,7 +507,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-label-group">
               <span className="metric-title">Appointments Today</span>
-              <span className="metric-value">{apptsCount}</span>
+              <span className="metric-value"><AnimatedCounter value={apptsCount} /></span>
             </div>
           </div>
 
@@ -554,7 +555,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-label-group">
               <span className="metric-title">Total Patients</span>
-              <span className="metric-value">{patientsCount}</span>
+              <span className="metric-value"><AnimatedCounter value={patientsCount} /></span>
             </div>
           </div>
 
@@ -599,7 +600,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-label-group">
               <span className="metric-title">Prescriptions</span>
-              <span className="metric-value">{prescriptionsCount}</span>
+              <span className="metric-value"><AnimatedCounter value={prescriptionsCount} /></span>
             </div>
           </div>
 
@@ -644,7 +645,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-label-group">
               <span className="metric-title">Vaccinations</span>
-              <span className="metric-value">{vaccinationsCount}</span>
+              <span className="metric-value"><AnimatedCounter value={vaccinationsCount} /></span>
             </div>
           </div>
 
@@ -689,7 +690,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-label-group">
               <span className="metric-title">Revenue (Today)</span>
-              <span className="metric-value">₹{revenueTodayNum.toLocaleString("en-IN")}</span>
+              <span className="metric-value"><AnimatedCounter value={revenueTodayNum} prefix="₹" /></span>
             </div>
           </div>
 
@@ -882,9 +883,11 @@ export default function Dashboard() {
               <span className="collected-tag">
                 COLLECTED ({selectedDateFormatted})
               </span>
-              <h2 className="collected-amount">₹{selectedCollectedNum.toLocaleString("en-IN")}</h2>
+              <h2 className="collected-amount">
+                <AnimatedCounter value={selectedCollectedNum} prefix="₹" />
+              </h2>
               <p className="collected-sub">
-                ₹{selectedDueNum.toLocaleString("en-IN")} due{" "}
+                <AnimatedCounter value={selectedDueNum} prefix="₹" /> due{" "}
               </p>
 
               <div className="wallet-illustration-box">
@@ -927,7 +930,9 @@ export default function Dashboard() {
                   />
                 </svg>
                 <div className="gauge-center-text">
-                  <span className="gauge-percent">{collectionRate}%</span>
+                  <span className="gauge-percent">
+                    <AnimatedCounter value={collectionRate} suffix="%" />
+                  </span>
                 </div>
               </div>
 
@@ -1022,7 +1027,7 @@ export default function Dashboard() {
                 )}
               </svg>
               <div className="donut-center-label">
-                <span className="donut-big-num">{appointmentsTotal}</span>
+                <span className="donut-big-num"><AnimatedCounter value={appointmentsTotal} /></span>
                 <span className="donut-sub-text">Total</span>
               </div>
             </div>
@@ -1118,7 +1123,7 @@ export default function Dashboard() {
               </svg>
               <div className="donut-center-label">
                 <span className="donut-big-num font-small">
-                  ₹{allRevenueTotal.toLocaleString("en-IN")}
+                  <AnimatedCounter value={allRevenueTotal} prefix="₹" />
                 </span>
                 <span className="donut-sub-text">Total</span>
               </div>
@@ -1163,7 +1168,7 @@ export default function Dashboard() {
                 <Clock size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{waitingCount}</span>
+                <span className="status-num"><AnimatedCounter value={waitingCount} /></span>
                 <span className="status-name">Waiting</span>
               </div>
             </div>
@@ -1173,7 +1178,7 @@ export default function Dashboard() {
                 <CheckCircle2 size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{confirmedCount}</span>
+                <span className="status-num"><AnimatedCounter value={confirmedCount} /></span>
                 <span className="status-name">Confirmed</span>
               </div>
             </div>
@@ -1183,7 +1188,7 @@ export default function Dashboard() {
                 <Stethoscope size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{inConsultationCount}</span>
+                <span className="status-num"><AnimatedCounter value={inConsultationCount} /></span>
                 <span className="status-name">In consultation</span>
               </div>
             </div>
@@ -1193,7 +1198,7 @@ export default function Dashboard() {
                 <ClipboardCheck size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{completedCount}</span>
+                <span className="status-num"><AnimatedCounter value={completedCount} /></span>
                 <span className="status-name">Completed</span>
               </div>
             </div>
@@ -1211,7 +1216,7 @@ export default function Dashboard() {
                 <Building2 size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{inClinicCount}</span>
+                <span className="status-num"><AnimatedCounter value={inClinicCount} /></span>
                 <span className="status-name">In clinic</span>
               </div>
             </div>
@@ -1221,7 +1226,7 @@ export default function Dashboard() {
                 <Home size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{homeVisitCount}</span>
+                <span className="status-num"><AnimatedCounter value={homeVisitCount} /></span>
                 <span className="status-name">Home visit</span>
               </div>
             </div>
@@ -1231,7 +1236,7 @@ export default function Dashboard() {
                 <Video size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{videoCount}</span>
+                <span className="status-num"><AnimatedCounter value={videoCount} /></span>
                 <span className="status-name">Video</span>
               </div>
             </div>
@@ -1241,7 +1246,7 @@ export default function Dashboard() {
                 <AlertTriangle size={16} />
               </div>
               <div className="status-data">
-                <span className="status-num">{emergencyCount}</span>
+                <span className="status-num"><AnimatedCounter value={emergencyCount} /></span>
                 <span className="status-name">Emergency</span>
               </div>
             </div>

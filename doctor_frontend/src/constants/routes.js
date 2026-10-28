@@ -7,6 +7,10 @@ export const ROUTES = {
 
   RESET_PASSWORD: "/reset-password",
 
+  VERIFY_OTP: "/verify-otp",
+
+  OTP_VERIFICATION: "/otp-verification",
+
   DASHBOARD: "/",
 
   APPOINTMENTS: "/appointments",

@@ -53,14 +53,14 @@ export function AuthProvider({ children }) {
   );
 
   const verifyLoginOtp = useCallback(
-    async (payload) => {
-      const data = await verifyLoginOtpRequest(payload);
-      if (data?.token) {
-        persistSession(data);
-      }
-      return data;
-    },
-    [persistSession]
+      async (payload, autoPersist = true) => {
+        const data = await verifyLoginOtpRequest(payload);
+          if (data?.token && autoPersist) {
+            persistSession(data);
+          }
+          return data;
+        },
+        [persistSession]
   );
 
   const register = useCallback(
@@ -112,6 +112,7 @@ export function AuthProvider({ children }) {
         initializing,
         login,
         verifyLoginOtp,
+        persistSession,
         register,
         logout,
       }}

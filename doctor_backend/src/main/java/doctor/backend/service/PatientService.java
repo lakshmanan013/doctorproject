@@ -668,6 +668,10 @@ public class PatientService {
                 patient.getDateOfBirth()
         );
 
+        response.setAge(
+                patient.getAge()
+        );
+
         response.setWeight(
                 patient.getWeight()
         );

@@ -393,20 +393,28 @@ public class AuthService {
 
         String phone = user.getPhone();
         if (phone != null && !phone.isBlank()) {
-            // Generate 6-digit login OTP and challenge session token
-            String otp = OtpUtil.generateOtp();
+            if (user.getLoginOtpLastSentAt() != null &&
+                    user.getLoginOtpLastSentAt().plusSeconds(30).isAfter(LocalDateTime.now())) {
+                long remainingSec = java.time.Duration.between(LocalDateTime.now(), user.getLoginOtpLastSentAt().plusSeconds(30)).getSeconds();
+                throw new BadRequestException("Please wait " + (remainingSec > 0 ? remainingSec : 1) + " seconds before requesting a new OTP.");
+            }
+
+            // Generate secure 4-digit login OTP and challenge session token
+            String otp = OtpUtil.generateOtp(4);
             String sessionToken = UUID.randomUUID().toString();
 
             user.setLoginOtp(otp);
             user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
             user.setLoginSessionToken(sessionToken);
             user.setLoginSessionExpiry(LocalDateTime.now().plusMinutes(10));
+            user.setLoginOtpAttempts(0);
+            user.setLoginOtpLastSentAt(LocalDateTime.now());
             userRepository.save(user);
 
             String normalizedPhone = phone.replaceAll("[^0-9]", "");
             try {
                 messagingProviderService.sendOtp(normalizedPhone, otp);
-                log.info("Sent 2FA login OTP to registered phone {}", normalizedPhone);
+                log.info("Dispatched 2FA login OTP to registered phone {}", maskPhoneNumber(phone));
             } catch (Exception ex) {
                 log.error("Failed to send 2FA login SMS: {}", ex.getMessage());
                 throw new BadRequestException("Failed to send verification SMS to your registered phone. " + ex.getMessage());
@@ -478,20 +486,28 @@ public class AuthService {
             throw new ForbiddenException(message);
         }
 
-        String otp = OtpUtil.generateOtp();
+        if (user.getLoginOtpLastSentAt() != null &&
+                user.getLoginOtpLastSentAt().plusSeconds(30).isAfter(LocalDateTime.now())) {
+            long remainingSec = java.time.Duration.between(LocalDateTime.now(), user.getLoginOtpLastSentAt().plusSeconds(30)).getSeconds();
+            throw new BadRequestException("Please wait " + (remainingSec > 0 ? remainingSec : 1) + " seconds before requesting a new OTP.");
+        }
+
+        String otp = OtpUtil.generateOtp(4);
         String sessionToken = UUID.randomUUID().toString();
 
         user.setLoginOtp(otp);
         user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
         user.setLoginSessionToken(sessionToken);
         user.setLoginSessionExpiry(LocalDateTime.now().plusMinutes(10));
+        user.setLoginOtpAttempts(0);
+        user.setLoginOtpLastSentAt(LocalDateTime.now());
         userRepository.save(user);
 
         String phone = user.getPhone() != null ? user.getPhone() : rawPhone;
         String normalizedPhone = phone.replaceAll("[^0-9]", "");
         try {
             messagingProviderService.sendOtp(normalizedPhone, otp);
-            log.info("Sent phone login OTP to {}", normalizedPhone);
+            log.info("Dispatched phone login OTP to {}", maskPhoneNumber(phone));
         } catch (Exception ex) {
             log.error("Failed to send login SMS: {}", ex.getMessage());
             throw new BadRequestException("Failed to send verification SMS: " + ex.getMessage());
@@ -502,7 +518,6 @@ public class AuthService {
         challengeRes.setLoginSessionToken(sessionToken);
         challengeRes.setEmail(user.getEmail());
         challengeRes.setMaskedPhone(maskPhoneNumber(phone));
-        challengeRes.setDevOtp(otp);
         challengeRes.setMessage("OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
         return challengeRes;
     }
@@ -545,20 +560,47 @@ public class AuthService {
             throw new BadRequestException("Login session has expired. Please sign in again.");
         }
 
-        boolean matchesOtp = user.getLoginOtp() != null && user.getLoginOtp().equals(otp);
-
-        if (!matchesOtp
-                || user.getLoginOtpExpiry() == null
-                || user.getLoginOtpExpiry().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Invalid or expired OTP. Please check the code and try again.");
+        if (user.getLoginOtpExpiry() == null || user.getLoginOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("OTP has expired. Please request a new code.");
         }
 
-        // Clear login challenge
+        int attempts = user.getLoginOtpAttempts() != null ? user.getLoginOtpAttempts() : 0;
+        if (attempts >= 5) {
+            user.setLoginOtp(null);
+            user.setLoginOtpExpiry(null);
+            user.setLoginSessionToken(null);
+            user.setLoginSessionExpiry(null);
+            user.setLoginOtpAttempts(0);
+            userRepository.save(user);
+            throw new BadRequestException("Too many incorrect attempts. This OTP has been invalidated for security. Please sign in again to receive a fresh code.");
+        }
+
+        boolean matchesOtp = user.getLoginOtp() != null && user.getLoginOtp().equals(otp);
+
+        if (!matchesOtp) {
+            int updatedAttempts = attempts + 1;
+            user.setLoginOtpAttempts(updatedAttempts);
+            if (updatedAttempts >= 5) {
+                user.setLoginOtp(null);
+                user.setLoginOtpExpiry(null);
+                user.setLoginSessionToken(null);
+                user.setLoginSessionExpiry(null);
+                user.setLoginOtpAttempts(0);
+                userRepository.save(user);
+                throw new BadRequestException("Too many incorrect attempts. This OTP has been invalidated for security. Please sign in again to receive a fresh code.");
+            }
+            userRepository.save(user);
+            int remaining = 5 - updatedAttempts;
+            throw new BadRequestException("Invalid OTP code. " + remaining + " attempt" + (remaining > 1 ? "s" : "") + " remaining.");
+        }
+
+        // Clear login challenge atomically to prevent replay attacks
         user.setLoginOtp(null);
         user.setLoginOtpExpiry(null);
         user.setLoginSessionToken(null);
         user.setLoginSessionExpiry(null);
-        userRepository.save(user);
+        user.setLoginOtpAttempts(0);
+        userRepository.saveAndFlush(user);
 
         return issueSuccessAuthResponse(user);
     }
@@ -589,20 +631,28 @@ public class AuthService {
             throw new BadRequestException("Login session has expired. Please sign in again.");
         }
 
+        if (user.getLoginOtpLastSentAt() != null &&
+                user.getLoginOtpLastSentAt().plusSeconds(30).isAfter(LocalDateTime.now())) {
+            long remainingSec = java.time.Duration.between(LocalDateTime.now(), user.getLoginOtpLastSentAt().plusSeconds(30)).getSeconds();
+            throw new BadRequestException("Please wait " + (remainingSec > 0 ? remainingSec : 1) + " seconds before requesting a new OTP.");
+        }
+
         String phone = user.getPhone();
         if (phone == null || phone.isBlank()) {
             throw new BadRequestException("No registered phone number found for this account.");
         }
 
-        String otp = OtpUtil.generateOtp();
+        String otp = OtpUtil.generateOtp(4);
         user.setLoginOtp(otp);
         user.setLoginOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        user.setLoginOtpAttempts(0);
+        user.setLoginOtpLastSentAt(LocalDateTime.now());
         userRepository.save(user);
 
         String normalizedPhone = phone.replaceAll("[^0-9]", "");
         try {
             messagingProviderService.sendOtp(normalizedPhone, otp);
-            log.info("Resent 2FA login OTP to registered phone {}", normalizedPhone);
+            log.info("Resent 2FA login OTP to registered phone {}", maskPhoneNumber(phone));
         } catch (Exception ex) {
             log.error("Failed to resend SMS: {}", ex.getMessage());
             throw new BadRequestException("Failed to resend OTP SMS: " + ex.getMessage());
@@ -613,7 +663,6 @@ public class AuthService {
         res.setLoginSessionToken(sessionToken);
         res.setEmail(user.getEmail());
         res.setMaskedPhone(maskPhoneNumber(phone));
-        res.setDevOtp(otp);
         res.setMessage("A new OTP has been sent to your registered mobile number (" + maskPhoneNumber(phone) + ").");
         return res;
     }
