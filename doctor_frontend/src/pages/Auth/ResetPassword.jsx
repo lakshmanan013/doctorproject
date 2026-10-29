@@ -58,6 +58,13 @@ export default function ResetPassword() {
   return (
     <AuthLayout>
       <div className="auth-form-header">
+        <div className="auth-card-top-logo">
+          <img
+            src="/zenve.png"
+            alt="Zenve Logo"
+            className="auth-card-logo-img"
+          />
+        </div>
         <h2>Set a new password</h2>
         <p>Choose a new password for your account.</p>
       </div>
@@ -73,7 +80,7 @@ export default function ResetPassword() {
         <Field label="New password">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiLock size={16} />
+              <FiLock size={16} color="#000000" />
             </span>
 
             <input
@@ -95,7 +102,7 @@ export default function ResetPassword() {
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              {showPassword ? <FiEyeOff size={16} color="#000000" /> : <FiEye size={16} color="#000000" />}
             </button>
           </div>
           {errors.password && <span className="field-error">{errors.password.message}</span>}
@@ -104,7 +111,7 @@ export default function ResetPassword() {
         <Field label="Confirm new password">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiLock size={16} />
+              <FiLock size={16} color="#000000" />
             </span>
 
             <input

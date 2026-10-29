@@ -11,6 +11,7 @@ import {
   sendPhoneOtp,
 } from "../../services/authService";
 import { ROUTES } from "../../constants/routes";
+import AuthLayout from "../../layouts/AuthLayout";
 
 export default function OtpVerificationPage() {
   const location = useLocation();
@@ -109,24 +110,37 @@ export default function OtpVerificationPage() {
   };
 
   return (
-    <AnimatedOtpScreen
-      length={4}
-      destination={destination}
-      heading="Let's verify your number"
-      subtitle={
-        <>
-          We&apos;ve sent a 4-digit code to{" "}
-          <strong style={{ color: "#ffffff" }}>{destination}</strong>.
-          <br />
-          It will auto-verify once entered.
-        </>
-      }
-      onVerify={handleVerify}
-      onResend={handleResend}
-      onBack={handleBack}
-      onSuccess={handleSuccess}
-      redirectPath={redirectTo}
-      initialCooldown={30}
-    />
+    <AuthLayout>
+      <div className="auth-form-header" style={{ marginBottom: 14 }}>
+        <div className="auth-card-top-logo">
+          <img
+            src="/zenve.png"
+            alt="Zenve Logo"
+            className="auth-card-logo-img"
+          />
+        </div>
+        <h2 className="auth-header-title">Zenve Doctors</h2>
+      </div>
+      <AnimatedOtpScreen
+        isInline={true}
+        length={4}
+        destination={destination}
+        heading="Two-Factor Verification"
+        subtitle={
+          <>
+            We&apos;ve sent a 4-digit code to{" "}
+            <strong style={{ color: "#faf5eb" }}>{destination}</strong>.
+            <br />
+            It will auto-verify once entered.
+          </>
+        }
+        onVerify={handleVerify}
+        onResend={handleResend}
+        onBack={handleBack}
+        onSuccess={handleSuccess}
+        redirectPath={redirectTo}
+        initialCooldown={30}
+      />
+    </AuthLayout>
   );
 }

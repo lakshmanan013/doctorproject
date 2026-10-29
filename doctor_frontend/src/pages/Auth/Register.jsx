@@ -13,6 +13,7 @@ import {
   FiCheckCircle,
   FiShield,
   FiRefreshCw,
+  FiArrowRight,
 } from "react-icons/fi";
 
 import Button from "../../components/ui/Button";
@@ -251,7 +252,7 @@ export default function Register() {
         <Field label="Full name">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiUser size={16} />
+              <FiUser size={16} color="#000000" />
             </span>
 
             <input
@@ -271,7 +272,7 @@ export default function Register() {
         <Field label="Email address">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiMail size={16} />
+              <FiMail size={16} color="#000000" />
             </span>
 
             <input
@@ -295,7 +296,7 @@ export default function Register() {
         <Field label="Phone number">
           <div className={`auth-input-wrap auth-phone-field-wrap${phoneVerified ? " is-verified" : ""}`}>
             <span className="auth-input-icon">
-              <FiPhone size={16} />
+              <FiPhone size={16} color="#000000" />
             </span>
 
             <input
@@ -401,10 +402,10 @@ export default function Register() {
         </Field>
 
         <div className="auth-form-row">
-          <Field label="Password">
+          <Field label="Password" required>
             <div className="auth-input-wrap">
               <span className="auth-input-icon">
-                <FiLock size={16} />
+                <FiLock size={16} color="#000000" />
               </span>
 
               <input
@@ -426,16 +427,16 @@ export default function Register() {
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                {showPassword ? <FiEyeOff size={15} color="#000000" /> : <FiEye size={15} color="#000000" />}
               </button>
             </div>
             {errors.password && <span className="field-error">{errors.password.message}</span>}
           </Field>
 
-          <Field label="Confirm password">
+          <Field label="Confirm password" required>
             <div className="auth-input-wrap">
               <span className="auth-input-icon">
-                <FiLock size={16} />
+                <FiLock size={16} color="#000000" />
               </span>
 
               <input
@@ -457,7 +458,7 @@ export default function Register() {
                 tabIndex={-1}
                 aria-label={showConfirm ? "Hide password" : "Show password"}
               >
-                {showConfirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                {showConfirm ? <FiEyeOff size={15} color="#000000" /> : <FiEye size={15} color="#000000" />}
               </button>
             </div>
             {errors.confirmPassword && (
@@ -472,7 +473,8 @@ export default function Register() {
           className="auth-submit"
           disabled={submitting}
         >
-          {submitting ? "Creating account..." : "Create account"}
+          <FiArrowRight size={16} strokeWidth={2.4} />
+          <span>{submitting ? "Creating account..." : "Create account"}</span>
         </Button>
       </form>
 

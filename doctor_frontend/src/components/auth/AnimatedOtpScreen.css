@@ -80,28 +80,31 @@
   transform: scale(1.05);
 }
 
-/* Light Theme Typography */
+/* Light Theme Typography - Off-white / Beige White (#faf5eb) */
 .otp-screen-wrapper.theme-light .otp-title,
 .otp-screen-wrapper.is-inline-view .otp-title {
-  color: #0f172a !important;
+  color: #faf5eb !important;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.25;
   margin: 0 0 8px 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .otp-screen-wrapper.theme-light .otp-subtitle,
 .otp-screen-wrapper.is-inline-view .otp-subtitle {
-  color: #64748b !important;
+  color: #faf5eb !important;
   font-size: 14px;
   line-height: 1.55;
   max-width: 340px;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .otp-screen-wrapper.theme-light .otp-subtitle-destination,
 .otp-screen-wrapper.is-inline-view .otp-subtitle-destination {
-  color: #1e1b4b !important;
+  color: #ffffff !important;
   font-weight: 700;
 }
 
@@ -247,21 +250,22 @@
 
 .otp-screen-wrapper.theme-light .otp-resend-action-btn,
 .otp-screen-wrapper.is-inline-view .otp-resend-action-btn {
-  color: #4f46e5;
-  font-weight: 600;
+  color: #CCD0CF !important;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .otp-screen-wrapper.theme-light .otp-resend-action-btn:hover:not(:disabled),
 .otp-screen-wrapper.is-inline-view .otp-resend-action-btn:hover:not(:disabled) {
-  color: #3730a3;
+  color: #4A5C6A !important;
   text-decoration: underline;
 }
 
 .otp-screen-wrapper.theme-light .otp-cooldown-badge,
 .otp-screen-wrapper.is-inline-view .otp-cooldown-badge {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #faf5eb;
 }
 
 /* Inline Back Link at Bottom (Matches auth-link in Login.jsx) */
@@ -273,9 +277,9 @@
   margin-top: 20px;
   background: none;
   border: none;
-  color: #6366f1;
-  font-size: 14px;
-  font-weight: 500;
+  color: #CCD0CF !important;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   padding: 6px 12px;
   border-radius: 8px;
@@ -284,8 +288,8 @@
 }
 
 .otp-back-inline-link:hover {
-  color: #4338ca;
-  background: #f8fafc;
+  color: #4A5C6A !important;
+  background: rgba(204, 208, 207, 0.12);
 }
 
 /* Light Theme Error Banner */
@@ -463,19 +467,22 @@
 .otp-title {
   font-size: 24px;
   font-weight: 800;
-  color: #ffffff;
+  color: #faf5eb !important;
   letter-spacing: -0.025em;
   margin: 0 0 10px 0;
   line-height: 1.25;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .otp-subtitle {
   font-size: 13.5px;
   line-height: 1.55;
-  color: #94a3b8;
+  color: #faf5eb !important;
   margin: 0;
   max-width: 310px;
   word-break: break-word;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .otp-subtitle-destination {

@@ -97,7 +97,7 @@ export default function ForgotPassword() {
     const enteredOtp = otp.join("");
 
     if (enteredOtp.length !== OTP_LENGTH) {
-      setServerError("Please enter the complete 6-digit OTP.");
+      setServerError("Please enter the complete 4-digit OTP.");
       return;
     }
 
@@ -195,8 +195,15 @@ export default function ForgotPassword() {
     return (
       <AuthLayout className="auth-shell-forgot">
         <div className="auth-form-header">
+          <div className="auth-card-top-logo">
+            <img
+              src="/zenve.png"
+              alt="Zenve Logo"
+              className="auth-card-logo-img"
+            />
+          </div>
           <h2>Forgot password</h2>
-          <p>Enter your account email or registered mobile to receive a 6-digit OTP via Email and SMS.</p>
+          <p>Enter your account email or registered mobile to receive a 4-digit OTP via Email and SMS.</p>
         </div>
 
         <ErrorAlert />
@@ -209,7 +216,7 @@ export default function ForgotPassword() {
           <Field label="Email or Mobile Number">
             <div className="auth-input-wrap">
               <span className="auth-input-icon">
-                <FiMail size={16} />
+                <FiMail size={16} color="#000000" />
               </span>
 
               <input
@@ -246,9 +253,16 @@ export default function ForgotPassword() {
     return (
       <AuthLayout className="auth-shell-forgot">
         <div className="auth-form-header">
+          <div className="auth-card-top-logo">
+            <img
+              src="/zenve.png"
+              alt="Zenve Logo"
+              className="auth-card-logo-img"
+            />
+          </div>
           <h2>Verify OTP</h2>
           <p>
-            Enter the 6-digit code sent to{" "}
+            Enter the 4-digit code sent to{" "}
             {maskedEmail && maskedPhone ? (
               <>
                 <strong>{maskedEmail}</strong> and mobile <strong>{maskedPhone}</strong>
@@ -320,6 +334,13 @@ export default function ForgotPassword() {
   return (
     <AuthLayout className="auth-shell-forgot">
       <div className="auth-form-header">
+        <div className="auth-card-top-logo">
+          <img
+            src="/zenve.png"
+            alt="Zenve Logo"
+            className="auth-card-logo-img"
+          />
+        </div>
         <h2>Create new password</h2>
         <p>Choose a new password for your account.</p>
       </div>
@@ -334,7 +355,7 @@ export default function ForgotPassword() {
         <Field label="New password">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiLock size={16} />
+              <FiLock size={16} color="#000000" />
             </span>
 
             <input
@@ -356,7 +377,7 @@ export default function ForgotPassword() {
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              {showPassword ? <FiEyeOff size={16} color="#000000" /> : <FiEye size={16} color="#000000" />}
             </button>
           </div>
           {passwordForm.formState.errors.password && (
@@ -369,7 +390,7 @@ export default function ForgotPassword() {
         <Field label="Confirm new password">
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
-              <FiLock size={16} />
+              <FiLock size={16} color="#000000" />
             </span>
 
             <input
@@ -392,7 +413,7 @@ export default function ForgotPassword() {
               tabIndex={-1}
               aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
-              {showConfirmPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              {showConfirmPassword ? <FiEyeOff size={16} color="#000000" /> : <FiEye size={16} color="#000000" />}
             </button>
           </div>
           {passwordForm.formState.errors.confirmPassword && (

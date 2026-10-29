@@ -3,7 +3,7 @@ package doctor.backend.util;
 import java.security.SecureRandom;
 
 /**
- * Generates the 6-digit numeric codes used by the OTP-based
+ * Generates the 4-digit numeric codes used by the OTP-based
  * forgot-password flow (see AuthService).
  */
 public class OtpUtil {
@@ -18,9 +18,12 @@ public class OtpUtil {
         return generateOtp(4);
     }
 
-    /** Returns a zero-padded numeric code of specified length using SecureRandom. */
+    /**
+     * Returns a zero-padded numeric code of specified length using SecureRandom.
+     */
     public static String generateOtp(int length) {
-        if (length <= 0) length = 4;
+        if (length <= 0)
+            length = 4;
         int max = (int) Math.pow(10, length);
         int code = RANDOM.nextInt(max);
         return String.format("%0" + length + "d", code);

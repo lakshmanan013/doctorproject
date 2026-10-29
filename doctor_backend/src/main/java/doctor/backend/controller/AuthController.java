@@ -77,19 +77,22 @@ public class AuthController {
     }
 
     @PostMapping("/send-login-phone-otp")
-    public ResponseEntity<AuthResponse> sendLoginPhoneOtp(@Valid @RequestBody doctor.backend.dto.auth.SendLoginPhoneOtpRequest request) {
+    public ResponseEntity<AuthResponse> sendLoginPhoneOtp(
+            @Valid @RequestBody doctor.backend.dto.auth.SendLoginPhoneOtpRequest request) {
 
         return ResponseEntity.ok(authService.sendLoginPhoneOtp(request.getPhone()));
     }
 
     @PostMapping("/verify-login-otp")
-    public ResponseEntity<AuthResponse> verifyLoginOtp(@Valid @RequestBody doctor.backend.dto.auth.VerifyLoginOtpRequest request) {
+    public ResponseEntity<AuthResponse> verifyLoginOtp(
+            @Valid @RequestBody doctor.backend.dto.auth.VerifyLoginOtpRequest request) {
 
         return ResponseEntity.ok(authService.verifyLoginOtp(request));
     }
 
     @PostMapping("/resend-login-otp")
-    public ResponseEntity<AuthResponse> resendLoginOtp(@Valid @RequestBody doctor.backend.dto.auth.ResendLoginOtpRequest request) {
+    public ResponseEntity<AuthResponse> resendLoginOtp(
+            @Valid @RequestBody doctor.backend.dto.auth.ResendLoginOtpRequest request) {
 
         return ResponseEntity.ok(authService.resendLoginOtp(request));
     }
@@ -106,7 +109,7 @@ public class AuthController {
     }
 
     // =====================================================
-    // FORGOT PASSWORD — step 1: email a 6-digit OTP
+    // FORGOT PASSWORD — step 1: email a 4-digit OTP
     // POST /api/auth/forgot-password
     // =====================================================
 

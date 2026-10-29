@@ -230,8 +230,8 @@ export default function Login() {
     const enteredOtp = (typeof enteredOtpParam === "string" ? enteredOtpParam : otp.join("")).trim();
 
     if (enteredOtp.length !== 6) {
-      setServerError("Please enter the complete 6-digit OTP.");
-      toast.error("Please enter the full 6-digit OTP.");
+      setServerError("Please enter the complete 4-digit OTP.");
+      toast.error("Please enter the full 4-digit OTP.");
       return;
     }
 
@@ -358,7 +358,7 @@ export default function Login() {
               <Field label="Email or Mobile number" required>
                 <div className="auth-input-wrap">
                   <span className="auth-input-icon">
-                    <FiMail size={16} />
+                    <FiMail size={16} color="#000000" />
                   </span>
 
                   <input
@@ -379,7 +379,7 @@ export default function Login() {
               <Field label="Password" required>
                 <div className="auth-input-wrap">
                   <span className="auth-input-icon">
-                    <FiLock size={16} />
+                    <FiLock size={16} color="#000000" />
                   </span>
 
                   <input
@@ -400,7 +400,7 @@ export default function Login() {
                     tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    {showPassword ? <FiEyeOff size={16} color="#000000" /> : <FiEye size={16} color="#000000" />}
                   </button>
                 </div>
                 {passwordErrors.password && (
@@ -414,7 +414,7 @@ export default function Login() {
                   Remember me
                 </label>
 
-                <Link to="/forgot-password" className="auth-link">
+                <Link to="/forgot-password" className="auth-link auth-forgot-link">
                   Forgot password?
                 </Link>
               </div>
@@ -435,7 +435,7 @@ export default function Login() {
               <Field label="Registered Mobile Number" required>
                 <div className="auth-input-wrap">
                   <span className="auth-input-icon">
-                    <FiSmartphone size={16} />
+                    <FiSmartphone size={16} color="#000000" />
                   </span>
 
                   <input
@@ -482,7 +482,18 @@ export default function Login() {
         </>
       ) : (
         /* 2FA PHONE OTP VERIFICATION STEP (INLINE ANIMATED SCREEN) */
-        <AnimatedOtpScreen
+        <>
+          <div className="auth-form-header" style={{ marginBottom: 14 }}>
+            <div className="auth-card-top-logo">
+              <img
+                src="/zenve.png"
+                alt="Zenve Logo"
+                className="auth-card-logo-img"
+              />
+            </div>
+            <h2 className="auth-header-title">Zenve Doctors</h2>
+          </div>
+          <AnimatedOtpScreen
           isInline={true}
           length={4}
           destination={twoFaData.maskedPhone || "your registered phone"}
@@ -529,6 +540,7 @@ export default function Login() {
           redirectPath={redirectTo}
           initialCooldown={resendCooldown || 30}
         />
+        </>
       )}
     </AuthLayout>
   );

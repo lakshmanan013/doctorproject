@@ -9,7 +9,7 @@ public class VerifyPhoneOtpRequest {
     private String phone;
 
     @NotBlank(message = "OTP is required")
-    @Pattern(regexp = "^\\d{6}$", message = "OTP must be a 6-digit number")
+    @Pattern(regexp = "^\\d{6}$", message = "OTP must be a 4-digit number")
     private String otp;
 
     public VerifyPhoneOtpRequest() {

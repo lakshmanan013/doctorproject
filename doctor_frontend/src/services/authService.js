@@ -6,7 +6,7 @@ export const register = async (payload) => (await api.post("/auth/register", pay
 export const getCurrentUser = async () => (await api.get("/auth/me")).data;
 
 // OTP-based forgot-password flow (see doctor.backend.controller.AuthController):
-//   1. forgotPassword({ email })              -> emails a 6-digit OTP, returns { message, resetToken }
+//   1. forgotPassword({ email })              -> emails a 4-digit OTP, returns { message, resetToken }
 //   2. verifyOtp({ email, otp, resetToken })   -> returns { verified, message, resetToken } (a NEW token)
 //   3. resetPassword({ email, resetToken, newPassword }) -> only accepts the token from step 2
 export const forgotPassword = async (payload) => (await api.post("/auth/forgot-password", payload)).data;
