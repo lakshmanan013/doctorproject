@@ -59,7 +59,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceResponse> getInvoiceById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 invoiceService.getInvoiceById(id)
@@ -73,7 +73,7 @@ public class InvoiceController {
 
     @GetMapping("/number/{invoiceNumber}")
     public ResponseEntity<InvoiceResponse> getByInvoiceNumber(
-            @PathVariable String invoiceNumber) {
+            @PathVariable("invoiceNumber") String invoiceNumber) {
 
         return ResponseEntity.ok(
                 invoiceService.getByInvoiceNumber(
@@ -89,7 +89,7 @@ public class InvoiceController {
 
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<InvoiceResponse>> getByOwnerId(
-            @PathVariable Long ownerId) {
+            @PathVariable("ownerId") Long ownerId) {
 
         return ResponseEntity.ok(
                 invoiceService.getByOwnerId(ownerId)
@@ -103,7 +103,7 @@ public class InvoiceController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<InvoiceResponse>> getByPatientId(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 invoiceService.getByPatientId(patientId)
@@ -117,7 +117,7 @@ public class InvoiceController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<InvoiceResponse>> getByStatus(
-            @PathVariable String status) {
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 invoiceService.getByStatus(status)
@@ -132,7 +132,7 @@ public class InvoiceController {
     @GetMapping("/payment-status/{paymentStatus}")
     public ResponseEntity<List<InvoiceResponse>>
     getByPaymentStatus(
-            @PathVariable String paymentStatus) {
+            @PathVariable("paymentStatus") String paymentStatus) {
 
         return ResponseEntity.ok(
                 invoiceService.getByPaymentStatus(
@@ -151,8 +151,8 @@ public class InvoiceController {
     )
     public ResponseEntity<List<InvoiceResponse>>
     getByOwnerAndPaymentStatus(
-            @PathVariable Long ownerId,
-            @PathVariable String paymentStatus) {
+            @PathVariable("ownerId") Long ownerId,
+            @PathVariable("paymentStatus") String paymentStatus) {
 
         return ResponseEntity.ok(
                 invoiceService.getByOwnerAndPaymentStatus(
@@ -172,8 +172,8 @@ public class InvoiceController {
     )
     public ResponseEntity<List<InvoiceResponse>>
     getByPatientAndPaymentStatus(
-            @PathVariable Long patientId,
-            @PathVariable String paymentStatus) {
+            @PathVariable("patientId") Long patientId,
+            @PathVariable("paymentStatus") String paymentStatus) {
 
         return ResponseEntity.ok(
                 invoiceService.getByPatientAndPaymentStatus(
@@ -190,8 +190,8 @@ public class InvoiceController {
 
     @PutMapping("/{id}/payment")
     public ResponseEntity<InvoiceResponse> updatePayment(
-            @PathVariable Long id,
-            @RequestParam BigDecimal paidAmount) {
+            @PathVariable("id") Long id,
+            @RequestParam("paidAmount") BigDecimal paidAmount) {
 
         return ResponseEntity.ok(
                 invoiceService.updatePayment(
@@ -208,7 +208,7 @@ public class InvoiceController {
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<InvoiceResponse> cancelInvoice(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 invoiceService.cancelInvoice(id)
@@ -222,7 +222,7 @@ public class InvoiceController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInvoice(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         invoiceService.deleteInvoice(id);
 

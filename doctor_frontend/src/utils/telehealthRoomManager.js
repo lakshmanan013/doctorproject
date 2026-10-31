@@ -254,6 +254,33 @@ export function autoRegenerateDoctorRoom(doctorName = "dr-vasanth", oldCode = nu
 export function getAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
   if (!appt || !appt.id) return getDoctorActiveRoom(doctorName);
 
+  // 1. Direct room code on appointment object (from database or sync)
+  if (appt.roomCode || appt.room_code) {
+    const directCode = appt.roomCode || appt.room_code;
+    return directCode;
+  }
+
+  // 2. Parse from meeting_link or meetingLink URL
+  const link = appt.meetingLink || appt.meeting_link || appt.telehealth_url || "";
+  if (link && link.includes("/rooms/")) {
+    const parts = link.split("/rooms/");
+    if (parts[1]) {
+      return decodeURIComponent(parts[1].split("?")[0].split("#")[0].trim());
+    }
+  }
+
+  // 3. Fallback to standard synchronized deterministic room code: ZenveTelehealth-{doctor_id}-{appointment_id}
+  const docId = appt.doctorId || appt.doctor_id || 1;
+  return `ZenveTelehealth-${docId}-${appt.id}`;
+}
+
+function _legacyGetAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
+  if (!appt || !appt.id) return getDoctorActiveRoom(doctorName);
+
+  if (appt.roomCode || appt.room_code) {
+    const directCode = appt.roomCode || appt.room_code;
+    return directCode;
+  }
   const key = `${STORAGE_APPT_ROOM_PREFIX}${appt.id}`;
   let code = localStorage.getItem(key);
 
@@ -316,10 +343,11 @@ export function markAppointmentRoomCompleted(appt, roomCode, sessionDetails = {}
  * Build absolute public meeting link for pet owner
  */
 export function buildMeetingUrl(roomCode) {
-  const origin = typeof window !== "undefined" && window.location?.origin
-    ? window.location.origin
-    : "http://localhost:5173";
-  return `${origin}/join-call/${encodeURIComponent(roomCode)}`;
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "http://localhost:5173";
+  return `${origin}/join-call/${encodeURIComponent(roomCode || "ZenveRoom")}`;
 }
 
 /**

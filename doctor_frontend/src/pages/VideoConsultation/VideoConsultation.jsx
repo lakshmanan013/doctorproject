@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   Video,
@@ -53,8 +54,10 @@ import {
   markAppointmentRoomCompleted,
   buildMeetingUrl,
   buildMeetingInvitationMessage,
+  broadcastTelehealthEvent,
 } from "../../utils/telehealthRoomManager";
 import { TelehealthPeer } from "../../utils/telehealthWebRTC";
+import TwilioConsultationRoom from "../../components/video/TwilioConsultationRoom";
 import {
   isSpeechRecognitionSupported,
   parseMedicineVoice,
@@ -156,8 +159,53 @@ export default function VideoConsultation() {
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const data = await getAppointments();
-      const list = Array.isArray(data) ? data : [];
+      let list = [];
+      try {
+        const syncRes = await axios.get("/api/doctors/appointments/");
+        const syncList = syncRes.data || [];
+        if (Array.isArray(syncList) && syncList.length > 0) {
+          list = syncList.map((s) => ({
+            id: s.id,
+            patientId: s.patient_id || s.id,
+            patientName: s.pet_name || "Pet Patient",
+            ownerName: s.parent_name || "Pet Parent",
+            phone: s.parent_phone || "",
+            appointmentDate: s.appointment_date,
+            appointmentTime: s.appointment_time || "10:30 AM",
+            appointmentType: s.appointment_type || "Video Call",
+            status: s.status || "Confirmed",
+            reason: s.reason || "Virtual Veterinary Consultation",
+            notes: s.notes || "",
+            roomCode: s.room_code,
+            room_code: s.room_code,
+            meetingLink: s.meeting_link,
+            meeting_link: s.meeting_link,
+            is_video: s.is_video,
+            doctorId: s.doctor_id || 1,
+            doctorName: s.doctor_name || "Doctor",
+          }));
+        }
+      } catch (syncErr) {
+        console.warn("Could not load appointments from /api/doctors/appointments/:", syncErr);
+      }
+
+      try {
+        const data = await getAppointments();
+        if (Array.isArray(data) && data.length > 0) {
+          const map = {};
+          list.forEach((item) => { map[item.id] = item; });
+          data.forEach((item) => {
+            if (map[item.id]) {
+              map[item.id] = { ...item, ...map[item.id] };
+            } else {
+              list.push(item);
+            }
+          });
+        }
+      } catch (_springErr) {
+        // Graceful fallback to shared database appointments
+      }
+
       setAppointments(list);
     } catch (err) {
       console.error("Error fetching appointments:", err);
@@ -849,12 +897,50 @@ export default function VideoConsultation() {
   };
 
   // End active call & auto-expire current link + regenerate fresh link
-  const handleEndCall = async () => {
+  const handleEndCall = useCallback(async () => {
     if (!activeCall) return;
     const isConfirmed = window.confirm(
       `End consultation call with ${activeCall.patientName}? The meeting link will be expired.`
     );
     if (!isConfirmed) return;
+
+    // Immediately notify pet parent and room participants that consultation is ended
+    const activeRoom = activeCallRoomCode || generalRoomCode;
+    if (activeRoom) {
+      try {
+        const bc = new BroadcastChannel(`zenve_webrtc_${activeRoom}`);
+        bc.postMessage({
+          type: "END_CALL",
+          senderRole: "doctor",
+          room: activeRoom,
+          timestamp: Date.now(),
+        });
+        bc.close();
+      } catch (_err) {
+        void _err;
+      }
+
+      try {
+        axios.post("/api/doctors/twilio/signal/", {
+          room: activeRoom,
+          sender: `Doctor-${doctorName}`,
+          data: { type: "END_CALL", senderRole: "doctor", timestamp: Date.now() },
+        }).catch(() => { });
+      } catch (_err) {
+        void _err;
+      }
+
+      try {
+        broadcastTelehealthEvent({
+          type: "ROOM_COMPLETED",
+          roomCode: activeRoom,
+          doctorName,
+          patientName: activeCall.patientName,
+        });
+      } catch (_err) {
+        void _err;
+      }
+    }
 
     const callId = activeCall.id;
     const isMock = typeof callId === "number" && callId >= 100 && callId <= 105;
@@ -917,1039 +1003,802 @@ export default function VideoConsultation() {
     setActiveCall(null);
     setActiveCallRoomCode(null);
     setCallDuration(0);
-  };
+  }, [activeCall, activeCallRoomCode, clinicName, consultNotes, doctorName, generalRoomCode]);
 
   // Open Prescription for patient
-  const handleOpenPrescription = (appt) => {
-    if (appt?.patientId) {
-      navigate(`/prescriptions?patientId=${appt.patientId}`);
-    } else {
-      navigate("/prescriptions");
-    }
-  };
+const handleOpenPrescription = (appt) => {
+  if (appt?.patientId) {
+    navigate(`/prescriptions?patientId=${appt.patientId}`);
+  } else {
+    navigate("/prescriptions");
+  }
+};
 
-  return (
-    <div className="video-consult-page">
-      {/* ========================================================= */}
-      {/* 1. TOP HEADER & TELEHEALTH AVAILABILITY CARD              */}
-      {/* ========================================================= */}
-      <div className="vc-hero-card">
-        <div className="vc-hero-main">
-          <div className="vc-hero-badge-wrap">
-            <span className="vc-hero-pill">
-              <Sparkles size={13} /> Zenve Official Telehealth Portal
-            </span>
-          </div>
-
-          <h1 className="vc-hero-title">Video Consultant Room</h1>
-          <p className="vc-hero-subtitle">
-            Conduct live, crystal-clear virtual video examinations, discuss pet diagnostics, and generate instant prescriptions remotely.
-          </p>
-
-          <div className="vc-room-link-box">
-            <div className="vc-room-link-info">
-              <span className="vc-room-link-label">Your Live Patient Telehealth Link:</span>
-              <span className="vc-room-link-url">{meetingUrl}</span>
-            </div>
-            <div className="vc-room-link-btn-group">
-              <button
-                type="button"
-                className={`btn-vc-copy-link ${copiedLink ? "copied" : ""}`}
-                onClick={handleCopyLink}
-                title="Copy meeting link for pet parents"
-              >
-                {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                {copiedLink ? "Copied!" : "Copy Link"}
-              </button>
-              <button
-                type="button"
-                className="btn-vc-wa-link"
-                onClick={() => handleShareWhatsApp(null)}
-                title="Share consultation invite via WhatsApp"
-              >
-                <Share2 size={13} />
-                <span>WhatsApp</span>
-              </button>
-              <button
-                type="button"
-                className="btn-vc-regen-link"
-                onClick={handleRegenerateLink}
-                title="Generate fresh unique room link now"
-              >
-                <RefreshCw size={13} />
-                <span>Regenerate</span>
-              </button>
-            </div>
-          </div>
+return (
+  <div className="video-consult-page">
+    {/* ========================================================= */}
+    {/* 1. TOP HEADER & TELEHEALTH AVAILABILITY CARD              */}
+    {/* ========================================================= */}
+    <div className="vc-hero-card">
+      <div className="vc-hero-main">
+        <div className="vc-hero-badge-wrap">
+          <span className="vc-hero-pill">
+            <Sparkles size={13} /> Zenve Official Telehealth Portal
+          </span>
         </div>
 
-        {/* Right Status Toggle & Stat Cards */}
-        <div className="vc-hero-side">
-          <div className={`vc-status-toggle-card ${isOnline ? "online" : "offline"}`}>
-            <div className="vc-status-card-header">
-              <div className="vc-status-indicator-wrap">
-                <span className={`vc-status-dot ${isOnline ? "live" : ""}`} />
-                <span className="vc-status-text">
-                  {isOnline ? "Online · Ready for Calls" : "Away · Offline"}
-                </span>
-              </div>
-              <span className="vc-fee-tag">₹{stats.consultFee} / visit</span>
-            </div>
+        <h1 className="vc-hero-title">Video Consultant Room</h1>
+        <p className="vc-hero-subtitle">
+          Conduct live, crystal-clear virtual video examinations, discuss pet diagnostics, and generate instant prescriptions remotely.
+        </p>
 
-            <p className="vc-status-explainer">
-              {isOnline
-                ? "Pet parents can see you are available for live video visits."
-                : "You are currently offline. Toggle on to accept virtual consults."}
-            </p>
+        <div className="vc-room-link-box">
+          <div className="vc-room-link-info">
+            <span className="vc-room-link-label">Your Live Patient Telehealth Link:</span>
+            <span className="vc-room-link-url">{meetingUrl}</span>
+          </div>
+          <div className="vc-room-link-btn-group">
+            <button
+              type="button"
+              className={`btn-vc-copy-link ${copiedLink ? "copied" : ""}`}
+              onClick={handleCopyLink}
+              title="Copy meeting link for pet parents"
+            >
+              {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+              {copiedLink ? "Copied!" : "Copy Link"}
+            </button>
+            <button
+              type="button"
+              className="btn-vc-wa-link"
+              onClick={() => handleShareWhatsApp(null)}
+              title="Share consultation invite via WhatsApp"
+            >
+              <Share2 size={13} />
+              <span>WhatsApp</span>
+            </button>
+            <button
+              type="button"
+              className="btn-vc-regen-link"
+              onClick={handleRegenerateLink}
+              title="Generate fresh unique room link now"
+            >
+              <RefreshCw size={13} />
+              <span>Regenerate</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Status Toggle & Stat Cards */}
+      <div className="vc-hero-side">
+        <div className={`vc-status-toggle-card ${isOnline ? "online" : "offline"}`}>
+          <div className="vc-status-card-header">
+            <div className="vc-status-indicator-wrap">
+              <span className={`vc-status-dot ${isOnline ? "live" : ""}`} />
+              <span className="vc-status-text">
+                {isOnline ? "Online · Ready for Calls" : "Away · Offline"}
+              </span>
+            </div>
+            <span className="vc-fee-tag">₹{stats.consultFee} / visit</span>
+          </div>
+
+          <p className="vc-status-explainer">
+            {isOnline
+              ? "Pet parents can see you are available for live video visits."
+              : "You are currently offline. Toggle on to accept virtual consults."}
+          </p>
+
+          <button
+            type="button"
+            className={`vc-toggle-action-btn ${isOnline ? "btn-online" : "btn-offline"}`}
+            onClick={handleToggleOnline}
+            disabled={togglingStatus}
+          >
+            <Radio size={14} className={isOnline ? "pulse-icon" : ""} />
+            {togglingStatus
+              ? "Updating..."
+              : isOnline
+                ? "Switch to Offline / Away"
+                : "Go Online for Video Calls"}
+          </button>
+        </div>
+
+        {/* Quick Metrics */}
+        <div className="vc-mini-stats-grid">
+          <div className="vc-mini-stat">
+            <span className="vc-mini-stat-num">{stats.todayCount}</span>
+            <span className="vc-mini-stat-label">Today's Video Calls</span>
+          </div>
+          <div className="vc-mini-stat">
+            <span className="vc-mini-stat-num">{stats.completedCount}</span>
+            <span className="vc-mini-stat-label">Total Completed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* ========================================================= */}
+    {/* 2. ACTION BAR & TABS                                      */}
+    {/* ========================================================= */}
+    <div className="vc-action-toolbar">
+      <div className="vc-tabs-group">
+        <button
+          type="button"
+          className={`vc-tab-btn ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          All Video Consultations
+        </button>
+        <button
+          type="button"
+          className={`vc-tab-btn ${activeTab === "today" ? "active" : ""}`}
+          onClick={() => setActiveTab("today")}
+        >
+          Today's Queue ({stats.todayCount})
+        </button>
+        <button
+          type="button"
+          className={`vc-tab-btn ${activeTab === "upcoming" ? "active" : ""}`}
+          onClick={() => setActiveTab("upcoming")}
+        >
+          Upcoming
+        </button>
+        <button
+          type="button"
+          className={`vc-tab-btn ${activeTab === "completed" ? "active" : ""}`}
+          onClick={() => setActiveTab("completed")}
+        >
+          Completed
+        </button>
+      </div>
+
+      <div className="vc-actions-right">
+        <div className="vc-search-wrap">
+          <Search size={15} className="vc-search-icon" />
+          <input
+            type="text"
+            placeholder="Search pet, owner, symptom..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="vc-search-input"
+          />
+        </div>
+
+        <button
+          type="button"
+          className="btn-vc-instant"
+          onClick={handleStartInstantCall}
+          title="Launch an instant video room right now"
+        >
+          <Video size={16} />
+          <span>Start Instant Call</span>
+        </button>
+
+        <button
+          type="button"
+          className="btn-vc-schedule"
+          onClick={() => setScheduleModalOpen(true)}
+          title="Schedule a future video appointment"
+        >
+          <Plus size={16} />
+          <span>Schedule Video Visit</span>
+        </button>
+      </div>
+    </div>
+
+    {/* ========================================================= */}
+    {/* 3. VIDEO APPOINTMENTS QUEUE                               */}
+    {/* ========================================================= */}
+    <div className="vc-appointments-section">
+      {loading ? (
+        <div className="vc-loading-state">
+          <RefreshCw size={24} className="spin-icon" />
+          <span>Loading virtual consultation appointments...</span>
+        </div>
+      ) : videoAppointments.length === 0 ? (
+        <div className="vc-empty-state">
+          <div className="vc-empty-icon-wrap">
+            <Video size={36} />
+          </div>
+          <h3 className="vc-empty-title">No Video Consultations Found</h3>
+          <p className="vc-empty-desc">
+            {searchQuery
+              ? `No video appointments matching "${searchQuery}".`
+              : "You don't have any video appointments in this tab. Start an instant call or schedule a new video visit."}
+          </p>
+          <div className="vc-empty-actions">
+            <Button variant="primary" onClick={handleStartInstantCall}>
+              <Video size={15} /> Start Instant Video Call
+            </Button>
+            <Button variant="outline" onClick={() => setScheduleModalOpen(true)}>
+              <Plus size={15} /> Schedule Video Call
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="vc-cards-grid">
+          {videoAppointments.map((appt) => {
+            const isWaiting = appt.status === "Waiting";
+            const isConfirmed = appt.status === "Confirmed" || appt.status === "Scheduled";
+            const isCompleted = appt.status === "Completed";
+            const isToday = appt.appointmentDate === todayIso;
+
+            return (
+              <div
+                key={appt.id}
+                className={`vc-card ${isWaiting ? "waiting-highlight" : ""} ${isCompleted ? "completed" : ""
+                  }`}
+              >
+                <div className="vc-card-header">
+                  <div className="vc-card-time-wrap">
+                    <span className="vc-card-time">
+                      <Clock size={13} /> {appt.appointmentTime || "10:00 AM"}
+                    </span>
+                    <span className="vc-card-date">
+                      <Calendar size={13} /> {appt.appointmentDate || todayIso}
+                    </span>
+                  </div>
+
+                  <div className="vc-card-badge-wrap">
+                    {isWaiting && (
+                      <span className="vc-badge-live-waiting">
+                        <span className="vc-pulsing-green-dot" /> Waiting in Room
+                      </span>
+                    )}
+                    {isConfirmed && (
+                      <span className="vc-badge-confirmed">
+                        <CheckCircle2 size={12} /> Confirmed
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="vc-badge-completed">
+                        <Check size={12} /> Completed
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="vc-card-body">
+                  <div className="vc-pet-profile-row">
+                    <div className="vc-pet-avatar">
+                      <FaPaw size={18} />
+                    </div>
+                    <div className="vc-pet-info">
+                      <h4 className="vc-pet-name">{appt.patientName || "Pet Patient"}</h4>
+                      <span className="vc-owner-name">
+                        <User size={12} /> {appt.ownerName || "Pet Parent"} · {appt.phone || "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="vc-reason-box">
+                    <span className="vc-reason-label">Chief Complaint / Reason:</span>
+                    <p className="vc-reason-text">{appt.reason || "General virtual checkup"}</p>
+                  </div>
+
+                  {appt.notes && (
+                    <p className="vc-notes-hint">
+                      <strong>Notes:</strong> {appt.notes}
+                    </p>
+                  )}
+                </div>
+
+                <div className="vc-card-footer">
+                  {!isCompleted ? (
+                    <button
+                      type="button"
+                      className="btn-vc-join-call"
+                      onClick={() => handleJoinCall(appt)}
+                      title="Enter video consultation room"
+                    >
+                      <Video size={15} />
+                      <span>Join Video Call</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-vc-join-call"
+                      onClick={() => handleJoinCall(appt)}
+                      title="Re-enter video consultation room"
+                      style={{ background: "#4f46e5" }}
+                    >
+                      <Video size={15} />
+                      <span>Re-enter Call</span>
+                    </button>
+                  )}
+
+
+                  <div className="vc-card-actions-mini">
+                    <button
+                      type="button"
+                      className="btn-vc-mini-action"
+                      onClick={() => handleOpenPrescription(appt)}
+                      title="Open Prescription for this patient"
+                    >
+                      <FileText size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-vc-mini-action"
+                      onClick={() => handleCopyApptLink(appt)}
+                      title="Copy patient-specific consultation link"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-vc-mini-action"
+                      onClick={() => handleShareWhatsApp(appt)}
+                      title="Share consultation invite on WhatsApp"
+                    >
+                      <Share2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+
+    {/* ========================================================= */}
+    {/* 4. PROFESSIONAL FULL-VIEWPORT TELEHEALTH SUITE           */}
+    {/* ========================================================= */}
+    {activeCall && (
+      <div className="vc-telehealth-suite">
+        {/* Top Navigation Bar */}
+        <header className="vc-suite-header">
+          <div className="vc-suite-header-left">
+            <div className="vc-suite-live-badge">
+              <span className="vc-suite-rec-pulse" />
+              <span className="vc-suite-badge-text">Zenve Telehealth HD</span>
+            </div>
+            <div className="vc-suite-timer">
+              <Clock size={13} />
+              <span>{formatCallTime(callDuration)}</span>
+            </div>
+            <span className="vc-suite-quality-tag">1080p HD · 60fps · WebRTC Encrypted</span>
+          </div>
+
+          <div className="vc-suite-header-center">
+            <FaPaw size={16} className="vc-pet-paw-icon" />
+            <strong className="vc-suite-patient-name">{activeCall.patientName}</strong>
+            <span className="vc-suite-owner-name">({activeCall.ownerName || "Pet Parent"})</span>
+          </div>
+
+          <div className="vc-suite-header-right">
+            <button
+              type="button"
+              className={`vc-view-mode-pill ${viewLayout === "faceToFace" ? "active" : ""}`}
+              onClick={() => setViewLayout((prev) => (prev === "faceToFace" ? "speaker" : "faceToFace"))}
+              title={viewLayout === "faceToFace" ? "Switch to Spotlight Mode" : "Switch to Face-to-Face Dual Cameras"}
+            >
+              <Users size={14} />
+              <span>{viewLayout === "faceToFace" ? "Face-to-Face" : "Spotlight"}</span>
+            </button>
 
             <button
               type="button"
-              className={`vc-toggle-action-btn ${isOnline ? "btn-online" : "btn-offline"}`}
-              onClick={handleToggleOnline}
-              disabled={togglingStatus}
+              className={`vc-suite-drawer-toggle-btn ${drawerOpen ? "active" : ""}`}
+              onClick={() => setDrawerOpen((prev) => !prev)}
+              title={drawerOpen ? "Collapse Clinical Drawer" : "Open Clinical Drawer"}
             >
-              <Radio size={14} className={isOnline ? "pulse-icon" : ""} />
-              {togglingStatus
-                ? "Updating..."
-                : isOnline
-                  ? "Switch to Offline / Away"
-                  : "Go Online for Video Calls"}
+              <FileText size={15} />
+              <span>{drawerOpen ? "Hide Drawer" : "Clinical Notes & Prescription"}</span>
+            </button>
+            <button
+              type="button"
+              className="vc-suite-end-call-btn"
+              onClick={handleEndCall}
+              title="End Consultation"
+            >
+              <PhoneOff size={15} />
+              <span>End Call</span>
             </button>
           </div>
+        </header>
 
-          {/* Quick Metrics */}
-          <div className="vc-mini-stats-grid">
-            <div className="vc-mini-stat">
-              <span className="vc-mini-stat-num">{stats.todayCount}</span>
-              <span className="vc-mini-stat-label">Today's Video Calls</span>
-            </div>
-            <div className="vc-mini-stat">
-              <span className="vc-mini-stat-num">{stats.completedCount}</span>
-              <span className="vc-mini-stat-label">Total Completed</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* 2. ACTION BAR & TABS                                      */}
-      {/* ========================================================= */}
-      <div className="vc-action-toolbar">
-        <div className="vc-tabs-group">
-          <button
-            type="button"
-            className={`vc-tab-btn ${activeTab === "all" ? "active" : ""}`}
-            onClick={() => setActiveTab("all")}
-          >
-            All Video Consultations
-          </button>
-          <button
-            type="button"
-            className={`vc-tab-btn ${activeTab === "today" ? "active" : ""}`}
-            onClick={() => setActiveTab("today")}
-          >
-            Today's Queue ({stats.todayCount})
-          </button>
-          <button
-            type="button"
-            className={`vc-tab-btn ${activeTab === "upcoming" ? "active" : ""}`}
-            onClick={() => setActiveTab("upcoming")}
-          >
-            Upcoming
-          </button>
-          <button
-            type="button"
-            className={`vc-tab-btn ${activeTab === "completed" ? "active" : ""}`}
-            onClick={() => setActiveTab("completed")}
-          >
-            Completed
-          </button>
-        </div>
-
-        <div className="vc-actions-right">
-          <div className="vc-search-wrap">
-            <Search size={15} className="vc-search-icon" />
-            <input
-              type="text"
-              placeholder="Search pet, owner, symptom..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="vc-search-input"
+        {/* Main Stage: Video Canvas + Slide-Over Drawer */}
+        <div className="vc-suite-workspace">
+          {/* Left: Video Stage (Twilio Zoom-Style Video Consultation) */}
+          <main className="vc-suite-video-canvas" style={{ flex: 1, height: "100%", overflow: "hidden", minHeight: "600px", position: "relative" }}>
+            <TwilioConsultationRoom
+              roomName={activeCallRoomCode || generalRoomCode}
+              identity={`Doctor-${doctorName}`}
+              displayName={`Dr. ${doctorName}`}
+              role="doctor"
+              doctorName={doctorName}
+              patientName={activeCall.patientName || "Pet Patient"}
+              reason={activeCall.reason || "Virtual Veterinary Consultation"}
+              onLeave={handleEndCall}
             />
-          </div>
+          </main>
 
-          <button
-            type="button"
-            className="btn-vc-instant"
-            onClick={handleStartInstantCall}
-            title="Launch an instant video room right now"
-          >
-            <Video size={16} />
-            <span>Start Instant Call</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn-vc-schedule"
-            onClick={() => setScheduleModalOpen(true)}
-            title="Schedule a future video appointment"
-          >
-            <Plus size={16} />
-            <span>Schedule Video Visit</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* 3. VIDEO APPOINTMENTS QUEUE                               */}
-      {/* ========================================================= */}
-      <div className="vc-appointments-section">
-        {loading ? (
-          <div className="vc-loading-state">
-            <RefreshCw size={24} className="spin-icon" />
-            <span>Loading virtual consultation appointments...</span>
-          </div>
-        ) : videoAppointments.length === 0 ? (
-          <div className="vc-empty-state">
-            <div className="vc-empty-icon-wrap">
-              <Video size={36} />
-            </div>
-            <h3 className="vc-empty-title">No Video Consultations Found</h3>
-            <p className="vc-empty-desc">
-              {searchQuery
-                ? `No video appointments matching "${searchQuery}".`
-                : "You don't have any video appointments in this tab. Start an instant call or schedule a new video visit."}
-            </p>
-            <div className="vc-empty-actions">
-              <Button variant="primary" onClick={handleStartInstantCall}>
-                <Video size={15} /> Start Instant Video Call
-              </Button>
-              <Button variant="outline" onClick={() => setScheduleModalOpen(true)}>
-                <Plus size={15} /> Schedule Video Call
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="vc-cards-grid">
-            {videoAppointments.map((appt) => {
-              const isWaiting = appt.status === "Waiting";
-              const isConfirmed = appt.status === "Confirmed" || appt.status === "Scheduled";
-              const isCompleted = appt.status === "Completed";
-              const isToday = appt.appointmentDate === todayIso;
-
-              return (
-                <div
-                  key={appt.id}
-                  className={`vc-card ${isWaiting ? "waiting-highlight" : ""} ${isCompleted ? "completed" : ""
-                    }`}
-                >
-                  <div className="vc-card-header">
-                    <div className="vc-card-time-wrap">
-                      <span className="vc-card-time">
-                        <Clock size={13} /> {appt.appointmentTime || "10:00 AM"}
-                      </span>
-                      <span className="vc-card-date">
-                        <Calendar size={13} /> {appt.appointmentDate || todayIso}
-                      </span>
-                    </div>
-
-                    <div className="vc-card-badge-wrap">
-                      {isWaiting && (
-                        <span className="vc-badge-live-waiting">
-                          <span className="vc-pulsing-green-dot" /> Waiting in Room
-                        </span>
-                      )}
-                      {isConfirmed && (
-                        <span className="vc-badge-confirmed">
-                          <CheckCircle2 size={12} /> Confirmed
-                        </span>
-                      )}
-                      {isCompleted && (
-                        <span className="vc-badge-completed">
-                          <Check size={12} /> Completed
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="vc-card-body">
-                    <div className="vc-pet-profile-row">
-                      <div className="vc-pet-avatar">
-                        <FaPaw size={18} />
-                      </div>
-                      <div className="vc-pet-info">
-                        <h4 className="vc-pet-name">{appt.patientName || "Pet Patient"}</h4>
-                        <span className="vc-owner-name">
-                          <User size={12} /> {appt.ownerName || "Pet Parent"} · {appt.phone || "—"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="vc-reason-box">
-                      <span className="vc-reason-label">Chief Complaint / Reason:</span>
-                      <p className="vc-reason-text">{appt.reason || "General virtual checkup"}</p>
-                    </div>
-
-                    {appt.notes && (
-                      <p className="vc-notes-hint">
-                        <strong>Notes:</strong> {appt.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="vc-card-footer">
-                    {!isCompleted ? (
-                      <button
-                        type="button"
-                        className="btn-vc-join-call"
-                        onClick={() => handleJoinCall(appt)}
-                        title="Enter video consultation room"
-                      >
-                        <Video size={15} />
-                        <span>Join Video Call</span>
-                      </button>
-                    ) : (
-                      <span className="vc-call-finished-label">
-                        <Check size={14} /> Consultation Completed
-                      </span>
-                    )}
-
-                    <div className="vc-card-actions-mini">
-                      <button
-                        type="button"
-                        className="btn-vc-mini-action"
-                        onClick={() => handleOpenPrescription(appt)}
-                        title="Open Prescription for this patient"
-                      >
-                        <FileText size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-vc-mini-action"
-                        onClick={() => handleCopyApptLink(appt)}
-                        title="Copy patient-specific consultation link"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-vc-mini-action"
-                        onClick={() => handleShareWhatsApp(appt)}
-                        title="Share consultation invite on WhatsApp"
-                      >
-                        <Share2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ========================================================= */}
-      {/* 4. PROFESSIONAL FULL-VIEWPORT TELEHEALTH SUITE           */}
-      {/* ========================================================= */}
-      {activeCall && (
-        <div className="vc-telehealth-suite">
-          {/* Top Navigation Bar */}
-          <header className="vc-suite-header">
-            <div className="vc-suite-header-left">
-              <div className="vc-suite-live-badge">
-                <span className="vc-suite-rec-pulse" />
-                <span className="vc-suite-badge-text">Zenve Telehealth HD</span>
-              </div>
-              <div className="vc-suite-timer">
-                <Clock size={13} />
-                <span>{formatCallTime(callDuration)}</span>
-              </div>
-              <span className="vc-suite-quality-tag">1080p HD · 60fps · WebRTC Encrypted</span>
-            </div>
-
-            <div className="vc-suite-header-center">
-              <FaPaw size={16} className="vc-pet-paw-icon" />
-              <strong className="vc-suite-patient-name">{activeCall.patientName}</strong>
-              <span className="vc-suite-owner-name">({activeCall.ownerName || "Pet Parent"})</span>
-            </div>
-
-            <div className="vc-suite-header-right">
-              <button
-                type="button"
-                className={`vc-view-mode-pill ${viewLayout === "faceToFace" ? "active" : ""}`}
-                onClick={() => setViewLayout((prev) => (prev === "faceToFace" ? "speaker" : "faceToFace"))}
-                title={viewLayout === "faceToFace" ? "Switch to Spotlight Mode" : "Switch to Face-to-Face Dual Cameras"}
-              >
-                <Users size={14} />
-                <span>{viewLayout === "faceToFace" ? "Face-to-Face" : "Spotlight"}</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vc-suite-drawer-toggle-btn ${drawerOpen ? "active" : ""}`}
-                onClick={() => setDrawerOpen((prev) => !prev)}
-                title={drawerOpen ? "Collapse Clinical Drawer" : "Open Clinical Drawer"}
-              >
-                <FileText size={15} />
-                <span>{drawerOpen ? "Hide Drawer" : "Clinical Notes & Prescription"}</span>
-              </button>
-              <button
-                type="button"
-                className="vc-suite-end-call-btn"
-                onClick={handleEndCall}
-                title="End Consultation"
-              >
-                <PhoneOff size={15} />
-                <span>End Call</span>
-              </button>
-            </div>
-          </header>
-
-          {/* Main Stage: Video Canvas + Slide-Over Drawer */}
-          <div className="vc-suite-workspace">
-            {/* Left: Video Stage */}
-            <main className="vc-suite-video-canvas">
-              {viewLayout === "faceToFace" ? (
-                /* FACE-TO-FACE DUAL OPEN CAMERAS GRID */
-                <div className="vc-f2f-grid">
-                  {/* Left Tile: Pet Patient & Parent */}
-                  <div className="vc-f2f-tile patient-tile">
-                    {remoteStreamConnected ? (
-                      <video
-                        ref={(el) => {
-                          remoteVideoRef.current = el;
-                          if (el && remoteMediaStreamRef.current && el.srcObject !== remoteMediaStreamRef.current) {
-                            el.srcObject = remoteMediaStreamRef.current;
-                            el.play().catch(() => { });
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        className="vc-f2f-video-feed"
-                      />
-                    ) : (
-                      <img
-                        src="/images/telehealth-pet-patient.jpg"
-                        alt="Pet Patient Video Stream"
-                        className="vc-f2f-video-feed"
-                      />
-                    )}
-
-                    <div className="vc-f2f-hud-top">
-                      <div className="vc-f2f-name-badge">
-                        <span className="vc-hud-green-pulse" />
-                        <span>{activeCall.patientName}</span>
-                      </div>
-                      <div className="vc-f2f-status-pill">
-                        <Activity size={12} />
-                        <span>{remoteStreamConnected ? "Live Camera Connected" : "Patient Room Active"}</span>
-                      </div>
-                    </div>
-
-                    <div className="vc-f2f-hud-bottom">
-                      <div className="vc-f2f-info-pill">
-                        <strong>Reason:</strong> {activeCall.reason || "Virtual Veterinary Consultation"}
-                      </div>
-                      <div className="vc-f2f-audio-indicator">
-                        <span>1080p HD</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Tile: Doctor Live Open Camera */}
-                  <div className="vc-f2f-tile doctor-tile">
-                    {!isVideoOff ? (
-                      <video
-                        ref={(el) => {
-                          doctorVideoRef.current = el;
-                          if (el && mediaStreamRef.current && el.srcObject !== mediaStreamRef.current) {
-                            el.srcObject = mediaStreamRef.current;
-                            el.play().catch(() => { });
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="vc-f2f-video-feed mirrored"
-                      />
-                    ) : (
-                      <div className="vc-f2f-fallback">
-                        <div className="vc-f2f-avatar-circle">
-                          <User size={32} />
-                        </div>
-                        <span className="vc-doctor-cam-status-label">Doctor Camera Turned Off</span>
-                      </div>
-                    )}
-
-                    <div className="vc-f2f-hud-top">
-                      <div className="vc-f2f-name-badge">
-                        <span className="vc-hud-green-pulse" />
-                        <span>Dr. {doctorName} (You)</span>
-                      </div>
-                      <div className="vc-f2f-status-pill">
-                        <span>{webcamActive && !isVideoOff ? "Live Camera Open" : "Ready"}</span>
-                      </div>
-                    </div>
-
-                    <div className="vc-f2f-hud-bottom">
-                      <div className="vc-f2f-info-pill">
-                        <strong>Role:</strong> Attending Veterinarian
-                      </div>
-                      <div className={`vc-f2f-audio-indicator ${isMuted ? "muted" : ""}`}>
-                        {isMuted ? <MicOff size={12} /> : <Mic size={12} />}
-                        <span>{isMuted ? "Muted" : "Audio Live"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* SPOTLIGHT VIEW */
-                <div className="vc-suite-remote-feed">
-                  <img
-                    src="/images/telehealth-pet-patient.jpg"
-                    alt="Pet Patient Video Stream"
-                    className="vc-patient-video-image"
-                  />
-
-                  {/* Overlaid Patient HUD */}
-                  <div className="vc-patient-hud-overlay">
-                    <div className="vc-hud-top-row">
-                      <div className="vc-hud-patient-badge">
-                        <span className="vc-hud-green-pulse" />
-                        <span>{activeCall.patientName}</span>
-                      </div>
-                      <div className="vc-hud-telemetry-badge">
-                        <Activity size={12} />
-                        <span>Latency: 18ms · Stable HD Video & Audio</span>
-                      </div>
-                    </div>
-
-                    <div className="vc-hud-bottom-row">
-                      <div className="vc-hud-complaint-badge">
-                        <span className="vc-complaint-label">Chief Complaint:</span>
-                        <span className="vc-complaint-text">{activeCall.reason || "Video Examination & Checkup"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Doctor Picture-In-Picture (PIP) Webcam Feed */}
-                  <div className="vc-suite-doctor-pip">
-                    {!isVideoOff ? (
-                      <video
-                        ref={(el) => {
-                          doctorVideoRef.current = el;
-                          if (el && mediaStreamRef.current && el.srcObject !== mediaStreamRef.current) {
-                            el.srcObject = mediaStreamRef.current;
-                            el.play().catch(() => { });
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="vc-doctor-webcam-feed"
-                      />
-                    ) : null}
-                    {(isVideoOff || !webcamActive) && (
-                      <div className="vc-doctor-pip-fallback">
-                        <div className="vc-doctor-avatar-circle">
-                          <User size={26} />
-                        </div>
-                        <span className="vc-doctor-cam-status-label">
-                          {isVideoOff ? "Camera Off" : "Webcam Ready"}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="vc-doctor-pip-bottom-bar">
-                      <span className="vc-doctor-pip-label">
-                        Dr. {profile?.fullName || authDoctor?.fullName || "Doctor"} (You)
-                      </span>
-                      {isMuted && (
-                        <span className="vc-pip-muted-icon" title="Microphone muted">
-                          <MicOff size={12} />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Floating Bottom Dock (Google Meet / Zoom style) */}
-              <div className="vc-suite-floating-dock">
+          {/* Right: Slide-Over Clinical EMR Drawer */}
+          {drawerOpen && (
+            <aside className="vc-suite-drawer">
+              <div className="vc-drawer-tabs-header">
                 <button
                   type="button"
-                  className={`vc-dock-circle-btn ${isMuted ? "muted" : "active"}`}
-                  onClick={handleToggleMic}
-                  title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
+                  className={`vc-drawer-tab-btn ${drawerTab === "rx" ? "active" : ""}`}
+                  onClick={() => setDrawerTab("rx")}
                 >
-                  {isMuted ? <MicOff size={19} /> : <Mic size={19} />}
-                  <span className="vc-dock-tooltip">{isMuted ? "Unmute" : "Mute"}</span>
+                  <FileText size={14} />
+                  <span>Live Notes & Prescription</span>
                 </button>
-
                 <button
                   type="button"
-                  className={`vc-dock-circle-btn ${isVideoOff ? "muted" : "active"}`}
-                  onClick={handleToggleVideo}
-                  title={isVideoOff ? "Start Camera" : "Stop Camera"}
+                  className={`vc-drawer-tab-btn ${drawerTab === "vitals" ? "active" : ""}`}
+                  onClick={() => setDrawerTab("vitals")}
                 >
-                  {isVideoOff ? <VideoOff size={19} /> : <Video size={19} />}
-                  <span className="vc-dock-tooltip">{isVideoOff ? "Start Video" : "Stop Video"}</span>
+                  <Activity size={14} />
+                  <span>Pet Vitals</span>
                 </button>
-
                 <button
                   type="button"
-                  className={`vc-dock-circle-btn ${viewLayout === "faceToFace" ? "highlight" : "active"}`}
-                  onClick={() => setViewLayout((prev) => (prev === "faceToFace" ? "speaker" : "faceToFace"))}
-                  title={viewLayout === "faceToFace" ? "Switch to Spotlight View" : "Face-to-Face Dual Cameras"}
+                  className="vc-drawer-close-icon-btn"
+                  onClick={() => setDrawerOpen(false)}
+                  title="Close Drawer"
                 >
-                  <Users size={19} />
-                  <span className="vc-dock-tooltip">
-                    {viewLayout === "faceToFace" ? "Face to Face" : "Spotlight"}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`vc-dock-circle-btn ${isScreenSharing ? "highlight" : "active"}`}
-                  onClick={handleToggleScreenShare}
-                  title="Share Screen or Lab Results"
-                >
-                  <Share2 size={19} />
-                  <span className="vc-dock-tooltip">{isScreenSharing ? "Stop Share" : "Share Screen"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`vc-dock-circle-btn ${drawerOpen && drawerTab === "rx" ? "highlight" : "active"}`}
-                  onClick={() => {
-                    setDrawerOpen(true);
-                    setDrawerTab("rx");
-                  }}
-                  title="Clinical Notes & Prescription"
-                >
-                  <FileText size={19} />
-                  <span className="vc-dock-tooltip">Notes & Prescription</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`vc-dock-circle-btn ${drawerOpen && drawerTab === "vitals" ? "highlight" : "active"}`}
-                  onClick={() => {
-                    setDrawerOpen(true);
-                    setDrawerTab("vitals");
-                  }}
-                  title="Patient Vitals"
-                >
-                  <Activity size={19} />
-                  <span className="vc-dock-tooltip">Vitals</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="vc-dock-circle-btn active"
-                  onClick={handleCopyActiveCallLink}
-                  title="Copy Active Room Link"
-                >
-                  <Copy size={19} />
-                  <span className="vc-dock-tooltip">Copy Link</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="vc-dock-end-call-pill"
-                  onClick={handleEndCall}
-                  title="End Consultation"
-                >
-                  <PhoneOff size={16} />
-                  <span>End Call</span>
+                  <FiX size={16} />
                 </button>
               </div>
-            </main>
 
-            {/* Right: Slide-Over Clinical EMR Drawer */}
-            {drawerOpen && (
-              <aside className="vc-suite-drawer">
-                <div className="vc-drawer-tabs-header">
-                  <button
-                    type="button"
-                    className={`vc-drawer-tab-btn ${drawerTab === "rx" ? "active" : ""}`}
-                    onClick={() => setDrawerTab("rx")}
-                  >
-                    <FileText size={14} />
-                    <span>Live Notes & Prescription</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`vc-drawer-tab-btn ${drawerTab === "vitals" ? "active" : ""}`}
-                    onClick={() => setDrawerTab("vitals")}
-                  >
-                    <Activity size={14} />
-                    <span>Pet Vitals</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="vc-drawer-close-icon-btn"
-                    onClick={() => setDrawerOpen(false)}
-                    title="Close Drawer"
-                  >
-                    <FiX size={16} />
-                  </button>
+              <div className="vc-drawer-scrollable-body">
+                {/* Patient Quick Card */}
+                <div className="vc-drawer-patient-badge-card">
+                  <div className="vc-dpb-header">
+                    <span className="vc-dpb-name">{activeCall.patientName}</span>
+                    <span className="vc-dpb-status">In Video Call</span>
+                  </div>
+                  <div className="vc-dpb-meta">
+                    <span>Owner: <strong>{activeCall.ownerName || "Pet Parent"}</strong></span>
+                    <span>Phone: {activeCall.phone || "—"}</span>
+                  </div>
                 </div>
 
-                <div className="vc-drawer-scrollable-body">
-                  {/* Patient Quick Card */}
-                  <div className="vc-drawer-patient-badge-card">
-                    <div className="vc-dpb-header">
-                      <span className="vc-dpb-name">{activeCall.patientName}</span>
-                      <span className="vc-dpb-status">In Video Call</span>
-                    </div>
-                    <div className="vc-dpb-meta">
-                      <span>Owner: <strong>{activeCall.ownerName || "Pet Parent"}</strong></span>
-                      <span>Phone: {activeCall.phone || "—"}</span>
-                    </div>
-                  </div>
-
-                  {drawerTab === "rx" ? (
-                    <>
-                      {/* Clinical Examination Notes with Voice Dictation */}
-                      <div className="vc-drawer-section">
-                        <div className="vc-drawer-section-header">
-                          <label className="vc-drawer-section-title">
-                            Live Consultation Notes / Examination Findings:
-                          </label>
-                          <div className="vc-section-header-actions">
-                            {consultNotes && (
-                              <button
-                                type="button"
-                                className="vc-notes-clear-btn"
-                                onClick={() => setConsultNotes("")}
-                                title="Clear Notes"
-                              >
-                                Clear
-                              </button>
-                            )}
+                {drawerTab === "rx" ? (
+                  <>
+                    {/* Clinical Examination Notes with Voice Dictation */}
+                    <div className="vc-drawer-section">
+                      <div className="vc-drawer-section-header">
+                        <label className="vc-drawer-section-title">
+                          Live Consultation Notes / Examination Findings:
+                        </label>
+                        <div className="vc-section-header-actions">
+                          {consultNotes && (
                             <button
                               type="button"
-                              className={`vc-voice-btn ${isNotesDictating ? "listening" : ""}`}
-                              onClick={handleToggleNotesDictation}
-                              title={isNotesDictating ? "Stop Voice Dictation" : "Start Voice Dictation for Notes"}
+                              className="vc-notes-clear-btn"
+                              onClick={() => setConsultNotes("")}
+                              title="Clear Notes"
                             >
-                              {isNotesDictating ? (
-                                <>
-                                  <span className="vc-voice-live-dot" />
-                                  <span>Listening...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Mic size={13} />
-                                  <span>Voice Notes</span>
-                                </>
-                              )}
+                              Clear
                             </button>
-                          </div>
-                        </div>
-
-                        {/* Animated Voice Dictation Status Wave */}
-                        {isNotesDictating && (
-                          <div className="vc-voice-active-banner">
-                            <div className="vc-vab-left">
-                              <div className="vc-voice-wave">
-                                <span />
-                                <span />
-                                <span />
-                                <span />
-                              </div>
-                              <span className="vc-vab-text">
-                                {notesSpeechInterim ? `"${notesSpeechInterim}..."` : "Listening for doctor's voice..."}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              className="vc-vab-stop-pill"
-                              onClick={handleToggleNotesDictation}
-                            >
-                              Stop
-                            </button>
-                          </div>
-                        )}
-
-                        <textarea
-                          rows={4}
-                          className={`vc-drawer-notes-area ${isNotesDictating ? "dictating-active" : ""}`}
-                          placeholder="Type or click '🎙️ Voice Notes' to speak clinical findings, symptoms, advice..."
-                          value={consultNotes}
-                          onChange={(e) => setConsultNotes(e.target.value)}
-                        />
-                      </div>
-
-                      {/* Prescribed Medicines Builder with Smart Voice Parsing */}
-                      <div className="vc-drawer-section">
-                        <div className="vc-drawer-section-header">
-                          <label className="vc-drawer-section-title">
-                            Prescribed Medicines ({medicines.length}):
-                          </label>
+                          )}
                           <button
                             type="button"
-                            className={`vc-voice-btn med-voice ${isMedVoiceListening ? "listening" : ""}`}
-                            onClick={handleToggleSmartMedVoice}
-                            title={isMedVoiceListening ? "Stop Voice Prescription" : "Speak complete prescription e.g. 'Add Cefpet 100mg twice daily for 7 days'"}
+                            className={`vc-voice-btn ${isNotesDictating ? "listening" : ""}`}
+                            onClick={handleToggleNotesDictation}
+                            title={isNotesDictating ? "Stop Voice Dictation" : "Start Voice Dictation for Notes"}
                           >
-                            {isMedVoiceListening ? (
+                            {isNotesDictating ? (
                               <>
                                 <span className="vc-voice-live-dot" />
-                                <span>Listening Prescription...</span>
+                                <span>Listening...</span>
                               </>
                             ) : (
                               <>
                                 <Mic size={13} />
-                                <span>Voice Add Prescription</span>
+                                <span>Voice Notes</span>
                               </>
                             )}
                           </button>
                         </div>
+                      </div>
 
-                        {/* Smart Voice Medicine Assistant Card */}
-                        {isMedVoiceListening && (
-                          <div className="vc-voice-med-banner">
-                            <div className="vc-vmb-top">
-                              <div className="vc-vmb-indicator">
-                                <Mic size={15} />
-                                <span className="vc-voice-pulse-ring" />
-                              </div>
-                              <div className="vc-vmb-info">
-                                <span className="vc-vmb-title">Listening for Medicine Command</span>
-                                <span className="vc-vmb-sub">Speak: "Add Cefpet 100mg twice daily for 7 days"</span>
+                      {/* Animated Voice Dictation Status Wave */}
+                      {isNotesDictating && (
+                        <div className="vc-voice-active-banner">
+                          <div className="vc-vab-left">
+                            <div className="vc-voice-wave">
+                              <span />
+                              <span />
+                              <span />
+                              <span />
+                            </div>
+                            <span className="vc-vab-text">
+                              {notesSpeechInterim ? `"${notesSpeechInterim}..."` : "Listening for doctor's voice..."}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="vc-vab-stop-pill"
+                            onClick={handleToggleNotesDictation}
+                          >
+                            Stop
+                          </button>
+                        </div>
+                      )}
+
+                      <textarea
+                        rows={4}
+                        className={`vc-drawer-notes-area ${isNotesDictating ? "dictating-active" : ""}`}
+                        placeholder="Type or click '🎙️ Voice Notes' to speak clinical findings, symptoms, advice..."
+                        value={consultNotes}
+                        onChange={(e) => setConsultNotes(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Prescribed Medicines Builder with Smart Voice Parsing */}
+                    <div className="vc-drawer-section">
+                      <div className="vc-drawer-section-header">
+                        <label className="vc-drawer-section-title">
+                          Prescribed Medicines ({medicines.length}):
+                        </label>
+                        <button
+                          type="button"
+                          className={`vc-voice-btn med-voice ${isMedVoiceListening ? "listening" : ""}`}
+                          onClick={handleToggleSmartMedVoice}
+                          title={isMedVoiceListening ? "Stop Voice Prescription" : "Speak complete prescription e.g. 'Add Cefpet 100mg twice daily for 7 days'"}
+                        >
+                          {isMedVoiceListening ? (
+                            <>
+                              <span className="vc-voice-live-dot" />
+                              <span>Listening Prescription...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Mic size={13} />
+                              <span>Voice Add Prescription</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Smart Voice Medicine Assistant Card */}
+                      {isMedVoiceListening && (
+                        <div className="vc-voice-med-banner">
+                          <div className="vc-vmb-top">
+                            <div className="vc-vmb-indicator">
+                              <Mic size={15} />
+                              <span className="vc-voice-pulse-ring" />
+                            </div>
+                            <div className="vc-vmb-info">
+                              <span className="vc-vmb-title">Listening for Medicine Command</span>
+                              <span className="vc-vmb-sub">Speak: "Add Cefpet 100mg twice daily for 7 days"</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="vc-vmb-close-btn"
+                              onClick={handleToggleSmartMedVoice}
+                              title="Close Voice Assistant"
+                            >
+                              <FiX size={14} />
+                            </button>
+                          </div>
+
+                          {medVoiceInterim && (
+                            <div className="vc-vmb-live-speech">
+                              <span className="vc-vmb-speech-label">Heard:</span>
+                              "{medVoiceInterim}"
+                            </div>
+                          )}
+
+                          {medVoiceParsed && (
+                            <div className="vc-vmb-parsed-card">
+                              <div className="vc-vmb-parsed-details">
+                                <strong className="vc-vmb-drug-name">💊 {medVoiceParsed.name}</strong>
+                                <span className="vc-vmb-drug-meta">
+                                  {medVoiceParsed.dosage} · {medVoiceParsed.frequency} · {medVoiceParsed.duration}
+                                </span>
                               </div>
                               <button
                                 type="button"
-                                className="vc-vmb-close-btn"
-                                onClick={handleToggleSmartMedVoice}
-                                title="Close Voice Assistant"
+                                className="btn-vc-vmb-add"
+                                onClick={() => handleConfirmVoiceMed(medVoiceParsed)}
+                              >
+                                <Plus size={12} />
+                                <span>Add to Prescription</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="vc-meds-pill-list">
+                        {medicines.length === 0 ? (
+                          <div className="vc-no-meds-hint">
+                            No medicines added yet. Speak or type to prescribe.
+                          </div>
+                        ) : (
+                          medicines.map((m, idx) => (
+                            <div key={idx} className="vc-med-pill-item">
+                              <div className="vc-med-pill-info">
+                                <strong className="vc-med-name">{m.name}</strong>
+                                <span className="vc-med-meta">
+                                  {m.dosage} · {m.frequency} · {m.duration}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="vc-med-remove-btn"
+                                onClick={() => handleRemoveMedicine(idx)}
+                                title="Remove Medicine"
                               >
                                 <FiX size={14} />
                               </button>
                             </div>
-
-                            {medVoiceInterim && (
-                              <div className="vc-vmb-live-speech">
-                                <span className="vc-vmb-speech-label">Heard:</span>
-                                "{medVoiceInterim}"
-                              </div>
-                            )}
-
-                            {medVoiceParsed && (
-                              <div className="vc-vmb-parsed-card">
-                                <div className="vc-vmb-parsed-details">
-                                  <strong className="vc-vmb-drug-name">💊 {medVoiceParsed.name}</strong>
-                                  <span className="vc-vmb-drug-meta">
-                                    {medVoiceParsed.dosage} · {medVoiceParsed.frequency} · {medVoiceParsed.duration}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="btn-vc-vmb-add"
-                                  onClick={() => handleConfirmVoiceMed(medVoiceParsed)}
-                                >
-                                  <Plus size={12} />
-                                  <span>Add to Prescription</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          ))
                         )}
+                      </div>
 
-                        <div className="vc-meds-pill-list">
-                          {medicines.length === 0 ? (
-                            <div className="vc-no-meds-hint">
-                              No medicines added yet. Speak or type to prescribe.
-                            </div>
-                          ) : (
-                            medicines.map((m, idx) => (
-                              <div key={idx} className="vc-med-pill-item">
-                                <div className="vc-med-pill-info">
-                                  <strong className="vc-med-name">{m.name}</strong>
-                                  <span className="vc-med-meta">
-                                    {m.dosage} · {m.frequency} · {m.duration}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="vc-med-remove-btn"
-                                  onClick={() => handleRemoveMedicine(idx)}
-                                  title="Remove Medicine"
-                                >
-                                  <FiX size={14} />
-                                </button>
-                              </div>
-                            ))
-                          )}
+                      {/* Quick Add Medicine Bar with Voice per Field */}
+                      <div className="vc-add-med-box">
+                        <div className="vc-med-field-with-mic">
+                          <input
+                            type="text"
+                            placeholder="Medicine Name (e.g. Cefpet)"
+                            className="vc-med-input full"
+                            value={newMed.name}
+                            onChange={(e) => setNewMed({ ...newMed, name: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className={`vc-input-mic-btn ${activeVoiceField === "name" ? "active" : ""}`}
+                            onClick={() => handleFieldVoiceDictate("name")}
+                            title="Voice dictate medicine name"
+                          >
+                            <Mic size={13} />
+                          </button>
                         </div>
 
-                        {/* Quick Add Medicine Bar with Voice per Field */}
-                        <div className="vc-add-med-box">
-                          <div className="vc-med-field-with-mic">
+                        <div className="vc-med-input-row">
+                          <div className="vc-med-field-with-mic flex-1">
                             <input
                               type="text"
-                              placeholder="Medicine Name (e.g. Cefpet)"
-                              className="vc-med-input full"
-                              value={newMed.name}
-                              onChange={(e) => setNewMed({ ...newMed, name: e.target.value })}
+                              placeholder="Dosage (e.g. 100mg)"
+                              className="vc-med-input"
+                              value={newMed.dosage}
+                              onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
                             />
                             <button
                               type="button"
-                              className={`vc-input-mic-btn ${activeVoiceField === "name" ? "active" : ""}`}
-                              onClick={() => handleFieldVoiceDictate("name")}
-                              title="Voice dictate medicine name"
+                              className={`vc-input-mic-btn ${activeVoiceField === "dosage" ? "active" : ""}`}
+                              onClick={() => handleFieldVoiceDictate("dosage")}
+                              title="Voice dictate dosage"
                             >
                               <Mic size={13} />
                             </button>
                           </div>
 
-                          <div className="vc-med-input-row">
-                            <div className="vc-med-field-with-mic flex-1">
-                              <input
-                                type="text"
-                                placeholder="Dosage (e.g. 100mg)"
-                                className="vc-med-input"
-                                value={newMed.dosage}
-                                onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
-                              />
-                              <button
-                                type="button"
-                                className={`vc-input-mic-btn ${activeVoiceField === "dosage" ? "active" : ""}`}
-                                onClick={() => handleFieldVoiceDictate("dosage")}
-                                title="Voice dictate dosage"
-                              >
-                                <Mic size={13} />
-                              </button>
-                            </div>
-
-                            <div className="vc-med-field-with-mic flex-1">
-                              <input
-                                type="text"
-                                placeholder="Duration (e.g. 7 days)"
-                                className="vc-med-input"
-                                value={newMed.duration}
-                                onChange={(e) => setNewMed({ ...newMed, duration: e.target.value })}
-                              />
-                              <button
-                                type="button"
-                                className={`vc-input-mic-btn ${activeVoiceField === "duration" ? "active" : ""}`}
-                                onClick={() => handleFieldVoiceDictate("duration")}
-                                title="Voice dictate duration"
-                              >
-                                <Mic size={13} />
-                              </button>
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            className="vc-btn-add-med"
-                            onClick={handleAddMedicine}
-                          >
-                            <Plus size={13} />
-                            <span>Add Medicine to Prescription</span>
-                          </button>
-
-                          {/* Quick Common Vet Med Chips */}
-                          <div className="vc-quick-meds-wrap">
-                            <span className="vc-quick-meds-label">Quick Suggestions:</span>
-                            <div className="vc-quick-meds-chips">
-                              {COMMON_VET_MEDICINES.slice(0, 5).map((med, i) => (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  className="vc-quick-med-chip"
-                                  onClick={() => handleQuickMedSelect(med)}
-                                  title={`Add ${med.name} (${med.dosage}, ${med.duration})`}
-                                >
-                                  + {med.name.split(" ")[0]} ({med.dosage})
-                                </button>
-                              ))}
-                            </div>
+                          <div className="vc-med-field-with-mic flex-1">
+                            <input
+                              type="text"
+                              placeholder="Duration (e.g. 7 days)"
+                              className="vc-med-input"
+                              value={newMed.duration}
+                              onChange={(e) => setNewMed({ ...newMed, duration: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              className={`vc-input-mic-btn ${activeVoiceField === "duration" ? "active" : ""}`}
+                              onClick={() => handleFieldVoiceDictate("duration")}
+                              title="Voice dictate duration"
+                            >
+                              <Mic size={13} />
+                            </button>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Drawer Actions */}
-                      <div className="vc-drawer-footer-actions">
-                        <button
-                          type="button"
-                          className="btn-vc-write-rx"
-                          onClick={() => handleOpenPrescription(activeCall)}
-                          title="Open full digital prescription form for this patient"
-                        >
-                          <FileText size={16} />
-                          <span>Write Digital Prescription</span>
-                        </button>
 
                         <button
                           type="button"
-                          className="btn-vc-finish-consult"
-                          onClick={handleEndCall}
+                          className="vc-btn-add-med"
+                          onClick={handleAddMedicine}
                         >
-                          <CheckCircle2 size={16} />
-                          <span>Complete & End Consultation</span>
+                          <Plus size={13} />
+                          <span>Add Medicine to Prescription</span>
                         </button>
-                      </div>
-                    </>
-                  ) : (
-                    /* Tab 2: Pet Vitals */
-                    <div className="vc-vitals-section">
-                      <div className="vc-vitals-grid">
-                        <div className="vc-vital-card">
-                          <span className="vc-vital-k">Weight</span>
-                          <strong className="vc-vital-v">{activeCall.petWeight || "28.5 kg"}</strong>
-                        </div>
-                        <div className="vc-vital-card">
-                          <span className="vc-vital-k">Age</span>
-                          <strong className="vc-vital-v">{activeCall.petAge || "2.5 Years"}</strong>
-                        </div>
-                        <div className="vc-vital-card">
-                          <span className="vc-vital-k">Gender</span>
-                          <strong className="vc-vital-v">{activeCall.petGender || "Male (Neutered)"}</strong>
-                        </div>
-                        <div className="vc-vital-card">
-                          <span className="vc-vital-k">Heart Rate</span>
-                          <strong className="vc-vital-v">110 bpm (Normal)</strong>
-                        </div>
-                      </div>
 
-                      <div className="vc-vitals-info-box">
-                        <span className="vc-vitals-info-title">Allergy & Dietary Alerts:</span>
-                        <div className="vc-allergy-alert-pill">
-                          ⚠️ Known Chicken Protein Allergy · Seasonal Atopy
+                        {/* Quick Common Vet Med Chips */}
+                        <div className="vc-quick-meds-wrap">
+                          <span className="vc-quick-meds-label">Quick Suggestions:</span>
+                          <div className="vc-quick-meds-chips">
+                            {COMMON_VET_MEDICINES.slice(0, 5).map((med, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="vc-quick-med-chip"
+                                onClick={() => handleQuickMedSelect(med)}
+                                title={`Add ${med.name} (${med.dosage}, ${med.duration})`}
+                              >
+                                + {med.name.split(" ")[0]} ({med.dosage})
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="vc-vitals-info-box">
-                        <span className="vc-vitals-info-title">Vaccination Status:</span>
-                        <span className="vc-vax-status-tag">✓ Up to Date (DHPPi + Rabies valid)</span>
                       </div>
                     </div>
-                  )}
-                </div>
-              </aside>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* ========================================================= */}
-      {/* 5. SCHEDULE NEW VISIT MODAL                               */}
-      {/* ========================================================= */}
-      {scheduleModalOpen && (
-        <NewVisitModal
-          open={scheduleModalOpen}
-          onClose={() => setScheduleModalOpen(false)}
-          onCreated={() => {
-            fetchAppointments();
-            setScheduleModalOpen(false);
-            toast.success("New Video Consultation scheduled successfully!");
-          }}
-        />
-      )}
-    </div>
-  );
+                    {/* Drawer Actions */}
+                    <div className="vc-drawer-footer-actions">
+                      <button
+                        type="button"
+                        className="btn-vc-write-rx"
+                        onClick={() => handleOpenPrescription(activeCall)}
+                        title="Open full digital prescription form for this patient"
+                      >
+                        <FileText size={16} />
+                        <span>Write Digital Prescription</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn-vc-finish-consult"
+                        onClick={handleEndCall}
+                      >
+                        <CheckCircle2 size={16} />
+                        <span>Complete & End Consultation</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* Tab 2: Pet Vitals */
+                  <div className="vc-vitals-section">
+                    <div className="vc-vitals-grid">
+                      <div className="vc-vital-card">
+                        <span className="vc-vital-k">Weight</span>
+                        <strong className="vc-vital-v">{activeCall.petWeight || "28.5 kg"}</strong>
+                      </div>
+                      <div className="vc-vital-card">
+                        <span className="vc-vital-k">Age</span>
+                        <strong className="vc-vital-v">{activeCall.petAge || "2.5 Years"}</strong>
+                      </div>
+                      <div className="vc-vital-card">
+                        <span className="vc-vital-k">Gender</span>
+                        <strong className="vc-vital-v">{activeCall.petGender || "Male (Neutered)"}</strong>
+                      </div>
+                      <div className="vc-vital-card">
+                        <span className="vc-vital-k">Heart Rate</span>
+                        <strong className="vc-vital-v">110 bpm (Normal)</strong>
+                      </div>
+                    </div>
+
+                    <div className="vc-vitals-info-box">
+                      <span className="vc-vitals-info-title">Allergy & Dietary Alerts:</span>
+                      <div className="vc-allergy-alert-pill">
+                        ⚠️ Known Chicken Protein Allergy · Seasonal Atopy
+                      </div>
+                    </div>
+
+                    <div className="vc-vitals-info-box">
+                      <span className="vc-vitals-info-title">Vaccination Status:</span>
+                      <span className="vc-vax-status-tag">✓ Up to Date (DHPPi + Rabies valid)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================= */}
+    {/* 5. SCHEDULE NEW VISIT MODAL                               */}
+    {/* ========================================================= */}
+    {scheduleModalOpen && (
+      <NewVisitModal
+        open={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        onCreated={() => {
+          fetchAppointments();
+          setScheduleModalOpen(false);
+          toast.success("New Video Consultation scheduled successfully!");
+        }}
+      />
+    )}
+  </div>
+);
 }

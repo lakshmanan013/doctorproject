@@ -66,7 +66,7 @@ public class InventoryController {
 
     @GetMapping("/batches/{id}")
     public ResponseEntity<MedicineBatchResponse>
-    getBatchById(@PathVariable Long id) {
+    getBatchById(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 inventoryService.getBatchById(id)
@@ -81,7 +81,7 @@ public class InventoryController {
     @GetMapping("/batches/medicine/{medicineId}")
     public ResponseEntity<List<MedicineBatchResponse>>
     getBatchesByMedicine(
-            @PathVariable Long medicineId) {
+            @PathVariable("medicineId") Long medicineId) {
 
         return ResponseEntity.ok(
                 inventoryService
@@ -97,7 +97,7 @@ public class InventoryController {
     @GetMapping("/batches/number/{batchNumber}")
     public ResponseEntity<MedicineBatchResponse>
     getBatchByNumber(
-            @PathVariable String batchNumber) {
+            @PathVariable("batchNumber") String batchNumber) {
 
         return ResponseEntity.ok(
                 inventoryService
@@ -113,7 +113,7 @@ public class InventoryController {
     @GetMapping("/batches/expiring")
     public ResponseEntity<List<MedicineBatchResponse>>
     getExpiringBatches(
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -131,11 +131,11 @@ public class InventoryController {
     @GetMapping("/batches/expiry-range")
     public ResponseEntity<List<MedicineBatchResponse>>
     getBatchesExpiringBetween(
-            @RequestParam
+            @RequestParam("startDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate startDate,
 
-            @RequestParam
+            @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate endDate) {
 
@@ -156,7 +156,7 @@ public class InventoryController {
     @PutMapping("/batches/{id}")
     public ResponseEntity<MedicineBatchResponse>
     updateBatch(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody MedicineBatchRequest request) {
 
         return ResponseEntity.ok(
@@ -174,7 +174,7 @@ public class InventoryController {
 
     @DeleteMapping("/batches/{id}")
     public ResponseEntity<Void> deleteBatch(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         inventoryService.deleteBatch(id);
 
@@ -225,7 +225,7 @@ public class InventoryController {
     @GetMapping("/movements/medicine/{medicineId}")
     public ResponseEntity<List<StockMovementResponse>>
     getMovementsByMedicine(
-            @PathVariable Long medicineId) {
+            @PathVariable("medicineId") Long medicineId) {
 
         return ResponseEntity.ok(
                 inventoryService
@@ -241,7 +241,7 @@ public class InventoryController {
     @GetMapping("/movements/batch/{batchId}")
     public ResponseEntity<List<StockMovementResponse>>
     getMovementsByBatch(
-            @PathVariable Long batchId) {
+            @PathVariable("batchId") Long batchId) {
 
         return ResponseEntity.ok(
                 inventoryService
@@ -257,7 +257,7 @@ public class InventoryController {
     @GetMapping("/movements/type/{movementType}")
     public ResponseEntity<List<StockMovementResponse>>
     getMovementsByType(
-            @PathVariable String movementType) {
+            @PathVariable("movementType") String movementType) {
 
         return ResponseEntity.ok(
                 inventoryService
@@ -287,13 +287,13 @@ public class InventoryController {
     @GetMapping("/movements/date-range")
     public ResponseEntity<List<StockMovementResponse>>
     getMovementsBetweenDates(
-            @RequestParam
+            @RequestParam("startDate")
             @DateTimeFormat(
                     iso = DateTimeFormat.ISO.DATE_TIME
             )
             LocalDateTime startDate,
 
-            @RequestParam
+            @RequestParam("endDate")
             @DateTimeFormat(
                     iso = DateTimeFormat.ISO.DATE_TIME
             )
@@ -315,7 +315,7 @@ public class InventoryController {
 
     @DeleteMapping("/movements/{id}")
     public ResponseEntity<Void> deleteStockMovement(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         inventoryService.deleteStockMovement(id);
 

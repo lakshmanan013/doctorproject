@@ -60,7 +60,7 @@ public class PatientController {
 
     @GetMapping("/search")
     public ResponseEntity<List<PatientResponse>> searchPatients(
-            @RequestParam String name
+            @RequestParam("name") String name
     ) {
 
         return ResponseEntity.ok(
@@ -75,7 +75,7 @@ public class PatientController {
 
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<PatientResponse>> getPatientsByOwner(
-            @PathVariable Long ownerId
+            @PathVariable("ownerId") Long ownerId
     ) {
 
         return ResponseEntity.ok(
@@ -90,7 +90,7 @@ public class PatientController {
 
     @GetMapping("/species/{species}")
     public ResponseEntity<List<PatientResponse>> getPatientsBySpecies(
-            @PathVariable String species
+            @PathVariable("species") String species
     ) {
 
         return ResponseEntity.ok(
@@ -105,7 +105,7 @@ public class PatientController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<PatientResponse>> getPatientsByStatus(
-            @PathVariable String status
+            @PathVariable("status") String status
     ) {
 
         return ResponseEntity.ok(
@@ -120,7 +120,7 @@ public class PatientController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PatientResponse> getPatientById(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
 
         return ResponseEntity.ok(
@@ -135,7 +135,7 @@ public class PatientController {
 
     @PutMapping("/{id}")
     public ResponseEntity<PatientResponse> updatePatient(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody PatientRequest request
     ) {
 
@@ -151,7 +151,7 @@ public class PatientController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePatient(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
 
         patientService.deletePatient(id);

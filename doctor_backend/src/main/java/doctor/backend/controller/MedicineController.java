@@ -59,7 +59,7 @@ public class MedicineController {
 
     @GetMapping("/{id}")
     public ResponseEntity<MedicineResponse>
-    getMedicineById(@PathVariable Long id) {
+    getMedicineById(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 medicineService.getMedicineById(id)
@@ -73,7 +73,7 @@ public class MedicineController {
 
     @GetMapping("/search")
     public ResponseEntity<List<MedicineResponse>>
-    searchMedicines(@RequestParam String name) {
+    searchMedicines(@RequestParam("name") String name) {
 
         return ResponseEntity.ok(
                 medicineService.searchMedicines(name)
@@ -87,7 +87,7 @@ public class MedicineController {
 
     @GetMapping("/category/{category}")
     public ResponseEntity<List<MedicineResponse>>
-    getByCategory(@PathVariable String category) {
+    getByCategory(@PathVariable("category") String category) {
 
         return ResponseEntity.ok(
                 medicineService.getByCategory(category)
@@ -101,7 +101,7 @@ public class MedicineController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<MedicineResponse>>
-    getByStatus(@PathVariable String status) {
+    getByStatus(@PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 medicineService.getByStatus(status)
@@ -116,7 +116,7 @@ public class MedicineController {
     @PutMapping("/{id}")
     public ResponseEntity<MedicineResponse>
     updateMedicine(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody MedicineRequest request) {
 
         return ResponseEntity.ok(
@@ -132,8 +132,8 @@ public class MedicineController {
     @PatchMapping("/{id}/stock")
     public ResponseEntity<MedicineResponse>
     updateStock(
-            @PathVariable Long id,
-            @RequestParam Integer quantity) {
+            @PathVariable("id") Long id,
+            @RequestParam("quantity") Integer quantity) {
 
         return ResponseEntity.ok(
                 medicineService.updateStock(id, quantity)
@@ -147,7 +147,7 @@ public class MedicineController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMedicine(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         medicineService.deleteMedicine(id);
 

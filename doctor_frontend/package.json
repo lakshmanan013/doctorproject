@@ -25,7 +25,8 @@
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.2",
-    "react-select": "^5.10.2"
+    "react-select": "^5.10.2",
+    "twilio-video": "^2.36.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

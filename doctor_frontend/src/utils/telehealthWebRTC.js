@@ -1,8 +1,9 @@
 /**
  * Telehealth WebRTC Peer-to-Peer Manager
  * Connects Doctor and Pet Parent live video feeds across tabs/devices
- * using native RTCPeerConnection and BroadcastChannel signaling.
+ * using native RTCPeerConnection, BroadcastChannel, and HTTP polling fallback.
  */
+import axios from "axios";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -10,19 +11,24 @@ const ICE_SERVERS = [
 ];
 
 export class TelehealthPeer {
-  constructor({ roomId, role = "doctor", localStream = null, onRemoteStream = null, onConnectionStateChange = null }) {
+  constructor({ roomId, role = "doctor", localStream = null, onRemoteStream = null, onConnectionStateChange = null, onCallEnded = null }) {
     this.roomId = roomId;
     this.role = role;
     this.localStream = localStream;
     this.onRemoteStream = onRemoteStream;
     this.onConnectionStateChange = onConnectionStateChange;
+    this.onCallEnded = onCallEnded;
 
     this.peerConnection = null;
     this.channel = null;
     this.isDestroyed = false;
+    this.iceCandidatesQueue = [];
+    this.signalTimer = null;
+    this.lastSignalId = 0;
 
     this.initChannel();
     this.initPeerConnection();
+    this.startSignalPolling();
   }
 
   initChannel() {
@@ -32,23 +38,61 @@ export class TelehealthPeer {
       this.channel = new BroadcastChannel(`zenve_webrtc_${this.roomId}`);
       this.channel.onmessage = (e) => this.handleSignalMessage(e.data);
 
-      // Announce presence
       setTimeout(() => {
         this.sendSignal({ type: "PEER_JOINED", role: this.role });
-      }, 500);
+      }, 300);
     } catch (err) {
       console.warn("BroadcastChannel error in WebRTC:", err);
     }
   }
 
   sendSignal(data) {
-    if (this.channel && !this.isDestroyed) {
+    if (this.isDestroyed) return;
+
+    const payload = { ...data, senderRole: this.role, sender: this.role, roomId: this.roomId, room: this.roomId };
+
+    if (this.channel) {
       try {
-        this.channel.postMessage({ ...data, senderRole: this.role, roomId: this.roomId });
+        this.channel.postMessage(payload);
       } catch (err) {
-        console.warn("Signal send failed:", err);
+        console.warn("Signal broadcast failed:", err);
       }
     }
+
+    try {
+      axios.post("/api/doctors/twilio/signal/", {
+        room: this.roomId,
+        sender: this.role,
+        data: payload,
+      }).catch(() => {});
+    } catch (_err) {}
+  }
+
+  startSignalPolling() {
+    this.pollSignals();
+    this.signalTimer = setInterval(() => {
+      this.pollSignals();
+    }, 900);
+  }
+
+  async pollSignals() {
+    if (this.isDestroyed) return;
+    try {
+      const res = await axios.get(
+        `/api/doctors/twilio/signal/?room=${encodeURIComponent(this.roomId)}&since=${this.lastSignalId}&sender=${encodeURIComponent(this.role)}`
+      );
+      if (res.data) {
+        const msgs = res.data.messages || [];
+        if (res.data.latest_id) {
+          this.lastSignalId = res.data.latest_id;
+        }
+        for (const m of msgs) {
+          if (m.data) {
+            this.handleSignalMessage(m.data);
+          }
+        }
+      }
+    } catch (_err) {}
   }
 
   initPeerConnection() {
@@ -57,14 +101,12 @@ export class TelehealthPeer {
     try {
       this.peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-      // Add local stream tracks
       if (this.localStream) {
         this.localStream.getTracks().forEach((track) => {
           this.peerConnection.addTrack(track, this.localStream);
         });
       }
 
-      // Handle incoming remote stream tracks
       this.peerConnection.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
           if (this.onRemoteStream) {
@@ -73,14 +115,12 @@ export class TelehealthPeer {
         }
       };
 
-      // Handle ICE candidates
       this.peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           this.sendSignal({ type: "ICE_CANDIDATE", candidate: event.candidate });
         }
       };
 
-      // Connection state changes
       this.peerConnection.onconnectionstatechange = () => {
         const state = this.peerConnection.connectionState;
         if (this.onConnectionStateChange) {
@@ -92,37 +132,63 @@ export class TelehealthPeer {
     }
   }
 
-  async handleSignalMessage(message) {
-    if (!message || message.senderRole === this.role || this.isDestroyed) return;
+  async flushIceCandidates() {
+    if (!this.peerConnection) return;
+    while (this.iceCandidatesQueue.length > 0) {
+      const candidate = this.iceCandidatesQueue.shift();
+      try {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (_e) {}
+    }
+  }
 
-    const { type, sdp, candidate, role } = message;
+  async handleSignalMessage(message) {
+    if (!message || this.isDestroyed) return;
+
+    const sender = message.sender || message.senderRole;
+    if (sender === this.role) return;
+
+    const rawType = (message.type || "").toUpperCase();
+    const sdp = message.sdp || message;
+    const candidate = message.candidate || message;
 
     try {
-      if (type === "PEER_JOINED") {
+      if (rawType === "END_CALL" || rawType === "ROOM_COMPLETED" || rawType === "CALL_ENDED") {
+        if (this.onCallEnded) {
+          this.onCallEnded(message);
+        }
+        return;
+      }
+
+      if (rawType === "PEER_JOINED" || rawType === "PEER_READY" || rawType === "JOIN") {
         if (this.role === "doctor") {
           await this.createAndSendOffer();
-        } else if (this.role === "parent") {
+        } else {
           this.sendSignal({ type: "PEER_READY", role: "parent" });
         }
-      } else if (type === "PEER_READY") {
-        if (this.role === "doctor") {
-          await this.createAndSendOffer();
-        }
-      } else if (type === "OFFER" && sdp) {
+      } else if (rawType === "OFFER" && sdp) {
         if (!this.peerConnection) this.initPeerConnection();
         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+        await this.flushIceCandidates();
 
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
 
         this.sendSignal({ type: "ANSWER", sdp: this.peerConnection.localDescription });
-      } else if (type === "ANSWER" && sdp) {
-        if (this.peerConnection) {
+      } else if (rawType === "ANSWER" && sdp) {
+        if (this.peerConnection && this.peerConnection.signalingState !== "stable") {
           await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+          await this.flushIceCandidates();
         }
-      } else if (type === "ICE_CANDIDATE" && candidate) {
-        if (this.peerConnection && this.peerConnection.remoteDescription) {
-          await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } else if (rawType === "ICE_CANDIDATE" || rawType === "CANDIDATE") {
+        if (candidate) {
+          if (this.peerConnection && this.peerConnection.remoteDescription && this.peerConnection.remoteDescription.type) {
+            try {
+              await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (_e) {}
+          } else {
+            this.iceCandidatesQueue.push(candidate);
+          }
         }
       }
     } catch (err) {
@@ -133,7 +199,10 @@ export class TelehealthPeer {
   async createAndSendOffer() {
     if (!this.peerConnection) return;
     try {
-      const offer = await this.peerConnection.createOffer();
+      const offer = await this.peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
       await this.peerConnection.setLocalDescription(offer);
       this.sendSignal({ type: "OFFER", sdp: this.peerConnection.localDescription });
     } catch (err) {
@@ -162,6 +231,10 @@ export class TelehealthPeer {
 
   destroy() {
     this.isDestroyed = true;
+    if (this.signalTimer) {
+      clearInterval(this.signalTimer);
+      this.signalTimer = null;
+    }
     if (this.channel) {
       try {
         this.channel.close();
@@ -174,5 +247,6 @@ export class TelehealthPeer {
       } catch (e) {}
       this.peerConnection = null;
     }
+    this.iceCandidatesQueue = [];
   }
 }

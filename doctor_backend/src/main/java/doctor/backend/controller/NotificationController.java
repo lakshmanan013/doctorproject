@@ -62,7 +62,7 @@ public class NotificationController {
     @GetMapping("/{id}")
     public ResponseEntity<NotificationResponse>
     getNotificationById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 notificationService.getNotificationById(id)
@@ -76,7 +76,7 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<NotificationResponse>>
-    getByUser(@PathVariable Long userId) {
+    getByUser(@PathVariable("userId") Long userId) {
 
         return ResponseEntity.ok(
                 notificationService.getByUser(userId)
@@ -104,7 +104,7 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}/unread")
     public ResponseEntity<List<NotificationResponse>>
-    getUnreadByUser(@PathVariable Long userId) {
+    getUnreadByUser(@PathVariable("userId") Long userId) {
 
         return ResponseEntity.ok(
                 notificationService.getUnreadByUser(userId)
@@ -132,7 +132,7 @@ public class NotificationController {
 
     @GetMapping("/type/{type}")
     public ResponseEntity<List<NotificationResponse>>
-    getByType(@PathVariable String type) {
+    getByType(@PathVariable("type") String type) {
 
         return ResponseEntity.ok(
                 notificationService.getByType(type)
@@ -146,7 +146,7 @@ public class NotificationController {
 
     @GetMapping("/priority/{priority}")
     public ResponseEntity<List<NotificationResponse>>
-    getByPriority(@PathVariable String priority) {
+    getByPriority(@PathVariable("priority") String priority) {
 
         return ResponseEntity.ok(
                 notificationService.getByPriority(priority)
@@ -160,7 +160,7 @@ public class NotificationController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<NotificationResponse>>
-    getByPatient(@PathVariable Long patientId) {
+    getByPatient(@PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 notificationService.getByPatient(patientId)
@@ -174,7 +174,7 @@ public class NotificationController {
 
     @GetMapping("/appointment/{appointmentId}")
     public ResponseEntity<List<NotificationResponse>>
-    getByAppointment(@PathVariable Long appointmentId) {
+    getByAppointment(@PathVariable("appointmentId") Long appointmentId) {
 
         return ResponseEntity.ok(
                 notificationService.getByAppointment(
@@ -190,7 +190,7 @@ public class NotificationController {
 
     @PutMapping("/{id}/read")
     public ResponseEntity<NotificationResponse>
-    markAsRead(@PathVariable Long id) {
+    markAsRead(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 notificationService.markAsRead(id)
@@ -204,7 +204,7 @@ public class NotificationController {
 
     @PutMapping("/{id}/unread")
     public ResponseEntity<NotificationResponse>
-    markAsUnread(@PathVariable Long id) {
+    markAsUnread(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 notificationService.markAsUnread(id)
@@ -218,7 +218,7 @@ public class NotificationController {
 
     @PutMapping("/user/{userId}/read-all")
     public ResponseEntity<Void> markAllAsRead(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long userId) {
 
         notificationService.markAllAsRead(userId);
 
@@ -232,7 +232,7 @@ public class NotificationController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNotification(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         notificationService.deleteNotification(id);
 
@@ -246,7 +246,7 @@ public class NotificationController {
 
     @DeleteMapping("/user/{userId}")
     public ResponseEntity<Void> deleteUserNotifications(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long userId) {
 
         notificationService.deleteUserNotifications(userId);
 

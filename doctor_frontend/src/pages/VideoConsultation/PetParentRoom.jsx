@@ -101,11 +101,12 @@ export default function PetParentRoom() {
     const unsubscribe = subscribeTelehealthEvents((event) => {
       if (
         event?.type === "ROOM_COMPLETED" &&
-        (event.roomCode === roomCode || event.oldRoomCode === roomCode)
+        (event.roomCode === roomCode || event.oldRoomCode === roomCode || !event.roomCode)
       ) {
         // Doctor finalized and completed the consultation
         toast.info("The consultation has been completed by your veterinarian.");
         stopMediaStream();
+        setHasJoined(false);
         setRoomExpired(true);
         setExpiredDetails({
           roomCode,
@@ -280,6 +281,10 @@ export default function PetParentRoom() {
           setRemoteDoctorConnected(false);
         }
       },
+      onCallEnded: () => {
+        toast("Doctor has concluded the consultation.", { icon: "??" });
+        handleLeaveCall({ endedByDoctor: true });
+      },
     });
 
     return () => {
@@ -383,14 +388,33 @@ export default function PetParentRoom() {
     setChatInput("");
   };
 
-  // Pet parent leaves the call
-  const handleLeaveCall = () => {
-    const confirmed = window.confirm("Leave video consultation room?");
-    if (!confirmed) return;
+  // Pet parent leaves the call or doctor terminates consultation
+  const handleLeaveCall = (opts = {}) => {
+    const isDoctorEnded = Boolean(opts?.endedByDoctor || opts === true);
+    if (!isDoctorEnded) {
+      const confirmed = window.confirm("Leave video consultation room?");
+      if (!confirmed) return;
+    }
 
     stopMediaStream();
     setHasJoined(false);
-    toast.info("You have left the video room.");
+    setRoomExpired(true);
+    setExpiredDetails({
+      roomCode,
+      expiredAt: new Date().toISOString(),
+      doctorName: roomMeta.doctorName || "Dr. Vasanth Zenve",
+      patientName: petName || roomMeta.patientName || "Pet Patient",
+      clinicName: roomMeta.clinicName || "Global Veterinary Hospital",
+      reason: isDoctorEnded
+        ? "Consultation Concluded by Attending Veterinarian"
+        : "Consultation Concluded",
+    });
+
+    if (isDoctorEnded) {
+      toast.success("Consultation concluded by doctor. Thank you!");
+    } else {
+      toast.info("You have left the video room.");
+    }
   };
 
   // =========================================================================

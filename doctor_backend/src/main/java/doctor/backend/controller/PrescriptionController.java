@@ -62,7 +62,7 @@ public class PrescriptionController {
     @GetMapping("/{id}")
     public ResponseEntity<PrescriptionResponse>
     getPrescriptionById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 prescriptionService.getPrescriptionById(id)
@@ -77,7 +77,7 @@ public class PrescriptionController {
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<PrescriptionResponse>>
     getPrescriptionsByPatient(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 prescriptionService
@@ -93,7 +93,7 @@ public class PrescriptionController {
     @GetMapping("/medical-record/{medicalRecordId}")
     public ResponseEntity<List<PrescriptionResponse>>
     getPrescriptionsByMedicalRecord(
-            @PathVariable Long medicalRecordId) {
+            @PathVariable("medicalRecordId") Long medicalRecordId) {
 
         return ResponseEntity.ok(
                 prescriptionService
@@ -111,7 +111,7 @@ public class PrescriptionController {
     @GetMapping("/date/{date}")
     public ResponseEntity<List<PrescriptionResponse>>
     getPrescriptionsByDate(
-            @PathVariable LocalDate date) {
+            @PathVariable("date") LocalDate date) {
 
         return ResponseEntity.ok(
                 prescriptionService
@@ -127,8 +127,8 @@ public class PrescriptionController {
     @GetMapping("/patient/{patientId}/date/{date}")
     public ResponseEntity<List<PrescriptionResponse>>
     getPrescriptionsByPatientAndDate(
-            @PathVariable Long patientId,
-            @PathVariable LocalDate date) {
+            @PathVariable("patientId") Long patientId,
+            @PathVariable("date") LocalDate date) {
 
         return ResponseEntity.ok(
                 prescriptionService
@@ -147,8 +147,8 @@ public class PrescriptionController {
     @GetMapping("/range")
     public ResponseEntity<List<PrescriptionResponse>>
     getPrescriptionsBetweenDates(
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate) {
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate) {
 
         return ResponseEntity.ok(
                 prescriptionService
@@ -167,7 +167,7 @@ public class PrescriptionController {
     @PutMapping("/{id}")
     public ResponseEntity<PrescriptionResponse>
     updatePrescription(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody PrescriptionRequest request) {
 
         return ResponseEntity.ok(
@@ -183,7 +183,7 @@ public class PrescriptionController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePrescription(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         prescriptionService.deletePrescription(id);
 
@@ -197,8 +197,8 @@ public class PrescriptionController {
 
     @PostMapping("/{id}/send-email")
     public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendPrescriptionEmail(
-            @PathVariable Long id,
-            @RequestParam(required = false) String recipientEmail) {
+            @PathVariable("id") Long id,
+            @RequestParam(value = "recipientEmail", required = false) String recipientEmail) {
 
         doctor.backend.dto.email.EmailResponse response =
                 prescriptionService.sendPrescriptionPdfEmail(id, recipientEmail);

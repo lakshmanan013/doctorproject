@@ -60,7 +60,7 @@ public class FollowUpController {
 
     @GetMapping("/{id}")
     public ResponseEntity<FollowUpResponse> getFollowUpById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 followUpService.getFollowUpById(id)
@@ -74,7 +74,7 @@ public class FollowUpController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<FollowUpResponse>> getByPatient(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 followUpService.getByPatient(patientId)
@@ -88,7 +88,7 @@ public class FollowUpController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<FollowUpResponse>> getByStatus(
-            @PathVariable String status) {
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 followUpService.getByStatus(status)
@@ -103,8 +103,8 @@ public class FollowUpController {
     @GetMapping("/patient/{patientId}/status/{status}")
     public ResponseEntity<List<FollowUpResponse>>
     getPatientFollowUpsByStatus(
-            @PathVariable Long patientId,
-            @PathVariable String status) {
+            @PathVariable("patientId") Long patientId,
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 followUpService.getPatientFollowUpsByStatus(
@@ -121,7 +121,7 @@ public class FollowUpController {
 
     @GetMapping("/date")
     public ResponseEntity<List<FollowUpResponse>> getFollowUpsOnDate(
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -137,7 +137,7 @@ public class FollowUpController {
 
     @GetMapping("/before")
     public ResponseEntity<List<FollowUpResponse>> getFollowUpsBefore(
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -155,11 +155,11 @@ public class FollowUpController {
     public ResponseEntity<List<FollowUpResponse>>
     getFollowUpsBetween(
 
-            @RequestParam
+            @RequestParam("startDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate startDate,
 
-            @RequestParam
+            @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate endDate) {
 
@@ -180,11 +180,11 @@ public class FollowUpController {
     public ResponseEntity<List<FollowUpResponse>>
     getUpcomingFollowUps(
 
-            @RequestParam
+            @RequestParam("startDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate startDate,
 
-            @RequestParam
+            @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate endDate) {
 
@@ -205,7 +205,7 @@ public class FollowUpController {
     public ResponseEntity<List<FollowUpResponse>>
     getOverdueFollowUps(
 
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -222,7 +222,7 @@ public class FollowUpController {
     @GetMapping("/appointment/{appointmentId}")
     public ResponseEntity<List<FollowUpResponse>>
     getByAppointment(
-            @PathVariable Long appointmentId) {
+            @PathVariable("appointmentId") Long appointmentId) {
 
         return ResponseEntity.ok(
                 followUpService.getByAppointment(
@@ -252,7 +252,7 @@ public class FollowUpController {
 
     @PatchMapping("/{id}/reminder")
     public ResponseEntity<FollowUpResponse>
-    markReminderAsSent(@PathVariable Long id) {
+    markReminderAsSent(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 followUpService.markReminderAsSent(id)
@@ -266,7 +266,7 @@ public class FollowUpController {
 
     @PutMapping("/{id}")
     public ResponseEntity<FollowUpResponse> updateFollowUp(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody FollowUpRequest request) {
 
         return ResponseEntity.ok(
@@ -284,7 +284,7 @@ public class FollowUpController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFollowUp(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         followUpService.deleteFollowUp(id);
 

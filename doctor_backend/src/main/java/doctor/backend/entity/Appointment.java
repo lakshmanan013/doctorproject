@@ -45,6 +45,12 @@ public class Appointment {
     @Column(name = "doctor_id")
     private Long doctorId;
 
+    @Column(name = "room_code")
+    private String roomCode;
+
+    @Column(name = "meeting_link")
+    private String meetingLink;
+
     // =========================
     // Date Information
     // =========================
@@ -171,5 +177,21 @@ public class Appointment {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getRoomCode() {
+        return roomCode;
+    }
+
+    public void setRoomCode(String roomCode) {
+        this.roomCode = roomCode;
+    }
+
+    public String getMeetingLink() {
+        return meetingLink;
+    }
+
+    public void setMeetingLink(String meetingLink) {
+        this.meetingLink = meetingLink;
     }
 }

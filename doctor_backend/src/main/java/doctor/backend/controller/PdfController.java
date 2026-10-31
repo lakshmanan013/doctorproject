@@ -24,8 +24,8 @@ public class PdfController {
 
     @PostMapping("/generate")
     public ResponseEntity<byte[]> generatePdf(
-            @RequestParam String title,
-            @RequestParam String content) {
+            @RequestParam("title") String title,
+            @RequestParam("content") String content) {
 
         byte[] pdf =
                 pdfService.generatePdf(

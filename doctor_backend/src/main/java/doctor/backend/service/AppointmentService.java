@@ -104,6 +104,13 @@ public class AppointmentService {
         }
         appointment.setDoctorName(doctorName);
 
+        String apptType = request.getAppointmentType() != null ? request.getAppointmentType().toLowerCase() : "";
+        if (apptType.contains("video") || apptType.contains("tele") || apptType.contains("online")) {
+            String generatedRoom = "ZenveTelehealth-" + doctorId + "-" + java.util.UUID.randomUUID().toString().substring(0, 6);
+            appointment.setRoomCode(generatedRoom);
+            appointment.setMeetingLink("https://video.twilio.com/rooms/" + generatedRoom);
+        }
+
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
@@ -443,6 +450,9 @@ public class AppointmentService {
         response.setUpdatedAt(
                 appointment.getUpdatedAt()
         );
+
+        response.setRoomCode(appointment.getRoomCode());
+        response.setMeetingLink(appointment.getMeetingLink());
 
         return response;
     }

@@ -61,7 +61,7 @@ public class WhatsAppController {
 
     @GetMapping("/{id}")
     public ResponseEntity<WhatsAppResponse>
-    getMessageById(@PathVariable Long id) {
+    getMessageById(@PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 whatsAppService.getMessageById(id)
@@ -76,7 +76,7 @@ public class WhatsAppController {
     @GetMapping("/phone/{phoneNumber}")
     public ResponseEntity<List<WhatsAppResponse>>
     getByPhoneNumber(
-            @PathVariable String phoneNumber) {
+            @PathVariable("phoneNumber") String phoneNumber) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByPhoneNumber(
@@ -92,7 +92,7 @@ public class WhatsAppController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<WhatsAppResponse>>
-    getByStatus(@PathVariable String status) {
+    getByStatus(@PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByStatus(status)
@@ -106,7 +106,7 @@ public class WhatsAppController {
 
     @GetMapping("/type/{type}")
     public ResponseEntity<List<WhatsAppResponse>>
-    getByType(@PathVariable String type) {
+    getByType(@PathVariable("type") String type) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByType(type)
@@ -120,7 +120,7 @@ public class WhatsAppController {
 
     @GetMapping("/provider/{provider}")
     public ResponseEntity<List<WhatsAppResponse>>
-    getByProvider(@PathVariable String provider) {
+    getByProvider(@PathVariable("provider") String provider) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByProvider(provider)
@@ -135,8 +135,8 @@ public class WhatsAppController {
     @GetMapping("/search")
     public ResponseEntity<List<WhatsAppResponse>>
     getByPhoneAndStatus(
-            @RequestParam String phoneNumber,
-            @RequestParam String status) {
+            @RequestParam("phoneNumber") String phoneNumber,
+            @RequestParam("status") String status) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByPhoneAndStatus(
@@ -154,7 +154,7 @@ public class WhatsAppController {
     @GetMapping("/provider-message/{providerMessageId}")
     public ResponseEntity<List<WhatsAppResponse>>
     getByProviderMessageId(
-            @PathVariable String providerMessageId) {
+            @PathVariable("providerMessageId") String providerMessageId) {
 
         return ResponseEntity.ok(
                 whatsAppService.getByProviderMessageId(
@@ -171,11 +171,11 @@ public class WhatsAppController {
     @PutMapping("/{id}/status")
     public ResponseEntity<WhatsAppResponse>
     updateStatus(
-            @PathVariable Long id,
-            @RequestParam String status,
-            @RequestParam(required = false)
+            @PathVariable("id") Long id,
+            @RequestParam("status") String status,
+            @RequestParam(value = "providerMessageId", required = false)
             String providerMessageId,
-            @RequestParam(required = false)
+            @RequestParam(value = "errorMessage", required = false)
             String errorMessage) {
 
         return ResponseEntity.ok(
@@ -195,7 +195,7 @@ public class WhatsAppController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMessage(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         whatsAppService.deleteMessage(id);
 

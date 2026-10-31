@@ -58,7 +58,7 @@ public class SmsController {
 
     @GetMapping("/{id}")
     public ResponseEntity<SmsResponse> getSmsById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 smsService.getSmsById(id)
@@ -73,7 +73,7 @@ public class SmsController {
     @GetMapping("/phone/{phoneNumber}")
     public ResponseEntity<List<SmsResponse>>
     getByPhoneNumber(
-            @PathVariable String phoneNumber) {
+            @PathVariable("phoneNumber") String phoneNumber) {
 
         return ResponseEntity.ok(
                 smsService.getByPhoneNumber(phoneNumber)
@@ -87,7 +87,7 @@ public class SmsController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<SmsResponse>>
-    getByStatus(@PathVariable String status) {
+    getByStatus(@PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 smsService.getByStatus(status)
@@ -101,7 +101,7 @@ public class SmsController {
 
     @GetMapping("/type/{type}")
     public ResponseEntity<List<SmsResponse>>
-    getByType(@PathVariable String type) {
+    getByType(@PathVariable("type") String type) {
 
         return ResponseEntity.ok(
                 smsService.getByType(type)
@@ -115,7 +115,7 @@ public class SmsController {
 
     @GetMapping("/provider/{provider}")
     public ResponseEntity<List<SmsResponse>>
-    getByProvider(@PathVariable String provider) {
+    getByProvider(@PathVariable("provider") String provider) {
 
         return ResponseEntity.ok(
                 smsService.getByProvider(provider)
@@ -131,9 +131,9 @@ public class SmsController {
     public ResponseEntity<List<SmsResponse>>
     getByPhoneAndStatus(
 
-            @RequestParam String phoneNumber,
+            @RequestParam("phoneNumber") String phoneNumber,
 
-            @RequestParam String status) {
+            @RequestParam("status") String status) {
 
         return ResponseEntity.ok(
                 smsService.getByPhoneAndStatus(
@@ -151,7 +151,7 @@ public class SmsController {
     @GetMapping("/provider-message/{providerMessageId}")
     public ResponseEntity<List<SmsResponse>>
     getByProviderMessageId(
-            @PathVariable String providerMessageId) {
+            @PathVariable("providerMessageId") String providerMessageId) {
 
         return ResponseEntity.ok(
                 smsService.getByProviderMessageId(
@@ -168,14 +168,14 @@ public class SmsController {
     @PutMapping("/{id}/status")
     public ResponseEntity<SmsResponse> updateStatus(
 
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
 
-            @RequestParam String status,
+            @RequestParam("status") String status,
 
-            @RequestParam(required = false)
+            @RequestParam(value = "providerMessageId", required = false)
             String providerMessageId,
 
-            @RequestParam(required = false)
+            @RequestParam(value = "errorMessage", required = false)
             String errorMessage) {
 
         return ResponseEntity.ok(
@@ -195,7 +195,7 @@ public class SmsController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSmsLog(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         smsService.deleteSmsLog(id);
 

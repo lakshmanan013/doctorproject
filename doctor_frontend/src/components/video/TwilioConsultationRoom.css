@@ -1,0 +1,656 @@
+/* ========================================================= */
+/* TWILIO CONSULTATION ROOM (ZOOM-STYLE) STYLES             */
+/* ========================================================= */
+
+.twilio-zoom-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  min-height: 580px;
+  background-color: #0d1117;
+  color: #f0f6fc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+.twilio-zoom-container.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+}
+
+/* --------------------------------------------------------- */
+/* 1. TOP HEADER BAR                                         */
+/* --------------------------------------------------------- */
+.twilio-zoom-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  background: rgba(13, 17, 23, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 20;
+}
+
+.tz-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.tz-logo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tz-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: tz-pulse 2s infinite ease-in-out;
+}
+
+@keyframes tz-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.tz-brand-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #e6edf3;
+}
+
+.tz-provider-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: rgba(37, 99, 235, 0.25);
+  color: #60a5fa;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.tz-meeting-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.tz-meeting-title {
+  font-weight: 600;
+  color: #f0f6fc;
+}
+
+.tz-meeting-divider {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.tz-meeting-reason {
+  color: #8b949e;
+}
+
+.tz-header-center {
+  display: flex;
+  align-items: center;
+}
+
+.tz-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #34d399;
+}
+
+.tz-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tz-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c9d1d9;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tz-header-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* --------------------------------------------------------- */
+/* 2. STAGE & VIDEO GRID (ZOOM GALLERY)                      */
+/* --------------------------------------------------------- */
+.twilio-zoom-stage {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  background: #090d13;
+}
+
+.twilio-zoom-grid {
+  flex: 1;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gallery View: Side-by-side equal tiles (Zoom style) */
+.twilio-zoom-grid.view-gallery {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 768px) {
+  .twilio-zoom-grid.view-gallery {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, 1fr);
+  }
+}
+
+/* Speaker View: Remote full, local PIP in corner */
+.twilio-zoom-grid.view-speaker {
+  grid-template-columns: 1fr;
+  position: relative;
+}
+
+.twilio-zoom-grid.has-drawer {
+  padding-right: 0.5rem;
+}
+
+/* Video Tile Box */
+.tz-video-tile {
+  position: relative;
+  background: #161b22;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tz-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tz-video-element.mirrored {
+  transform: scaleX(-1);
+}
+
+.tz-video-element.is-hidden {
+  display: none !important;
+}
+
+/* Picture in Picture Mode (Local participant in speaker view) */
+.tz-video-tile.pip-mode {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 240px;
+  height: 145px;
+  z-index: 10;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+}
+
+/* Fallback state when camera is off or awaiting connection */
+.tz-video-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+  color: #8b949e;
+  gap: 0.6rem;
+}
+
+.tz-avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-base(#21262d, #30363d);
+  background: #21262d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #58a6ff;
+  border: 2px solid rgba(88, 166, 255, 0.2);
+  margin-bottom: 0.25rem;
+}
+
+.tz-avatar-circle.local-avatar {
+  background: #1f2937;
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.tz-waiting-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #c9d1d9;
+}
+
+.tz-waiting-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: tz-spin 1s linear infinite;
+}
+
+@keyframes tz-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* HUD Overlay on each tile */
+.tz-tile-hud-bottom {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tz-tile-name-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tz-audio-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6e7681;
+}
+
+.tz-audio-dot.live {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.tz-audio-dot.muted {
+  background: #ef4444;
+}
+
+.tz-tile-status-tag {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #8b949e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tz-tile-muted-badge {
+  background: rgba(239, 68, 68, 0.85);
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --------------------------------------------------------- */
+/* 3. SIDE DRAWER (Chat, Participants, Clinical)             */
+/* --------------------------------------------------------- */
+.twilio-zoom-drawer {
+  width: 380px;
+  background: #161b22;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 15;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 900px) {
+  .twilio-zoom-drawer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.tz-drawer-header {
+  height: 52px;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d1117;
+}
+
+.tz-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.tz-drawer-close {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  border-radius: 4px;
+}
+
+.tz-drawer-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tz-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Chat styles */
+.tz-chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tz-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-bottom: 1rem;
+}
+
+.tz-chat-msg {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  max-width: 90%;
+}
+
+.tz-chat-msg.is-self {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.3);
+  align-self: flex-end;
+}
+
+.tz-msg-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #8b949e;
+  margin-bottom: 0.2rem;
+}
+
+.tz-msg-sender {
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+.tz-msg-text {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #e6edf3;
+  margin: 0;
+  word-break: break-word;
+}
+
+.tz-chat-input-form {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tz-chat-input {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  color: #fff;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.tz-chat-input:focus {
+  border-color: #58a6ff;
+}
+
+.tz-chat-send-btn {
+  background: #238636;
+  border: none;
+  color: #fff;
+  padding: 0 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.tz-chat-send-btn:hover {
+  background: #2ea043;
+}
+
+/* Participants List */
+.tz-participants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tz-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+}
+
+.tz-part-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #21262d;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tz-part-avatar.remote-avatar {
+  color: #58a6ff;
+}
+
+.tz-part-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tz-part-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f0f6fc;
+}
+
+.tz-part-role {
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+
+.tz-presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tz-presence-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.tz-presence-dot.offline {
+  background: #6e7681;
+}
+
+.text-red {
+  color: #ef4444;
+}
+
+.text-green {
+  color: #10b981;
+}
+
+/* --------------------------------------------------------- */
+/* 4. ZOOM FLOATING BOTTOM CONTROL BAR (DOCK)                */
+/* --------------------------------------------------------- */
+.twilio-zoom-dock {
+  height: 74px;
+  background: rgba(13, 17, 23, 0.96);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  z-index: 20;
+}
+
+.tz-dock-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  color: #c9d1d9;
+  cursor: pointer;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  min-width: 60px;
+}
+
+.tz-dock-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.tz-dock-btn.is-active {
+  color: #e6edf3;
+}
+
+.tz-dock-btn.is-muted {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.tz-dock-btn.is-muted:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.tz-dock-btn.is-highlight {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.tz-dock-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Red Leave Meeting Button (Like Zoom's End Call) */
+.tz-dock-btn.tz-btn-leave {
+  background: #dc2626;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+
+.tz-dock-btn.tz-btn-leave:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+

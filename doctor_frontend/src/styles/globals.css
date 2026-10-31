@@ -845,12 +845,15 @@ h5 {
   display: block;
 }
 
-.field-label {
+.field-label,
+.app-shell .field-label,
+.modal .field-label {
   display: block;
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #111827 !important; /* Solid black for dashboard form fields */
+  text-shadow: none !important;
 }
 
 .field-required {

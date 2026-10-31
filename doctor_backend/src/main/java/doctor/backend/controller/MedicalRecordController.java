@@ -62,7 +62,7 @@ public class MedicalRecordController {
     @GetMapping("/{id}")
     public ResponseEntity<MedicalRecordResponse>
     getMedicalRecordById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 medicalRecordService.getMedicalRecordById(id)
@@ -77,7 +77,7 @@ public class MedicalRecordController {
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<MedicalRecordResponse>>
     getRecordsByPatient(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 medicalRecordService
@@ -93,7 +93,7 @@ public class MedicalRecordController {
     @GetMapping("/date/{date}")
     public ResponseEntity<List<MedicalRecordResponse>>
     getRecordsByDate(
-            @PathVariable LocalDate date) {
+            @PathVariable("date") LocalDate date) {
 
         return ResponseEntity.ok(
                 medicalRecordService
@@ -109,8 +109,8 @@ public class MedicalRecordController {
     @GetMapping("/patient/{patientId}/date/{date}")
     public ResponseEntity<List<MedicalRecordResponse>>
     getRecordsByPatientAndDate(
-            @PathVariable Long patientId,
-            @PathVariable LocalDate date) {
+            @PathVariable("patientId") Long patientId,
+            @PathVariable("date") LocalDate date) {
 
         return ResponseEntity.ok(
                 medicalRecordService
@@ -129,8 +129,8 @@ public class MedicalRecordController {
     @GetMapping("/range")
     public ResponseEntity<List<MedicalRecordResponse>>
     getRecordsBetweenDates(
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate) {
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate) {
 
         return ResponseEntity.ok(
                 medicalRecordService
@@ -149,7 +149,7 @@ public class MedicalRecordController {
     @PutMapping("/{id}")
     public ResponseEntity<MedicalRecordResponse>
     updateMedicalRecord(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody MedicalRecordRequest request) {
 
         return ResponseEntity.ok(
@@ -165,7 +165,7 @@ public class MedicalRecordController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMedicalRecord(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         medicalRecordService.deleteMedicalRecord(id);
 

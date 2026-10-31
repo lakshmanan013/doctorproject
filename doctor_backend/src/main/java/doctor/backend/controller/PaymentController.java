@@ -58,7 +58,7 @@ public class PaymentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PaymentResponse> getPaymentById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 paymentService.getPaymentById(id)
@@ -72,7 +72,7 @@ public class PaymentController {
 
     @GetMapping("/invoice/{invoiceId}")
     public ResponseEntity<List<PaymentResponse>> getByInvoiceId(
-            @PathVariable Long invoiceId) {
+            @PathVariable("invoiceId") Long invoiceId) {
 
         return ResponseEntity.ok(
                 paymentService.getByInvoiceId(invoiceId)
@@ -86,7 +86,7 @@ public class PaymentController {
 
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<PaymentResponse>> getByOwnerId(
-            @PathVariable Long ownerId) {
+            @PathVariable("ownerId") Long ownerId) {
 
         return ResponseEntity.ok(
                 paymentService.getByOwnerId(ownerId)
@@ -100,7 +100,7 @@ public class PaymentController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<PaymentResponse>> getByPatientId(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 paymentService.getByPatientId(patientId)
@@ -114,7 +114,7 @@ public class PaymentController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<PaymentResponse>> getByStatus(
-            @PathVariable String status) {
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 paymentService.getByStatus(status)
@@ -128,7 +128,7 @@ public class PaymentController {
 
     @GetMapping("/method/{paymentMethod}")
     public ResponseEntity<List<PaymentResponse>> getByPaymentMethod(
-            @PathVariable String paymentMethod) {
+            @PathVariable("paymentMethod") String paymentMethod) {
 
         return ResponseEntity.ok(
                 paymentService.getByPaymentMethod(
@@ -144,7 +144,7 @@ public class PaymentController {
 
     @GetMapping("/transaction/{transactionId}")
     public ResponseEntity<List<PaymentResponse>> getByTransactionId(
-            @PathVariable String transactionId) {
+            @PathVariable("transactionId") String transactionId) {
 
         return ResponseEntity.ok(
                 paymentService.getByTransactionId(
@@ -160,7 +160,7 @@ public class PaymentController {
 
     @GetMapping("/reference/{referenceNumber}")
     public ResponseEntity<List<PaymentResponse>> getByReferenceNumber(
-            @PathVariable String referenceNumber) {
+            @PathVariable("referenceNumber") String referenceNumber) {
 
         return ResponseEntity.ok(
                 paymentService.getByReferenceNumber(
@@ -176,8 +176,8 @@ public class PaymentController {
 
     @PutMapping("/{id}/status")
     public ResponseEntity<PaymentResponse> updateStatus(
-            @PathVariable Long id,
-            @RequestParam String status) {
+            @PathVariable("id") Long id,
+            @RequestParam("status") String status) {
 
         return ResponseEntity.ok(
                 paymentService.updateStatus(
@@ -194,7 +194,7 @@ public class PaymentController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePayment(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         paymentService.deletePayment(id);
 
@@ -208,8 +208,8 @@ public class PaymentController {
 
     @PostMapping("/{id}/send-receipt-email")
     public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendPaymentReceiptEmail(
-            @PathVariable Long id,
-            @RequestParam(required = false) String recipientEmail) {
+            @PathVariable("id") Long id,
+            @RequestParam(value = "recipientEmail", required = false) String recipientEmail) {
 
         doctor.backend.dto.email.EmailResponse response =
                 paymentService.sendPaymentReceiptEmail(id, recipientEmail);

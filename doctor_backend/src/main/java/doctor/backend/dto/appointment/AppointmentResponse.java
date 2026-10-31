@@ -29,6 +29,8 @@ public class AppointmentResponse {
     private String notes;
     private String doctorName;
     private Long doctorId;
+    private String roomCode;
+    private String meetingLink;
 
     // Timestamps
     private LocalDateTime createdAt;
@@ -228,5 +230,21 @@ public class AppointmentResponse {
 
     public void setDoctorId(Long doctorId) {
         this.doctorId = doctorId;
+    }
+
+    public String getRoomCode() {
+        return roomCode;
+    }
+
+    public void setRoomCode(String roomCode) {
+        this.roomCode = roomCode;
+    }
+
+    public String getMeetingLink() {
+        return meetingLink;
+    }
+
+    public void setMeetingLink(String meetingLink) {
+        this.meetingLink = meetingLink;
     }
 }

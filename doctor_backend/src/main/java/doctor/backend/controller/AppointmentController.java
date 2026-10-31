@@ -60,7 +60,7 @@ public class AppointmentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AppointmentResponse> getAppointmentById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 appointmentService.getAppointmentById(id)
@@ -75,7 +75,7 @@ public class AppointmentController {
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<AppointmentResponse>>
     getAppointmentsByPatient(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 appointmentService
@@ -91,7 +91,7 @@ public class AppointmentController {
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AppointmentResponse>>
     getAppointmentsByDate(
-            @PathVariable LocalDate date) {
+            @PathVariable("date") LocalDate date) {
 
         return ResponseEntity.ok(
                 appointmentService
@@ -107,7 +107,7 @@ public class AppointmentController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<AppointmentResponse>>
     getAppointmentsByStatus(
-            @PathVariable String status) {
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 appointmentService
@@ -123,8 +123,8 @@ public class AppointmentController {
     @GetMapping("/filter")
     public ResponseEntity<List<AppointmentResponse>>
     getAppointmentsByDateAndStatus(
-            @RequestParam LocalDate date,
-            @RequestParam String status) {
+            @RequestParam("date") LocalDate date,
+            @RequestParam("status") String status) {
 
         return ResponseEntity.ok(
                 appointmentService
@@ -143,8 +143,8 @@ public class AppointmentController {
     @GetMapping("/range")
     public ResponseEntity<List<AppointmentResponse>>
     getAppointmentsBetweenDates(
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate) {
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate) {
 
         return ResponseEntity.ok(
                 appointmentService
@@ -162,7 +162,7 @@ public class AppointmentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<AppointmentResponse> updateAppointment(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody AppointmentRequest request) {
 
         return ResponseEntity.ok(
@@ -178,7 +178,7 @@ public class AppointmentController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAppointment(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         appointmentService.deleteAppointment(id);
 
@@ -192,8 +192,8 @@ public class AppointmentController {
 
     @PostMapping("/{id}/send-email")
     public ResponseEntity<doctor.backend.dto.email.EmailResponse> sendAppointmentEmail(
-            @PathVariable Long id,
-            @RequestParam(required = false) String email) {
+            @PathVariable("id") Long id,
+            @RequestParam(value = "email", required = false) String email) {
 
         doctor.backend.dto.email.EmailResponse response =
                 appointmentService.sendAppointmentConfirmationEmail(id, email);

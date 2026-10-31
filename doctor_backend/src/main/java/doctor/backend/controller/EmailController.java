@@ -61,7 +61,7 @@ public class EmailController {
 
     @GetMapping("/{id}")
     public ResponseEntity<EmailResponse> getEmailById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 emailService.getEmailById(id)
@@ -76,7 +76,7 @@ public class EmailController {
     @GetMapping("/recipient/{recipient}")
     public ResponseEntity<List<EmailResponse>>
     getByRecipient(
-            @PathVariable String recipient) {
+            @PathVariable("recipient") String recipient) {
 
         return ResponseEntity.ok(
                 emailService.getByRecipient(recipient)
@@ -90,7 +90,7 @@ public class EmailController {
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<EmailResponse>>
-    getByStatus(@PathVariable String status) {
+    getByStatus(@PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 emailService.getByStatus(status)
@@ -104,7 +104,7 @@ public class EmailController {
 
     @GetMapping("/type/{type}")
     public ResponseEntity<List<EmailResponse>>
-    getByType(@PathVariable String type) {
+    getByType(@PathVariable("type") String type) {
 
         return ResponseEntity.ok(
                 emailService.getByType(type)
@@ -118,7 +118,7 @@ public class EmailController {
 
     @GetMapping("/provider/{provider}")
     public ResponseEntity<List<EmailResponse>>
-    getByProvider(@PathVariable String provider) {
+    getByProvider(@PathVariable("provider") String provider) {
 
         return ResponseEntity.ok(
                 emailService.getByProvider(provider)
@@ -133,8 +133,8 @@ public class EmailController {
     @GetMapping("/search")
     public ResponseEntity<List<EmailResponse>>
     getByRecipientAndStatus(
-            @RequestParam String recipient,
-            @RequestParam String status) {
+            @RequestParam("recipient") String recipient,
+            @RequestParam("status") String status) {
 
         return ResponseEntity.ok(
                 emailService.getByRecipientAndStatus(
@@ -152,7 +152,7 @@ public class EmailController {
     @GetMapping("/provider-message/{providerMessageId}")
     public ResponseEntity<List<EmailResponse>>
     getByProviderMessageId(
-            @PathVariable String providerMessageId) {
+            @PathVariable("providerMessageId") String providerMessageId) {
 
         return ResponseEntity.ok(
                 emailService.getByProviderMessageId(
@@ -169,11 +169,11 @@ public class EmailController {
     @PutMapping("/{id}/status")
     public ResponseEntity<EmailResponse>
     updateStatus(
-            @PathVariable Long id,
-            @RequestParam String status,
-            @RequestParam(required = false)
+            @PathVariable("id") Long id,
+            @RequestParam("status") String status,
+            @RequestParam(value = "providerMessageId", required = false)
             String providerMessageId,
-            @RequestParam(required = false)
+            @RequestParam(value = "errorMessage", required = false)
             String errorMessage) {
 
         return ResponseEntity.ok(
@@ -193,7 +193,7 @@ public class EmailController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmail(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         emailService.deleteEmail(id);
 
@@ -206,7 +206,7 @@ public class EmailController {
 
     @PostMapping("/test/doctor-welcome")
     public ResponseEntity<EmailResponse> testDoctorWelcome(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
             @RequestParam(required = false, defaultValue = "General Medicine & Surgery") String specialty) {
         return ResponseEntity.ok(emailService.sendDoctorWelcomeEmail(toEmail, doctorName, specialty));
@@ -214,7 +214,7 @@ public class EmailController {
 
     @PostMapping("/test/doctor-registration-welcome")
     public ResponseEntity<EmailResponse> testDoctorRegistrationWelcome(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
             @RequestParam(required = false, defaultValue = "Zenve Doctors Clinic") String clinicHospital,
             @RequestParam(required = false, defaultValue = "+91 9876543210") String phone) {
@@ -223,7 +223,7 @@ public class EmailController {
 
     @PostMapping("/test/doctor-approved")
     public ResponseEntity<EmailResponse> testDoctorApproved(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
             @RequestParam(required = false, defaultValue = "General Medicine & Clinical Practice") String specialty,
             @RequestParam(required = false, defaultValue = "Zenve Doctors Clinic") String clinicHospital) {
@@ -232,7 +232,7 @@ public class EmailController {
 
     @PostMapping("/test/password-reset-otp")
     public ResponseEntity<EmailResponse> testPasswordResetOtp(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName,
             @RequestParam(required = false, defaultValue = "849201") String otpCode) {
         return ResponseEntity.ok(emailService.sendPasswordResetOtpEmail(toEmail, doctorName, otpCode, 15));
@@ -240,14 +240,14 @@ public class EmailController {
 
     @PostMapping("/test/password-updated")
     public ResponseEntity<EmailResponse> testPasswordUpdated(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Dr. Jane Doe") String doctorName) {
         return ResponseEntity.ok(emailService.sendPasswordChangedSuccessEmail(toEmail, doctorName));
     }
 
     @PostMapping("/test/payment-receipt")
     public ResponseEntity<EmailResponse> testPaymentReceipt(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Rahul Sharma") String ownerName,
             @RequestParam(required = false, defaultValue = "Buddy (Golden Retriever)") String petName,
             @RequestParam(required = false, defaultValue = "1500.00") BigDecimal amount) {
@@ -269,7 +269,7 @@ public class EmailController {
 
     @PostMapping("/test/appointment-confirmation")
     public ResponseEntity<EmailResponse> testAppointmentConfirmation(
-            @RequestParam String toEmail,
+            @RequestParam("toEmail") String toEmail,
             @RequestParam(required = false, defaultValue = "Rahul Sharma") String ownerName,
             @RequestParam(required = false, defaultValue = "Buddy") String petName,
             @RequestParam(required = false, defaultValue = "Canine") String species,

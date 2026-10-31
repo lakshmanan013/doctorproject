@@ -63,7 +63,7 @@ public class OwnerController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OwnerResponse> getOwnerById(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
 
         OwnerResponse owner =
@@ -79,7 +79,7 @@ public class OwnerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<OwnerResponse> updateOwner(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody OwnerRequest request
     ) {
 
@@ -99,7 +99,7 @@ public class OwnerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOwner(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
 
         ownerService.deleteOwner(id);

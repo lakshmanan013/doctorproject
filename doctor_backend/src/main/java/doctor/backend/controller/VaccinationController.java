@@ -65,7 +65,7 @@ public class VaccinationController {
     @GetMapping("/{id}")
     public ResponseEntity<VaccinationResponse>
     getVaccinationById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         return ResponseEntity.ok(
                 vaccinationService.getVaccinationById(id)
@@ -80,7 +80,7 @@ public class VaccinationController {
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<VaccinationResponse>>
     getByPatient(
-            @PathVariable Long patientId) {
+            @PathVariable("patientId") Long patientId) {
 
         return ResponseEntity.ok(
                 vaccinationService.getByPatient(patientId)
@@ -95,7 +95,7 @@ public class VaccinationController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<VaccinationResponse>>
     getByStatus(
-            @PathVariable String status) {
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 vaccinationService.getByStatus(status)
@@ -110,7 +110,7 @@ public class VaccinationController {
     @GetMapping("/vaccine/{vaccineName}")
     public ResponseEntity<List<VaccinationResponse>>
     getByVaccineName(
-            @PathVariable String vaccineName) {
+            @PathVariable("vaccineName") String vaccineName) {
 
         return ResponseEntity.ok(
                 vaccinationService.getByVaccineName(vaccineName)
@@ -125,7 +125,7 @@ public class VaccinationController {
     @GetMapping("/due")
     public ResponseEntity<List<VaccinationResponse>>
     getDueVaccinations(
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -143,11 +143,11 @@ public class VaccinationController {
     public ResponseEntity<List<VaccinationResponse>>
     getVaccinationsBetweenDates(
 
-            @RequestParam
+            @RequestParam("startDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate startDate,
 
-            @RequestParam
+            @RequestParam("endDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate endDate) {
 
@@ -169,8 +169,8 @@ public class VaccinationController {
     public ResponseEntity<List<VaccinationResponse>>
     getPatientVaccinationsByStatus(
 
-            @PathVariable Long patientId,
-            @PathVariable String status) {
+            @PathVariable("patientId") Long patientId,
+            @PathVariable("status") String status) {
 
         return ResponseEntity.ok(
                 vaccinationService
@@ -190,7 +190,7 @@ public class VaccinationController {
     public ResponseEntity<List<VaccinationResponse>>
     getVaccinationsOnDate(
 
-            @RequestParam
+            @RequestParam("date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
@@ -209,7 +209,7 @@ public class VaccinationController {
     public ResponseEntity<VaccinationResponse>
     updateVaccination(
 
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody VaccinationRequest request) {
 
         return ResponseEntity.ok(
@@ -228,7 +228,7 @@ public class VaccinationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void>
     deleteVaccination(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         vaccinationService.deleteVaccination(id);
 
