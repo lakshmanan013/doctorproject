@@ -41,8 +41,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Not authorized"));
     }
 
+    @ExceptionHandler({
+        org.apache.catalina.connector.ClientAbortException.class,
+        org.springframework.web.context.request.async.AsyncRequestNotUsableException.class
+    })
+    public void handleClientAbort(Exception ex) {
+        // Client closed or refreshed the page before response finished writing - ignore silently
+        log.debug("Client aborted HTTP connection: {}", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        // Do not log or re-throw if underlying cause is client disconnection
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        if (root instanceof java.io.IOException && (root.getMessage() != null &&
+                (root.getMessage().contains("aborted") || root.getMessage().contains("Broken pipe") || root.getMessage().contains("Connection reset")))) {
+            log.debug("Client closed connection: {}", root.getMessage());
+            return null;
+        }
+
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(ex.getMessage() != null ? ex.getMessage() : "Unknown error"));

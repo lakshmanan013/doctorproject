@@ -19,6 +19,8 @@ import {
 import Button from "../../components/ui/Button";
 import { Field } from "../../components/ui/Input";
 import AuthLayout from "../../layouts/AuthLayout";
+// Legal Consent components & policies
+import AuthLegalConsentGroup from "../../components/auth/AuthLegalConsentGroup";
 import { useAuth } from "../../hooks/useAuth";
 import { ROUTES } from "../../constants/routes";
 import { sendPhoneOtp, verifyPhoneOtp } from "../../services/authService";
@@ -37,6 +39,10 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+
+  // Legal Consent states
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalError, setLegalError] = useState(false);
 
   // Phone OTP States
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
@@ -147,7 +153,7 @@ export default function Register() {
   const handleVerifyOtp = async (enteredOtpParam) => {
     const enteredOtp = (typeof enteredOtpParam === "string" ? enteredOtpParam : otp.join("")).trim();
     if (enteredOtp.length !== OTP_LENGTH) {
-      toast.error("Please enter the complete 6-digit OTP.");
+      toast.error("Please enter the complete 4-digit OTP.");
       return;
     }
 
@@ -180,6 +186,12 @@ export default function Register() {
   };
 
   const onSubmit = async (values) => {
+    if (!legalAccepted) {
+      setLegalError(true);
+      toast.error("Please review and accept the Terms & Conditions, Privacy Policy and Data Consent to create an account.");
+      return;
+    }
+
     setServerError("");
 
     if (!phoneVerified) {
@@ -239,17 +251,16 @@ export default function Register() {
           />
         </div>
         <h2 className="auth-header-title">Create Doctor Account</h2>
-        <p className="auth-header-sub">Veterinary Practice OS</p>
       </div>
       {serverError && (
         <div className="auth-alert">
-          <FiAlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+          <FiAlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>{serverError}</span>
         </div>
       )}
 
       <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Field label="Full name">
+        <Field label="Full name" required>
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
               <FiUser size={16} color="#000000" />
@@ -269,7 +280,7 @@ export default function Register() {
           {errors.fullName && <span className="field-error">{errors.fullName.message}</span>}
         </Field>
 
-        <Field label="Email address">
+        <Field label="Email address" required>
           <div className="auth-input-wrap">
             <span className="auth-input-icon">
               <FiMail size={16} color="#000000" />
@@ -284,7 +295,7 @@ export default function Register() {
                 required: "Email is required",
                 pattern: {
                   value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: "Enter a valid email address",
+                  message: "Valid email required",
                 },
               })}
             />
@@ -292,18 +303,18 @@ export default function Register() {
           {errors.email && <span className="field-error">{errors.email.message}</span>}
         </Field>
 
-        {/* PHONE NUMBER FIELD WITH EMBEDDED SEND OTP & VERIFY OTP */}
-        <Field label="Phone number">
+        {/* ROW 2: PHONE NUMBER WITH EMBEDDED SEND OTP & VERIFY OTP */}
+        <Field label="Mobile phone number" required>
           <div className={`auth-input-wrap auth-phone-field-wrap${phoneVerified ? " is-verified" : ""}`}>
             <span className="auth-input-icon">
-              <FiPhone size={16} color="#000000" />
+              <FiPhone size={15} color="#000000" />
             </span>
 
             <input
               type="tel"
               readOnly={phoneVerified}
               className={`input${errors.phone ? " input-error" : ""}`}
-              placeholder="9876543210"
+              placeholder="10-digit mobile number"
               autoComplete="tel"
               {...register("phone", {
                 required: "Phone number is required",
@@ -326,7 +337,7 @@ export default function Register() {
               >
                 {sendingOtp ? (
                   <>
-                    <FiRefreshCw className="spin" size={13} />
+                    <FiRefreshCw className="spin" size={12} />
                     <span>Sending...</span>
                   </>
                 ) : phoneOtpSent ? (
@@ -338,7 +349,7 @@ export default function Register() {
             ) : (
               <div className="auth-phone-verified-tag">
                 <span className="auth-verified-badge">
-                  <FiCheckCircle size={13} />
+                  <FiCheckCircle size={12} />
                   <span>Verified</span>
                 </span>
                 <button
@@ -366,7 +377,7 @@ export default function Register() {
                   isModal={true}
                   length={4}
                   destination={phoneValue || "your phone"}
-                  heading="Let's verify your number"
+                  heading="Verify your mobile"
                   subtitle={
                     <>
                       We&apos;ve sent a 4-digit code to{" "}
@@ -401,79 +412,91 @@ export default function Register() {
           )}
         </Field>
 
-        <div className="auth-form-row">
-          <Field label="Password" required>
-            <div className="auth-input-wrap">
-              <span className="auth-input-icon">
-                <FiLock size={16} color="#000000" />
-              </span>
+        {/* ROW 3: PASSWORD */}
+        <Field label="Password" required>
+          <div className="auth-input-wrap">
+            <span className="auth-input-icon">
+              <FiLock size={15} color="#000000" />
+            </span>
 
-              <input
-                type={showPassword ? "text" : "password"}
-                className={`input${errors.password ? " input-error" : ""}`}
-                placeholder="Min. 6 characters"
-                autoComplete="new-password"
-                style={{ paddingRight: 44 }}
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: { value: 6, message: "At least 6 characters" },
-                })}
-              />
+            <input
+              type={showPassword ? "text" : "password"}
+              className={`input${errors.password ? " input-error" : ""}`}
+              placeholder="Min. 6 chars"
+              autoComplete="new-password"
+              style={{ paddingRight: 38 }}
+              {...register("password", {
+                required: "Password is required",
+                minLength: { value: 6, message: "Min. 6 characters" },
+              })}
+            />
 
-              <button
-                type="button"
-                className="auth-input-toggle"
-                onClick={() => setShowPassword((prev) => !prev)}
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <FiEyeOff size={15} color="#000000" /> : <FiEye size={15} color="#000000" />}
-              </button>
-            </div>
-            {errors.password && <span className="field-error">{errors.password.message}</span>}
-          </Field>
+            <button
+              type="button"
+              className="auth-input-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <FiEyeOff size={14} color="#000000" /> : <FiEye size={14} color="#000000" />}
+            </button>
+          </div>
+          {errors.password && <span className="field-error">{errors.password.message}</span>}
+        </Field>
 
-          <Field label="Confirm password" required>
-            <div className="auth-input-wrap">
-              <span className="auth-input-icon">
-                <FiLock size={16} color="#000000" />
-              </span>
+        {/* ROW 4: CONFIRM PASSWORD */}
+        <Field label="Confirm password" required className="auth-confirm-password-field">
+          <div className="auth-input-wrap">
+            <span className="auth-input-icon">
+              <FiLock size={15} color="#000000" />
+            </span>
 
-              <input
-                type={showConfirm ? "text" : "password"}
-                className={`input${errors.confirmPassword ? " input-error" : ""}`}
-                placeholder="Re-enter password"
-                autoComplete="new-password"
-                style={{ paddingRight: 44 }}
-                {...register("confirmPassword", {
-                  required: "Please confirm your password",
-                  validate: (value) => value === password || "Passwords do not match",
-                })}
-              />
+            <input
+              type={showConfirm ? "text" : "password"}
+              className={`input${errors.confirmPassword ? " input-error" : ""}`}
+              placeholder="Re-enter password"
+              autoComplete="new-password"
+              style={{ paddingRight: 38 }}
+              {...register("confirmPassword", {
+                required: "Confirm your password",
+                validate: (value) => value === password || "Passwords do not match",
+              })}
+            />
 
-              <button
-                type="button"
-                className="auth-input-toggle"
-                onClick={() => setShowConfirm((prev) => !prev)}
-                tabIndex={-1}
-                aria-label={showConfirm ? "Hide password" : "Show password"}
-              >
-                {showConfirm ? <FiEyeOff size={15} color="#000000" /> : <FiEye size={15} color="#000000" />}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <span className="field-error">{errors.confirmPassword.message}</span>
-            )}
-          </Field>
-        </div>
+            <button
+              type="button"
+              className="auth-input-toggle"
+              onClick={() => setShowConfirm((prev) => !prev)}
+              tabIndex={-1}
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? <FiEyeOff size={14} color="#000000" /> : <FiEye size={14} color="#000000" />}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <span className="field-error">{errors.confirmPassword.message}</span>
+          )}
+        </Field>
+
+        {/* ROW 4: Mandatory Legal & Data Terms Consent (Compact) */}
+        <AuthLegalConsentGroup
+          accepted={legalAccepted}
+          onToggle={(val) => {
+            setLegalAccepted(val);
+            if (val) setLegalError(false);
+          }}
+          showError={legalError}
+          errorMessage="Please review and accept the Terms & Conditions, Privacy Policy and Data Consent to create an account."
+          contextText="create an account"
+        />
 
         <Button
           type="submit"
-          size="lg"
+          size="md"
           className="auth-submit"
           disabled={submitting}
         >
-          <FiArrowRight size={16} strokeWidth={2.4} />
+          <FiArrowRight size={15} strokeWidth={2.4} />
           <span>{submitting ? "Creating account..." : "Create account"}</span>
         </Button>
       </form>

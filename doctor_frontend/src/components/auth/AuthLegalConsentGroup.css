@@ -1,0 +1,147 @@
+/* ==========================================================
+   Modern Minimal Auth Legal Consent Row - Glassy Transparent Effect
+========================================================== */
+
+.auth-legal-consent-group {
+  margin: 6px 0 8px 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 12px;
+  box-sizing: border-box;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.20);
+  transition: all 0.2s ease;
+}
+
+.auth-legal-consent-group.has-error {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  animation: legalShake 0.3s ease-in-out;
+}
+
+@keyframes legalShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+/* Checkbox Row */
+.auth-legal-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-legal-native-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.auth-legal-custom-checkbox {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5px;
+  transition: all 0.15s ease;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.auth-check-icon {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.15s ease;
+}
+
+.auth-legal-native-checkbox:checked + .auth-legal-custom-checkbox {
+  background: #3944df;
+  border-color: #3944df;
+}
+
+.auth-legal-native-checkbox:checked + .auth-legal-custom-checkbox .auth-check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.auth-legal-label-text {
+  font-size: 11.5px;
+  color: #ffffff;
+  line-height: 1.35;
+  letter-spacing: -0.1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.auth-legal-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: #c7d2fe;
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2.5px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.auth-legal-link:hover {
+  color: #ffffff;
+}
+
+/* Clean Sub-Row with Secondary Trigger to open popup */
+.auth-legal-sub-bar {
+  margin-top: 3px;
+  padding-left: 23px;
+  display: flex;
+  align-items: center;
+}
+
+.auth-legal-view-details-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c7d2fe;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.auth-legal-view-details-btn:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.auth-legal-error-alert {
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

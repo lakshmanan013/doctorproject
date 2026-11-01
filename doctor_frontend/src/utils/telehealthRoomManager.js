@@ -166,7 +166,7 @@ export function setRoomMetadata(roomCode, metadata = {}) {
         ...metadata,
       })
     );
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /**
@@ -253,11 +253,12 @@ export function autoRegenerateDoctorRoom(doctorName = "dr-vasanth", oldCode = nu
  */
 export function getAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
   if (!appt || !appt.id) return getDoctorActiveRoom(doctorName);
+  try { localStorage.removeItem(`${STORAGE_APPT_ROOM_PREFIX}${appt.id}`); } catch (_e) { }
 
   // 1. Direct room code on appointment object (from database or sync)
   if (appt.roomCode || appt.room_code) {
     const directCode = appt.roomCode || appt.room_code;
-    return directCode;
+    if (directCode && !directCode.startsWith("appt-")) return directCode;
   }
 
   // 2. Parse from meeting_link or meetingLink URL
@@ -265,7 +266,8 @@ export function getAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
   if (link && link.includes("/rooms/")) {
     const parts = link.split("/rooms/");
     if (parts[1]) {
-      return decodeURIComponent(parts[1].split("?")[0].split("#")[0].trim());
+      const parsed = decodeURIComponent(parts[1].split("?")[0].split("#")[0].trim());
+      if (parsed && !parsed.startsWith("appt-")) return parsed;
     }
   }
 
@@ -276,17 +278,18 @@ export function getAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
 
 function _legacyGetAppointmentRoomCode(appt, doctorName = "dr-vasanth") {
   if (!appt || !appt.id) return getDoctorActiveRoom(doctorName);
+  try { localStorage.removeItem(`${STORAGE_APPT_ROOM_PREFIX}${appt.id}`); } catch (_e) { }
 
   if (appt.roomCode || appt.room_code) {
     const directCode = appt.roomCode || appt.room_code;
-    return directCode;
+    if (directCode && !directCode.startsWith("appt-")) return directCode;
   }
   const key = `${STORAGE_APPT_ROOM_PREFIX}${appt.id}`;
   let code = localStorage.getItem(key);
 
   if (!code || isRoomExpired(code)) {
     const slug = getDoctorSlug(doctorName);
-    code = `appt-${appt.id}-${slug}-${generateUniqueRoomId()}`;
+    code = `ZenveTelehealth-${appt.doctorId || appt.doctor_id || 1}-${appt.id}`;
     localStorage.setItem(key, code);
 
     setRoomMetadata(code, {
@@ -326,7 +329,7 @@ export function markAppointmentRoomCompleted(appt, roomCode, sessionDetails = {}
   if (appt?.id) {
     // Generate fresh room token for this appointment slot if needed
     const slug = getDoctorSlug(sessionDetails.doctorName);
-    const newCode = `appt-${appt.id}-${slug}-${generateUniqueRoomId()}`;
+    const newCode = `ZenveTelehealth-${appt.doctorId || appt.doctor_id || 1}-${appt.id}`;
     localStorage.setItem(`${STORAGE_APPT_ROOM_PREFIX}${appt.id}`, newCode);
   }
 
@@ -343,10 +346,29 @@ export function markAppointmentRoomCompleted(appt, roomCode, sessionDetails = {}
  * Build absolute public meeting link for pet owner
  */
 export function buildMeetingUrl(roomCode) {
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "http://localhost:5173";
+  const envUrl =
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.VITE_PUBLIC_APP_URL ||
+        import.meta.env?.VITE_APP_URL ||
+        import.meta.env?.VITE_PUBLIC_URL)) ||
+    "";
+
+  let origin = "";
+  if (envUrl) {
+    origin = envUrl.replace(/\/+$/, "");
+  } else if (
+    typeof window !== "undefined" &&
+    window.location?.origin &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1" &&
+    !window.location.hostname.endsWith(".local")
+  ) {
+    origin = window.location.origin;
+  } else {
+    // Production doctor portal domain where PetParentRoom is served
+    origin = "https://doctor.zenvevet.com";
+  }
+
   return `${origin}/join-call/${encodeURIComponent(roomCode || "ZenveRoom")}`;
 }
 

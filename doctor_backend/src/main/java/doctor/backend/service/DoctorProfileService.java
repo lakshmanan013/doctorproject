@@ -46,28 +46,33 @@ public class DoctorProfileService {
         if (user != null) {
             boolean updated = false;
 
-            if ((profile.getProfileImage() == null || profile.getProfileImage().isBlank()) && user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+            if ((profile.getProfileImage() == null || profile.getProfileImage().isBlank())
+                    && user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
                 profile.setProfileImage(user.getProfileImage());
                 updated = true;
             }
-            if ((profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()) && user.getClinicInsideImage() != null && !user.getClinicInsideImage().isBlank()) {
+            if ((profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank())
+                    && user.getClinicInsideImage() != null && !user.getClinicInsideImage().isBlank()) {
                 profile.setClinicInsideImage(user.getClinicInsideImage());
                 updated = true;
             }
-            if ((profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()) && user.getClinicOutsideImage() != null && !user.getClinicOutsideImage().isBlank()) {
+            if ((profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank())
+                    && user.getClinicOutsideImage() != null && !user.getClinicOutsideImage().isBlank()) {
                 profile.setClinicOutsideImage(user.getClinicOutsideImage());
                 updated = true;
             }
-            if ((profile.getDigitalSignatureImage() == null || profile.getDigitalSignatureImage().isBlank()) && user.getDigitalSignatureImage() != null && !user.getDigitalSignatureImage().isBlank()) {
+            if ((profile.getDigitalSignatureImage() == null || profile.getDigitalSignatureImage().isBlank())
+                    && user.getDigitalSignatureImage() != null && !user.getDigitalSignatureImage().isBlank()) {
                 profile.setDigitalSignatureImage(user.getDigitalSignatureImage());
                 updated = true;
             }
-            if ((profile.getSecondarySignatureImage() == null || profile.getSecondarySignatureImage().isBlank()) && user.getSecondarySignatureImage() != null && !user.getSecondarySignatureImage().isBlank()) {
+            if ((profile.getSecondarySignatureImage() == null || profile.getSecondarySignatureImage().isBlank())
+                    && user.getSecondarySignatureImage() != null && !user.getSecondarySignatureImage().isBlank()) {
                 profile.setSecondarySignatureImage(user.getSecondarySignatureImage());
                 updated = true;
             }
 
-            // If still missing clinic images, import directly from Zippy CRM pet_management DB
+            // If still missing clinic images, import directly from Zippy CRM DB
             if (profile.getClinicInsideImage() == null || profile.getClinicInsideImage().isBlank()
                     || profile.getClinicOutsideImage() == null || profile.getClinicOutsideImage().isBlank()) {
                 zippyCrmSyncService.importDoctorImagesFromZippy(user, profile);
@@ -188,8 +193,7 @@ public class DoctorProfileService {
                         saved.getArea(),
                         saved.getCity(),
                         saved.getPincode(),
-                        saved.getProfileImage()
-                );
+                        saved.getProfileImage());
             });
         } catch (Exception ignored) {
         }
@@ -198,7 +202,8 @@ public class DoctorProfileService {
     }
 
     public DoctorProfile updateDoctorImages(DoctorImageSyncRequest req) {
-        if (req == null) return null;
+        if (req == null)
+            return null;
 
         User doctor = null;
         if (req.getEmail() != null && !req.getEmail().isBlank()) {
@@ -276,8 +281,7 @@ public class DoctorProfileService {
                     savedProfile.getArea(),
                     savedProfile.getCity(),
                     savedProfile.getPincode(),
-                    savedProfile.getProfileImage()
-            );
+                    savedProfile.getProfileImage());
         } catch (Exception ignored) {
         }
 

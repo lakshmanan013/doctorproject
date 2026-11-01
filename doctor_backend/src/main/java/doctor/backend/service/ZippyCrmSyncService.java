@@ -69,12 +69,16 @@ public class ZippyCrmSyncService {
             return;
         }
 
-        try {
-            cleanupLegacyCommerceData();
-            syncAll();
-        } catch (Exception e) {
-            log.warn("Could not perform initial sync to Zippy CRM: {}", e.getMessage());
-        }
+        // Run sync asynchronously in the background so Spring Boot startup and HTTP requests are not blocked
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(1500);
+                cleanupLegacyCommerceData();
+                syncAll();
+            } catch (Exception e) {
+                log.warn("Could not perform initial background sync to Zippy CRM: {}", e.getMessage());
+            }
+        });
     }
 
     private void cleanupLegacyCommerceData() {
@@ -83,9 +87,11 @@ public class ZippyCrmSyncService {
             stmt.executeUpdate("DELETE FROM payments WHERE order_id IS NOT NULL");
             stmt.executeUpdate("DELETE FROM order_items");
             stmt.executeUpdate("DELETE FROM orders");
-            stmt.executeUpdate("DELETE FROM seller_stores WHERE business_name LIKE 'Zenve%' OR business_name = 'Zenve Doctor Clinic'");
+            stmt.executeUpdate(
+                    "DELETE FROM seller_stores WHERE business_name LIKE 'Zenve%' OR business_name = 'Zenve Doctor Clinic'");
             stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
-            log.info("Cleaned up legacy commerce orders and payments from Zippy CRM pet_management database.");
+            log.info("Cleaned up legacy commerce orders and payments from Zippy CRM {} database.",
+                    properties.getDatabaseName());
         } catch (Exception e) {
             log.warn("Could not clean legacy commerce tables in Zippy CRM: {}", e.getMessage());
         }
@@ -96,7 +102,7 @@ public class ZippyCrmSyncService {
             return;
         }
 
-        log.info("Starting comprehensive sync of Doctor Portal to Zippy CRM (pet_management)...");
+        log.info("Starting comprehensive sync of Doctor Portal to Zippy CRM ({})...", properties.getDatabaseName());
 
         // 0. Import Products from Zippy CRM into Doctor Website Inventory
         try {
@@ -181,8 +187,6 @@ public class ZippyCrmSyncService {
             log.warn("Error syncing medical records to Zippy CRM: {}", e.getMessage());
         }
 
-
-
         // 10. Sync Vaccinations
         try {
             List<Vaccination> vaccinations = vaccinationRepository.findAll();
@@ -257,7 +261,8 @@ public class ZippyCrmSyncService {
         };
     }
 
-    public Integer getOrCreateZippyDoctorId(Connection conn, User user, DoctorProfile profile, String verificationStatus)
+    public Integer getOrCreateZippyDoctorId(Connection conn, User user, DoctorProfile profile,
+            String verificationStatus)
             throws SQLException {
         if (user == null)
             return null;
@@ -267,14 +272,16 @@ public class ZippyCrmSyncService {
             currentProfile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
         }
 
-        String phone = (currentProfile != null && currentProfile.getPhone() != null && !currentProfile.getPhone().isBlank())
-                ? currentProfile.getPhone().trim()
-                : (user.getPhone() != null ? user.getPhone().trim() : "");
+        String phone = (currentProfile != null && currentProfile.getPhone() != null
+                && !currentProfile.getPhone().isBlank())
+                        ? currentProfile.getPhone().trim()
+                        : (user.getPhone() != null ? user.getPhone().trim() : "");
 
-        String name = (currentProfile != null && currentProfile.getFullName() != null && !currentProfile.getFullName().isBlank())
-                ? currentProfile.getFullName().trim()
-                : (user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName().trim()
-                        : "Dr. Unknown");
+        String name = (currentProfile != null && currentProfile.getFullName() != null
+                && !currentProfile.getFullName().isBlank())
+                        ? currentProfile.getFullName().trim()
+                        : (user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName().trim()
+                                : "Dr. Unknown");
         String userName = (user.getFullName() != null && !user.getFullName().isBlank()) ? user.getFullName().trim()
                 : "";
         String userPhone = (user.getPhone() != null && !user.getPhone().isBlank()) ? user.getPhone().trim() : "";
@@ -290,20 +297,23 @@ public class ZippyCrmSyncService {
                         ? currentProfile.getSpeciality().trim()
                         : "Veterinarian";
 
-        String city = (currentProfile != null && currentProfile.getCity() != null && !currentProfile.getCity().isBlank())
-                ? currentProfile.getCity().trim()
-                : ((currentProfile != null && currentProfile.getClinicHospital() != null
-                        && !currentProfile.getClinicHospital().isBlank())
-                                ? currentProfile.getClinicHospital().trim()
-                                : "Bangalore");
+        String city = (currentProfile != null && currentProfile.getCity() != null
+                && !currentProfile.getCity().isBlank())
+                        ? currentProfile.getCity().trim()
+                        : ((currentProfile != null && currentProfile.getClinicHospital() != null
+                                && !currentProfile.getClinicHospital().isBlank())
+                                        ? currentProfile.getClinicHospital().trim()
+                                        : "Bangalore");
 
-        String area = (currentProfile != null && currentProfile.getArea() != null && !currentProfile.getArea().isBlank())
-                ? currentProfile.getArea().trim()
-                : "";
+        String area = (currentProfile != null && currentProfile.getArea() != null
+                && !currentProfile.getArea().isBlank())
+                        ? currentProfile.getArea().trim()
+                        : "";
 
-        String councilRegistration = (currentProfile != null && currentProfile.getCouncilRegistration() != null && !currentProfile.getCouncilRegistration().isBlank())
-                ? currentProfile.getCouncilRegistration().trim()
-                : "";
+        String councilRegistration = (currentProfile != null && currentProfile.getCouncilRegistration() != null
+                && !currentProfile.getCouncilRegistration().isBlank())
+                        ? currentProfile.getCouncilRegistration().trim()
+                        : "";
 
         int pincode = (currentProfile != null && currentProfile.getPincode() != null)
                 ? currentProfile.getPincode()
@@ -325,15 +335,18 @@ public class ZippyCrmSyncService {
                 ? currentProfile.getSlotLength()
                 : 15;
 
-        boolean videoConsultationEnabled = currentProfile != null && Boolean.TRUE.equals(currentProfile.getVideoConsultationEnabled());
+        boolean videoConsultationEnabled = currentProfile != null
+                && Boolean.TRUE.equals(currentProfile.getVideoConsultationEnabled());
 
-        String digitalSignatureName = (currentProfile != null && currentProfile.getDigitalSignatureName() != null && !currentProfile.getDigitalSignatureName().isBlank())
-                ? currentProfile.getDigitalSignatureName().trim()
-                : "";
+        String digitalSignatureName = (currentProfile != null && currentProfile.getDigitalSignatureName() != null
+                && !currentProfile.getDigitalSignatureName().isBlank())
+                        ? currentProfile.getDigitalSignatureName().trim()
+                        : "";
 
-        String secondarySignatureName = (currentProfile != null && currentProfile.getSecondarySignatureName() != null && !currentProfile.getSecondarySignatureName().isBlank())
-                ? currentProfile.getSecondarySignatureName().trim()
-                : "";
+        String secondarySignatureName = (currentProfile != null && currentProfile.getSecondarySignatureName() != null
+                && !currentProfile.getSecondarySignatureName().isBlank())
+                        ? currentProfile.getSecondarySignatureName().trim()
+                        : "";
 
         boolean vetRegVerified = currentProfile != null && currentProfile.isVeterinaryRegistrationVerified();
         boolean kycVerified = currentProfile != null && currentProfile.isKycVerified();
@@ -348,17 +361,20 @@ public class ZippyCrmSyncService {
         String userLast10 = userDigitsOnly.length() >= 10 ? userDigitsOnly.substring(userDigitsOnly.length() - 10)
                 : userDigitsOnly;
 
-        String clinicName = (currentProfile != null && currentProfile.getClinicHospital() != null && !currentProfile.getClinicHospital().isBlank())
-                ? currentProfile.getClinicHospital().trim()
-                : "";
+        String clinicName = (currentProfile != null && currentProfile.getClinicHospital() != null
+                && !currentProfile.getClinicHospital().isBlank())
+                        ? currentProfile.getClinicHospital().trim()
+                        : "";
 
-        String clinicPhone = (currentProfile != null && currentProfile.getClinicPhone() != null && !currentProfile.getClinicPhone().isBlank())
-                ? currentProfile.getClinicPhone().trim()
-                : "";
+        String clinicPhone = (currentProfile != null && currentProfile.getClinicPhone() != null
+                && !currentProfile.getClinicPhone().isBlank())
+                        ? currentProfile.getClinicPhone().trim()
+                        : "";
 
-        String facilityType = (currentProfile != null && currentProfile.getFacilityType() != null && !currentProfile.getFacilityType().isBlank())
-                ? currentProfile.getFacilityType().trim()
-                : "Clinic";
+        String facilityType = (currentProfile != null && currentProfile.getFacilityType() != null
+                && !currentProfile.getFacilityType().isBlank())
+                        ? currentProfile.getFacilityType().trim()
+                        : "Clinic";
 
         String selectSql = "SELECT id, profile_image, signature_image, clinic_inside_image, clinic_outside_image, "
                 + "clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, "
@@ -391,47 +407,60 @@ public class ZippyCrmSyncService {
                         zippyInsideImg = rs.getString("clinic_inside_image");
                         zippyOutsideImg = rs.getString("clinic_outside_image");
                         zippyClinic = rs.getString("clinic_name");
-                        if (zippyClinic == null || zippyClinic.isBlank()) zippyClinic = rs.getString("clinic_hospital");
+                        if (zippyClinic == null || zippyClinic.isBlank())
+                            zippyClinic = rs.getString("clinic_hospital");
                         zippyPhone = rs.getString("clinic_phone");
-                        if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
+                        if (zippyPhone == null || zippyPhone.isBlank())
+                            zippyPhone = rs.getString("hospital_phone");
                         zippyFacility = rs.getString("facility_type");
-                        
+
                         String zArea = rs.getString("area");
-                        if (zArea != null && !zArea.isBlank() && (currentProfile != null && (currentProfile.getArea() == null || currentProfile.getArea().isBlank()))) {
+                        if (zArea != null && !zArea.isBlank() && (currentProfile != null
+                                && (currentProfile.getArea() == null || currentProfile.getArea().isBlank()))) {
                             currentProfile.setArea(zArea);
                         }
                         String zCouncil = rs.getString("council_registration");
-                        if (zCouncil != null && !zCouncil.isBlank() && (currentProfile != null && (currentProfile.getCouncilRegistration() == null || currentProfile.getCouncilRegistration().isBlank()))) {
+                        if (zCouncil != null && !zCouncil.isBlank()
+                                && (currentProfile != null && (currentProfile.getCouncilRegistration() == null
+                                        || currentProfile.getCouncilRegistration().isBlank()))) {
                             currentProfile.setCouncilRegistration(zCouncil);
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             }
         }
 
-        // Bi-directional synchronization: if Zippy has clinic / images but DoctorProfile in doctortest doesn't, import them!
+        // Bi-directional synchronization: if Zippy has clinic / images but
+        // DoctorProfile in Doctor CRM doesn't, import them!
         boolean imported = false;
         if (currentProfile != null) {
-            // Profile image & digital signatures must ONLY be set when explicitly uploaded by the doctor, never auto-imported.
-            if (zippyInsideImg != null && !zippyInsideImg.isBlank() && (currentProfile.getClinicInsideImage() == null || currentProfile.getClinicInsideImage().isBlank())) {
+            // Profile image & digital signatures must ONLY be set when explicitly uploaded
+            // by the doctor, never auto-imported.
+            if (zippyInsideImg != null && !zippyInsideImg.isBlank() && (currentProfile.getClinicInsideImage() == null
+                    || currentProfile.getClinicInsideImage().isBlank())) {
                 currentProfile.setClinicInsideImage(zippyInsideImg);
                 user.setClinicInsideImage(zippyInsideImg);
                 imported = true;
             }
-            if (zippyOutsideImg != null && !zippyOutsideImg.isBlank() && (currentProfile.getClinicOutsideImage() == null || currentProfile.getClinicOutsideImage().isBlank())) {
+            if (zippyOutsideImg != null && !zippyOutsideImg.isBlank() && (currentProfile.getClinicOutsideImage() == null
+                    || currentProfile.getClinicOutsideImage().isBlank())) {
                 currentProfile.setClinicOutsideImage(zippyOutsideImg);
                 user.setClinicOutsideImage(zippyOutsideImg);
                 imported = true;
             }
-            if (zippyClinic != null && !zippyClinic.isBlank() && (currentProfile.getClinicHospital() == null || currentProfile.getClinicHospital().isBlank())) {
+            if (zippyClinic != null && !zippyClinic.isBlank()
+                    && (currentProfile.getClinicHospital() == null || currentProfile.getClinicHospital().isBlank())) {
                 currentProfile.setClinicHospital(zippyClinic);
                 imported = true;
             }
-            if (zippyPhone != null && !zippyPhone.isBlank() && (currentProfile.getClinicPhone() == null || currentProfile.getClinicPhone().isBlank())) {
+            if (zippyPhone != null && !zippyPhone.isBlank()
+                    && (currentProfile.getClinicPhone() == null || currentProfile.getClinicPhone().isBlank())) {
                 currentProfile.setClinicPhone(zippyPhone);
                 imported = true;
             }
-            if (zippyFacility != null && !zippyFacility.isBlank() && (currentProfile.getFacilityType() == null || currentProfile.getFacilityType().isBlank())) {
+            if (zippyFacility != null && !zippyFacility.isBlank()
+                    && (currentProfile.getFacilityType() == null || currentProfile.getFacilityType().isBlank())) {
                 currentProfile.setFacilityType(zippyFacility);
                 imported = true;
             }
@@ -441,11 +470,21 @@ public class ZippyCrmSyncService {
             }
         }
 
-        String profImgToSend = currentProfile != null && currentProfile.getProfileImage() != null ? currentProfile.getProfileImage() : user.getProfileImage();
-        String sigImgToSend = currentProfile != null && currentProfile.getDigitalSignatureImage() != null ? currentProfile.getDigitalSignatureImage() : user.getDigitalSignatureImage();
-        String secSigImgToSend = currentProfile != null && currentProfile.getSecondarySignatureImage() != null ? currentProfile.getSecondarySignatureImage() : user.getSecondarySignatureImage();
-        String insideImgToSend = currentProfile != null && currentProfile.getClinicInsideImage() != null ? currentProfile.getClinicInsideImage() : user.getClinicInsideImage();
-        String outsideImgToSend = currentProfile != null && currentProfile.getClinicOutsideImage() != null ? currentProfile.getClinicOutsideImage() : user.getClinicOutsideImage();
+        String profImgToSend = currentProfile != null && currentProfile.getProfileImage() != null
+                ? currentProfile.getProfileImage()
+                : user.getProfileImage();
+        String sigImgToSend = currentProfile != null && currentProfile.getDigitalSignatureImage() != null
+                ? currentProfile.getDigitalSignatureImage()
+                : user.getDigitalSignatureImage();
+        String secSigImgToSend = currentProfile != null && currentProfile.getSecondarySignatureImage() != null
+                ? currentProfile.getSecondarySignatureImage()
+                : user.getSecondarySignatureImage();
+        String insideImgToSend = currentProfile != null && currentProfile.getClinicInsideImage() != null
+                ? currentProfile.getClinicInsideImage()
+                : user.getClinicInsideImage();
+        String outsideImgToSend = currentProfile != null && currentProfile.getClinicOutsideImage() != null
+                ? currentProfile.getClinicOutsideImage()
+                : user.getClinicOutsideImage();
 
         if (existingId != null) {
             String updateSql = "UPDATE doctors SET name = ?, qualification = ?, specializations = ?, phone = ?, "
@@ -550,7 +589,8 @@ public class ZippyCrmSyncService {
     }
 
     public void syncAllClinicsHospitals() {
-        if (!properties.isEnabled()) return;
+        if (!properties.isEnabled())
+            return;
         try (Connection conn = getConnection()) {
             ensureClinicHospitalTable(conn);
 
@@ -559,21 +599,26 @@ public class ZippyCrmSyncService {
             for (DoctorProfile p : profiles) {
                 String cName = p.getClinicHospital();
                 if (cName != null && !cName.isBlank()) {
-                    String phone = (p.getClinicPhone() != null && !p.getClinicPhone().isBlank()) ? p.getClinicPhone() : p.getPhone();
+                    String phone = (p.getClinicPhone() != null && !p.getClinicPhone().isBlank()) ? p.getClinicPhone()
+                            : p.getPhone();
                     syncClinicHospital(conn, cName, phone, p.getFacilityType());
                 }
             }
 
             // 2. Scan distinct clinics from Zippy CRM doctors table
             try (Statement st = conn.createStatement();
-                 ResultSet rs = st.executeQuery("SELECT DISTINCT clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, phone FROM doctors "
-                         + "WHERE (clinic_name IS NOT NULL AND clinic_name != '') OR (clinic_hospital IS NOT NULL AND clinic_hospital != '')")) {
+                    ResultSet rs = st.executeQuery(
+                            "SELECT DISTINCT clinic_name, clinic_hospital, clinic_phone, hospital_phone, facility_type, phone FROM doctors "
+                                    + "WHERE (clinic_name IS NOT NULL AND clinic_name != '') OR (clinic_hospital IS NOT NULL AND clinic_hospital != '')")) {
                 while (rs.next()) {
                     String cName = rs.getString("clinic_name");
-                    if (cName == null || cName.isBlank()) cName = rs.getString("clinic_hospital");
+                    if (cName == null || cName.isBlank())
+                        cName = rs.getString("clinic_hospital");
                     String cPhone = rs.getString("clinic_phone");
-                    if (cPhone == null || cPhone.isBlank()) cPhone = rs.getString("hospital_phone");
-                    if (cPhone == null || cPhone.isBlank()) cPhone = rs.getString("phone");
+                    if (cPhone == null || cPhone.isBlank())
+                        cPhone = rs.getString("hospital_phone");
+                    if (cPhone == null || cPhone.isBlank())
+                        cPhone = rs.getString("phone");
                     String fType = rs.getString("facility_type");
                     if (cName != null && !cName.isBlank()) {
                         syncClinicHospital(conn, cName, cPhone, fType);
@@ -583,18 +628,21 @@ public class ZippyCrmSyncService {
                 log.warn("Could not query doctors for clinics in Zippy CRM: {}", e.getMessage());
             }
 
-            // 3. If clinics_hospitals is still completely empty, seed with starter clinics so the CRM table is populated
+            // 3. If clinics_hospitals is still completely empty, seed with starter clinics
+            // so the CRM table is populated
             boolean hasAny = false;
             try (Statement st = conn.createStatement();
-                 ResultSet rs = st.executeQuery("SELECT id FROM clinics_hospitals LIMIT 1")) {
-                if (rs.next()) hasAny = true;
-            } catch (Exception ignored) {}
+                    ResultSet rs = st.executeQuery("SELECT id FROM clinics_hospitals LIMIT 1")) {
+                if (rs.next())
+                    hasAny = true;
+            } catch (Exception ignored) {
+            }
 
             if (!hasAny) {
                 String[][] defaults = {
-                    {"Zenve Central Veterinary Hospital", "Hospital", "+91 98765 43210"},
-                    {"City Pet Care Clinic", "Clinic", "+91 98765 12345"},
-                    {"Cessna Lifeline Veterinary Center", "Specialty Referral Center", "+91 80 4112 3456"}
+                        { "Zenve Central Veterinary Hospital", "Hospital", "+91 98765 43210" },
+                        { "City Pet Care Clinic", "Clinic", "+91 98765 12345" },
+                        { "Cessna Lifeline Veterinary Center", "Specialty Referral Center", "+91 80 4112 3456" }
                 };
                 for (String[] def : defaults) {
                     syncClinicHospital(conn, def[0], def[2], def[1]);
@@ -634,7 +682,8 @@ public class ZippyCrmSyncService {
             Integer existingClinicId = null;
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                 checkStmt.setString(1, clinicName.trim());
-                checkStmt.setString(2, (clinicPhone != null && !clinicPhone.isBlank()) ? clinicPhone.trim() : "__none__");
+                checkStmt.setString(2,
+                        (clinicPhone != null && !clinicPhone.isBlank()) ? clinicPhone.trim() : "__none__");
                 try (ResultSet rs = checkStmt.executeQuery()) {
                     if (rs.next()) {
                         existingClinicId = rs.getInt("id");
@@ -666,7 +715,8 @@ public class ZippyCrmSyncService {
                     insertStmt.executeUpdate();
                 }
             }
-            log.info("Synced clinic '{}' with facility type '{}' and phone '{}' to clinics_hospitals in Zippy CRM", clinicName, facility, phone);
+            log.info("Synced clinic '{}' with facility type '{}' and phone '{}' to clinics_hospitals in Zippy CRM",
+                    clinicName, facility, phone);
         } catch (Exception e) {
             log.warn("Could not sync clinic to clinics_hospitals in Zippy CRM: {}", e.getMessage());
         }
@@ -674,30 +724,83 @@ public class ZippyCrmSyncService {
 
     private void ensureDoctorColumns(Connection conn) {
         try (Statement stmt = conn.createStatement()) {
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_hospital VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN hospital_phone VARCHAR(50) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN facility_type VARCHAR(100) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN area VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN council_registration VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN follow_up_fee DOUBLE NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN slot_length INT NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN video_consultation_enabled BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_name VARCHAR(255) NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_image LONGTEXT NULL"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN veterinary_registration_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN kyc_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
-            try { stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN state_council_sync_verified BOOLEAN DEFAULT FALSE"); } catch (Exception ignored) {}
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_name VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_hospital VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN clinic_phone VARCHAR(50) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN hospital_phone VARCHAR(50) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN facility_type VARCHAR(100) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN area VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN council_registration VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN follow_up_fee DOUBLE NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN slot_length INT NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN video_consultation_enabled BOOLEAN DEFAULT FALSE");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_name VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_name VARCHAR(255) NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN secondary_signature_image LONGTEXT NULL");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate(
+                        "ALTER TABLE doctors ADD COLUMN veterinary_registration_verified BOOLEAN DEFAULT FALSE");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN kyc_verified BOOLEAN DEFAULT FALSE");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN digital_signature_verified BOOLEAN DEFAULT FALSE");
+            } catch (Exception ignored) {
+            }
+            try {
+                stmt.executeUpdate("ALTER TABLE doctors ADD COLUMN state_council_sync_verified BOOLEAN DEFAULT FALSE");
+            } catch (Exception ignored) {
+            }
         } catch (Exception e) {
             log.warn("Could not alter doctors table in Zippy CRM: {}", e.getMessage());
         }
     }
 
     public void importDoctorImagesFromZippy(User user, DoctorProfile profile) {
-        if (user == null || !properties.isEnabled()) return;
+        if (user == null || !properties.isEnabled())
+            return;
         try (Connection conn = getConnection()) {
             String phone = (profile != null && profile.getPhone() != null && !profile.getPhone().isBlank())
                     ? profile.getPhone().trim()
@@ -724,30 +827,38 @@ public class ZippyCrmSyncService {
                             insideImg = rs.getString("clinic_inside_image");
                             outsideImg = rs.getString("clinic_outside_image");
                             zippyClinic = rs.getString("clinic_name");
-                            if (zippyClinic == null || zippyClinic.isBlank()) zippyClinic = rs.getString("clinic_hospital");
+                            if (zippyClinic == null || zippyClinic.isBlank())
+                                zippyClinic = rs.getString("clinic_hospital");
                             zippyPhone = rs.getString("clinic_phone");
-                            if (zippyPhone == null || zippyPhone.isBlank()) zippyPhone = rs.getString("hospital_phone");
+                            if (zippyPhone == null || zippyPhone.isBlank())
+                                zippyPhone = rs.getString("hospital_phone");
                             zippyFacility = rs.getString("facility_type");
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
 
-            // Also check doctor_documents in pet_management if clinic image is still null
+            // Also check doctor_documents in Zippy CRM DB if clinic image is still null
             if (docId != null && (insideImg == null || outsideImg == null)) {
                 String docSql = "SELECT document_type, file_data, content_type FROM doctor_documents WHERE doctor_id = ?";
                 try (PreparedStatement psDoc = conn.prepareStatement(docSql)) {
                     psDoc.setInt(1, docId);
                     try (ResultSet rsDoc = psDoc.executeQuery()) {
                         while (rsDoc.next()) {
-                            String dtype = rsDoc.getString("document_type") != null ? rsDoc.getString("document_type").toLowerCase() : "";
+                            String dtype = rsDoc.getString("document_type") != null
+                                    ? rsDoc.getString("document_type").toLowerCase()
+                                    : "";
                             byte[] bytes = rsDoc.getBytes("file_data");
                             String ctype = rsDoc.getString("content_type");
                             if (bytes != null && bytes.length > 0) {
                                 String mime = (ctype != null && ctype.contains("image")) ? ctype : "image/jpeg";
-                                String b64 = "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
-                                if (dtype.contains("inside") && insideImg == null) insideImg = b64;
-                                else if (dtype.contains("outside") && outsideImg == null) outsideImg = b64;
+                                String b64 = "data:" + mime + ";base64,"
+                                        + java.util.Base64.getEncoder().encodeToString(bytes);
+                                if (dtype.contains("inside") && insideImg == null)
+                                    insideImg = b64;
+                                else if (dtype.contains("outside") && outsideImg == null)
+                                    outsideImg = b64;
                             }
                         }
                     }
@@ -755,32 +866,39 @@ public class ZippyCrmSyncService {
             }
 
             boolean updated = false;
-            DoctorProfile prof = profile != null ? profile : doctorProfileRepository.findByUserId(user.getId()).orElseGet(() -> {
-                DoctorProfile np = new DoctorProfile();
-                np.setUserId(user.getId());
-                return np;
-            });
+            DoctorProfile prof = profile != null ? profile
+                    : doctorProfileRepository.findByUserId(user.getId()).orElseGet(() -> {
+                        DoctorProfile np = new DoctorProfile();
+                        np.setUserId(user.getId());
+                        return np;
+                    });
 
-            // Profile image & digital signatures must ONLY be set when explicitly uploaded by the doctor, never auto-imported.
-            if (insideImg != null && !insideImg.isBlank() && (prof.getClinicInsideImage() == null || prof.getClinicInsideImage().isBlank())) {
+            // Profile image & digital signatures must ONLY be set when explicitly uploaded
+            // by the doctor, never auto-imported.
+            if (insideImg != null && !insideImg.isBlank()
+                    && (prof.getClinicInsideImage() == null || prof.getClinicInsideImage().isBlank())) {
                 prof.setClinicInsideImage(insideImg);
                 user.setClinicInsideImage(insideImg);
                 updated = true;
             }
-            if (outsideImg != null && !outsideImg.isBlank() && (prof.getClinicOutsideImage() == null || prof.getClinicOutsideImage().isBlank())) {
+            if (outsideImg != null && !outsideImg.isBlank()
+                    && (prof.getClinicOutsideImage() == null || prof.getClinicOutsideImage().isBlank())) {
                 prof.setClinicOutsideImage(outsideImg);
                 user.setClinicOutsideImage(outsideImg);
                 updated = true;
             }
-            if (zippyClinic != null && !zippyClinic.isBlank() && (prof.getClinicHospital() == null || prof.getClinicHospital().isBlank())) {
+            if (zippyClinic != null && !zippyClinic.isBlank()
+                    && (prof.getClinicHospital() == null || prof.getClinicHospital().isBlank())) {
                 prof.setClinicHospital(zippyClinic);
                 updated = true;
             }
-            if (zippyPhone != null && !zippyPhone.isBlank() && (prof.getClinicPhone() == null || prof.getClinicPhone().isBlank())) {
+            if (zippyPhone != null && !zippyPhone.isBlank()
+                    && (prof.getClinicPhone() == null || prof.getClinicPhone().isBlank())) {
                 prof.setClinicPhone(zippyPhone);
                 updated = true;
             }
-            if (zippyFacility != null && !zippyFacility.isBlank() && (prof.getFacilityType() == null || prof.getFacilityType().isBlank())) {
+            if (zippyFacility != null && !zippyFacility.isBlank()
+                    && (prof.getFacilityType() == null || prof.getFacilityType().isBlank())) {
                 prof.setFacilityType(zippyFacility);
                 updated = true;
             }
@@ -788,7 +906,8 @@ public class ZippyCrmSyncService {
             if (updated) {
                 userRepository.save(user);
                 doctorProfileRepository.save(prof);
-                log.info("Successfully imported images from Zippy CRM pet_management into doctortest for {}", user.getEmail());
+                log.info("Successfully imported images from Zippy CRM {} into Doctor CRM for {}",
+                        properties.getDatabaseName(), user.getEmail());
             }
         } catch (Exception e) {
             log.warn("Failed to import doctor images from Zippy CRM: {}", e.getMessage());
@@ -905,10 +1024,12 @@ public class ZippyCrmSyncService {
                         parentId = rs.getInt("id");
                     } else {
                         String insertParent = "INSERT INTO pet_parents (full_name, email, phone, city, created_at) VALUES ('Default Pet Parent', 'petparent@zenve.vet', '9876543210', 'Bangalore', NOW())";
-                        try (PreparedStatement ps = conn.prepareStatement(insertParent, Statement.RETURN_GENERATED_KEYS)) {
+                        try (PreparedStatement ps = conn.prepareStatement(insertParent,
+                                Statement.RETURN_GENERATED_KEYS)) {
                             ps.executeUpdate();
                             try (ResultSet prs = ps.getGeneratedKeys()) {
-                                if (prs.next()) parentId = prs.getInt(1);
+                                if (prs.next())
+                                    parentId = prs.getInt(1);
                             }
                         }
                     }
@@ -1078,10 +1199,12 @@ public class ZippyCrmSyncService {
     private void syncConsultationForAppointment(Connection conn, int appointmentId, String mode, String diagnosis)
             throws SQLException {
         Integer existingConsultId = null;
-        try (PreparedStatement check = conn.prepareStatement("SELECT id FROM consultations WHERE appointment_id = ? LIMIT 1")) {
+        try (PreparedStatement check = conn
+                .prepareStatement("SELECT id FROM consultations WHERE appointment_id = ? LIMIT 1")) {
             check.setInt(1, appointmentId);
             try (ResultSet rs = check.executeQuery()) {
-                if (rs.next()) existingConsultId = rs.getInt("id");
+                if (rs.next())
+                    existingConsultId = rs.getInt("id");
             }
         }
 
@@ -1139,7 +1262,8 @@ public class ZippyCrmSyncService {
                 checkStmt.setInt(2, petId);
                 checkStmt.setDate(3, java.sql.Date.valueOf(validUntil));
                 try (ResultSet rs = checkStmt.executeQuery()) {
-                    if (rs.next()) existingId = rs.getInt("id");
+                    if (rs.next())
+                        existingId = rs.getInt("id");
                 }
             }
 
@@ -1167,7 +1291,8 @@ public class ZippyCrmSyncService {
                 }
             }
 
-            // Also update consultation_fee in Zippy CRM appointments table for this patient visit
+            // Also update consultation_fee in Zippy CRM appointments table for this patient
+            // visit
             double totalPrescriptionAmount = getPrescriptionTotalAmount(rx);
             String updateApptSql = "UPDATE appointments SET consultation_fee = ?, payment_status = 'Paid', status = 'Completed' WHERE pet_id = ? AND doctor_id = ? AND appointment_date = ?";
             try (PreparedStatement updateApptStmt = conn.prepareStatement(updateApptSql)) {
@@ -1274,7 +1399,8 @@ public class ZippyCrmSyncService {
                 checkStmt.setDate(2, java.sql.Date.valueOf(visitDate));
                 checkStmt.setString(3, title);
                 try (ResultSet rs = checkStmt.executeQuery()) {
-                    if (rs.next()) existingId = rs.getInt("id");
+                    if (rs.next())
+                        existingId = rs.getInt("id");
                 }
             }
 
@@ -1301,7 +1427,6 @@ public class ZippyCrmSyncService {
             log.warn("Direct DB sync to Zippy CRM medical_records failed: {}", e.getMessage());
         }
     }
-
 
     // =========================================================================
     // 7. VACCINATIONS SYNC
@@ -1330,7 +1455,8 @@ public class ZippyCrmSyncService {
                 checkStmt.setString(2, vaccineName);
                 checkStmt.setDate(3, java.sql.Date.valueOf(adminOn));
                 try (ResultSet rs = checkStmt.executeQuery()) {
-                    if (rs.next()) existingId = rs.getInt("id");
+                    if (rs.next())
+                        existingId = rs.getInt("id");
                 }
             }
 
@@ -1405,7 +1531,7 @@ public class ZippyCrmSyncService {
         try (Connection conn = getConnection()) {
             DatabaseMetaData meta = conn.getMetaData();
 
-            // 1. Check for 'products' table in Zippy CRM pet_management database
+            // 1. Check for 'products' table in Zippy CRM database
             boolean productsTableExists = false;
             try (ResultSet rs = meta.getTables(null, null, "products", null)) {
                 if (rs.next()) {
@@ -1414,7 +1540,7 @@ public class ZippyCrmSyncService {
             }
 
             if (!productsTableExists) {
-                log.info("Zippy CRM products table does not exist in pet_management database.");
+                log.info("Zippy CRM products table does not exist in {} database.", properties.getDatabaseName());
                 return;
             }
 
@@ -1435,7 +1561,7 @@ public class ZippyCrmSyncService {
             String selectSql;
             if (inventoryTableExists) {
                 selectSql = "SELECT p.*, i.available_quantity AS inv_available_quantity, i.reorder_level AS inv_reorder_level "
-                          + "FROM products p LEFT JOIN inventory i ON i.product_id = p.id";
+                        + "FROM products p LEFT JOIN inventory i ON i.product_id = p.id";
             } else {
                 selectSql = "SELECT * FROM products";
             }
@@ -1461,7 +1587,8 @@ public class ZippyCrmSyncService {
                         brand = "Zippy Pharmacy";
                     }
 
-                    String description = getStringFromRs(rs, columnNames, "description", "short_description", "details");
+                    String description = getStringFromRs(rs, columnNames, "description", "short_description",
+                            "details");
                     String dosageForm = getStringFromRs(rs, columnNames, "dosage_form", "form");
                     if (dosageForm == null || dosageForm.isBlank()) {
                         dosageForm = "Tablets";
@@ -1485,7 +1612,8 @@ public class ZippyCrmSyncService {
                             if (invStock != null) {
                                 stock = ((Number) invStock).intValue();
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                     if (stock == null) {
                         stock = getIntFromRs(rs, columnNames, "stock_quantity", "stock", "quantity", "inventory");
@@ -1501,7 +1629,8 @@ public class ZippyCrmSyncService {
                             if (invReorder != null) {
                                 reorder = ((Number) invReorder).intValue();
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                     if (reorder == null) {
                         reorder = getIntFromRs(rs, columnNames, "reorder_level", "min_stock", "alert_level");
@@ -1515,7 +1644,7 @@ public class ZippyCrmSyncService {
                         status = stock > 0 ? "Active" : "Low stock";
                     }
 
-                    // Save or update in doctortest.medicines
+                    // Save or update in doctor_crm.medicines
                     Medicine medicine = medicineRepository.findByNameIgnoreCase(name.trim()).orElseGet(() -> {
                         Medicine m = new Medicine();
                         m.setName(name.trim());
@@ -1524,9 +1653,11 @@ public class ZippyCrmSyncService {
 
                     medicine.setCategory(category.trim());
                     medicine.setManufacturer(brand.trim());
-                    if (description != null) medicine.setDescription(description.trim());
+                    if (description != null)
+                        medicine.setDescription(description.trim());
                     medicine.setDosageForm(dosageForm.trim());
-                    if (strength != null) medicine.setStrength(strength.trim());
+                    if (strength != null)
+                        medicine.setStrength(strength.trim());
                     medicine.setUnit(unit.trim());
                     medicine.setPrice(price);
                     medicine.setStockQuantity(stock);
@@ -1542,7 +1673,8 @@ public class ZippyCrmSyncService {
                             if (stock > 0) {
                                 MedicineBatch batch = new MedicineBatch();
                                 batch.setMedicine(savedMed);
-                                batch.setBatchNumber("ZIP-" + (savedMed.getId() != null ? savedMed.getId() : "001") + "-B1");
+                                batch.setBatchNumber(
+                                        "ZIP-" + (savedMed.getId() != null ? savedMed.getId() : "001") + "-B1");
                                 batch.setManufacturingDate(LocalDate.now());
                                 batch.setExpiryDate(LocalDate.now().plusMonths(12));
                                 batch.setQuantity(stock);
@@ -1569,11 +1701,13 @@ public class ZippyCrmSyncService {
                 }
             }
 
-            // Deactivate any local medicine not present in Zippy CRM database (without violating foreign key constraints on past prescriptions)
+            // Deactivate any local medicine not present in Zippy CRM database (without
+            // violating foreign key constraints on past prescriptions)
             if (!zippyProductNames.isEmpty()) {
                 List<Medicine> localMedicines = medicineRepository.findAll();
                 for (Medicine localMed : localMedicines) {
-                    if (localMed.getName() != null && !zippyProductNames.contains(localMed.getName().trim().toLowerCase())) {
+                    if (localMed.getName() != null
+                            && !zippyProductNames.contains(localMed.getName().trim().toLowerCase())) {
                         if (!"Inactive".equalsIgnoreCase(localMed.getStatus())) {
                             localMed.setStatus("Inactive");
                             localMed.setStockQuantity(0);
@@ -1584,7 +1718,9 @@ public class ZippyCrmSyncService {
                 }
             }
 
-            log.info("Successfully fetched and synchronized {} inventory product(s) from Zippy CRM into Doctor Portal inventory.", count);
+            log.info(
+                    "Successfully fetched and synchronized {} inventory product(s) from Zippy CRM into Doctor Portal inventory.",
+                    count);
 
         } catch (SQLException e) {
             log.warn("Could not import products from Zippy CRM: {}", e.getMessage());
@@ -1592,7 +1728,8 @@ public class ZippyCrmSyncService {
     }
 
     /**
-     * Reduces the stock quantity of a product/medicine directly in Zippy CRM's pet_management database
+     * Reduces the stock quantity of a product/medicine directly in Zippy CRM's
+     * database
      * when it is distributed or prescribed in the Doctor Portal.
      */
     public void reduceProductStockInZippyCrm(String medicineName, int quantityToReduce) {
@@ -1610,7 +1747,7 @@ public class ZippyCrmSyncService {
             }
 
             if (!productsTableExists) {
-                log.warn("Zippy CRM products table not found in pet_management database.");
+                log.warn("Zippy CRM products table not found in {} database.", properties.getDatabaseName());
                 return;
             }
 
@@ -1654,8 +1791,10 @@ public class ZippyCrmSyncService {
             if (availableCols.contains(col.toLowerCase())) {
                 try {
                     String val = rs.getString(col);
-                    if (val != null && !val.isBlank()) return val;
-                } catch (Exception ignored) {}
+                    if (val != null && !val.isBlank())
+                        return val;
+                } catch (Exception ignored) {
+                }
             }
         }
         return null;
@@ -1666,8 +1805,10 @@ public class ZippyCrmSyncService {
             if (availableCols.contains(col.toLowerCase())) {
                 try {
                     double val = rs.getDouble(col);
-                    if (!rs.wasNull()) return val;
-                } catch (Exception ignored) {}
+                    if (!rs.wasNull())
+                        return val;
+                } catch (Exception ignored) {
+                }
             }
         }
         return null;
@@ -1678,14 +1819,17 @@ public class ZippyCrmSyncService {
             if (availableCols.contains(col.toLowerCase())) {
                 try {
                     int val = rs.getInt(col);
-                    if (!rs.wasNull()) return val;
-                } catch (Exception ignored) {}
+                    if (!rs.wasNull())
+                        return val;
+                } catch (Exception ignored) {
+                }
             }
         }
         return null;
     }
 
     private Connection getConnection() throws SQLException {
+        DriverManager.setLoginTimeout(3);
         return DriverManager.getConnection(
                 properties.getDbUrl(),
                 properties.getDbUser(),

@@ -18,6 +18,8 @@ import {
 import Button from "../../components/ui/Button";
 import { Field } from "../../components/ui/Input";
 import AuthLayout from "../../layouts/AuthLayout";
+// Legal Consent components & policies
+import AuthLegalConsentGroup from "../../components/auth/AuthLegalConsentGroup";
 import { useAuth } from "../../hooks/useAuth";
 import { sendLoginPhoneOtp, resendLoginOtp } from "../../services/authService";
 import { ROUTES } from "../../constants/routes";
@@ -37,6 +39,10 @@ export default function Login() {
 
   // Login Method: "PASSWORD" | "PHONE_OTP"
   const [loginMethod, setLoginMethod] = useState("PASSWORD");
+
+  // Legal Consent states
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalError, setLegalError] = useState(false);
 
   // 2FA session state
   const [twoFaData, setTwoFaData] = useState({
@@ -99,6 +105,12 @@ export default function Login() {
 
   // Step 1A: Submit Password Login (Email or Phone + Password)
   const onSubmitPassword = async (values) => {
+    if (!legalAccepted) {
+      setLegalError(true);
+      toast.error("Please accept the Terms & Conditions, Privacy Policy and Data Consent to sign in.");
+      return;
+    }
+
     setServerError("");
     setSubmitting(true);
 
@@ -152,6 +164,12 @@ export default function Login() {
 
   // Step 1B: Submit Direct Phone OTP Login
   const onSubmitPhoneOtp = async (values) => {
+    if (!legalAccepted) {
+      setLegalError(true);
+      toast.error("Please accept the Terms & Conditions, Privacy Policy and Data Consent to sign in.");
+      return;
+    }
+
     setServerError("");
     setSubmitting(true);
 
@@ -419,6 +437,18 @@ export default function Login() {
                 </Link>
               </div>
 
+              {/* Mandatory Legal & Data Terms Consent */}
+              <AuthLegalConsentGroup
+                accepted={legalAccepted}
+                onToggle={(val) => {
+                  setLegalAccepted(val);
+                  if (val) setLegalError(false);
+                }}
+                showError={legalError}
+                errorMessage="Please review and accept the Terms & Conditions, Privacy Policy and Data Consent to sign in."
+                contextText="sign in"
+              />
+
               <Button
                 type="submit"
                 size="lg"
@@ -461,6 +491,18 @@ export default function Login() {
                 We&apos;ll send a 4-digit verification code to this number to verify and sign you in.
               </div>
 
+              {/* Mandatory Legal & Data Terms Consent */}
+              <AuthLegalConsentGroup
+                accepted={legalAccepted}
+                onToggle={(val) => {
+                  setLegalAccepted(val);
+                  if (val) setLegalError(false);
+                }}
+                showError={legalError}
+                errorMessage="Please review and accept the Terms & Conditions, Privacy Policy and Data Consent to sign in."
+                contextText="sign in"
+              />
+
               <Button
                 type="submit"
                 size="lg"
@@ -494,52 +536,52 @@ export default function Login() {
             <h2 className="auth-header-title">Zenve Doctors</h2>
           </div>
           <AnimatedOtpScreen
-          isInline={true}
-          length={4}
-          destination={twoFaData.maskedPhone || "your registered phone"}
-          heading="Two-Factor Verification"
-          subtitle={
-            <>
-              Enter the 4-digit code sent to{" "}
-              <strong style={{ color: "#1e1b4b" }}>{twoFaData.maskedPhone || "your phone"}</strong>.
-              <br />
-              It will auto-verify once entered.
-            </>
-          }
-          onVerify={async (code) => {
-            const data = await verifyLoginOtp(
-              {
-                email: twoFaData.email,
-                phone: twoFaData.phone,
-                loginSessionToken: twoFaData.loginSessionToken,
-                otp: code,
-              },
-              false
-            );
-            return data;
-          }}
-          onResend={async () => {
-            let data;
-            if (twoFaData.email || twoFaData.loginSessionToken) {
-              data = await resendLoginOtp({
-                email: twoFaData.email,
-                loginSessionToken: twoFaData.loginSessionToken,
-              });
-            } else if (twoFaData.phone) {
-              data = await sendLoginPhoneOtp({ phone: twoFaData.phone });
+            isInline={true}
+            length={4}
+            destination={twoFaData.maskedPhone || "your registered phone"}
+            heading="Two-Factor Verification"
+            subtitle={
+              <>
+                Enter the 4-digit code sent to{" "}
+                <strong style={{ color: "#1e1b4b" }}>{twoFaData.maskedPhone || "your phone"}</strong>.
+                <br />
+                It will auto-verify once entered.
+              </>
             }
-            toast.success(data?.message || "A new OTP has been sent to your registered mobile number.");
-            return data;
-          }}
-          onBack={handleBackToCredentials}
-          onSuccess={(data) => {
-            if (data?.token) persistSession(data);
-            toast.success(`Welcome back, Dr. ${data?.fullName?.split(" ")[0] || ""}`.trim());
-            navigate(redirectTo, { replace: true });
-          }}
-          redirectPath={redirectTo}
-          initialCooldown={resendCooldown || 30}
-        />
+            onVerify={async (code) => {
+              const data = await verifyLoginOtp(
+                {
+                  email: twoFaData.email,
+                  phone: twoFaData.phone,
+                  loginSessionToken: twoFaData.loginSessionToken,
+                  otp: code,
+                },
+                false
+              );
+              return data;
+            }}
+            onResend={async () => {
+              let data;
+              if (twoFaData.email || twoFaData.loginSessionToken) {
+                data = await resendLoginOtp({
+                  email: twoFaData.email,
+                  loginSessionToken: twoFaData.loginSessionToken,
+                });
+              } else if (twoFaData.phone) {
+                data = await sendLoginPhoneOtp({ phone: twoFaData.phone });
+              }
+              toast.success(data?.message || "A new OTP has been sent to your registered mobile number.");
+              return data;
+            }}
+            onBack={handleBackToCredentials}
+            onSuccess={(data) => {
+              if (data?.token) persistSession(data);
+              toast.success(`Welcome back, Dr. ${data?.fullName?.split(" ")[0] || ""}`.trim());
+              navigate(redirectTo, { replace: true });
+            }}
+            redirectPath={redirectTo}
+            initialCooldown={resendCooldown || 30}
+          />
         </>
       )}
     </AuthLayout>

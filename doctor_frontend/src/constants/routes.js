@@ -1,5 +1,5 @@
 export const ROUTES = {
-  LOGIN: "/login",
+  LOGIN: "/",
 
   REGISTER: "/register",
 
@@ -12,6 +12,7 @@ export const ROUTES = {
   OTP_VERIFICATION: "/otp-verification",
 
   DASHBOARD: "/",
+
 
   APPOINTMENTS: "/appointments",
 

@@ -334,19 +334,6 @@ export default function AnimatedOtpScreen({
       {/* Background ambient lighting */}
       <div className="otp-ambient-glow" />
 
-      {/* Floating Back / Dismiss Button (Standalone / Modal view only) */}
-      {onBack && !isSuccess && !isInline && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="otp-back-floating-btn"
-          aria-label="Go back or change number"
-        >
-          <FiArrowLeft size={14} />
-          <span>Back</span>
-        </button>
-      )}
-
       {/* Centered Glass Verification Card */}
       <motion.div
         className={`otp-card-container ${isSuccess ? "is-success" : ""} ${
@@ -363,13 +350,38 @@ export default function AnimatedOtpScreen({
         }
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Header Icon Badge (Light theme matches Login.jsx auth-header-badge) */}
+        {/* Header Navigation & Brand Badge (Structured to eliminate any overlap) */}
         {isLightTheme ? (
-          <div className="otp-light-header-badge">
-            <FiSmartphone size={24} color="#4338ca" />
+          <div className="otp-card-top-nav">
+            {onBack && !isSuccess && !isInline && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="otp-card-back-btn"
+                aria-label="Go back"
+              >
+                <FiArrowLeft size={13} />
+                <span>Back</span>
+              </button>
+            )}
+            <div className="otp-light-header-badge">
+              <FiSmartphone size={24} color="#4338ca" />
+            </div>
           </div>
         ) : (
-          <>
+          <div className="otp-card-top-nav">
+            {onBack && !isSuccess && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="otp-card-back-btn"
+                aria-label="Go back or change number"
+              >
+                <FiArrowLeft size={13} />
+                <span>Back</span>
+              </button>
+            )}
+
             {/* Brand Micro-Badge Pill */}
             <div className="otp-brand-pill">
               <span className="otp-brand-dot" />
@@ -379,7 +391,7 @@ export default function AnimatedOtpScreen({
 
             {/* Modal Handle pill at top */}
             <div className="otp-card-handle" />
-          </>
+          </div>
         )}
 
         {/* Heading & Subtitle Header */}

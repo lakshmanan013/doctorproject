@@ -5,7 +5,7 @@ const TOKEN_KEY = "zenve_doctor_token";
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: { "Content-Type": "application/json" },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
@@ -21,7 +21,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API request failed:", error?.response?.data || error.message);
+    const method = error?.config?.method ? error.config.method.toUpperCase() : "GET";
+    const url = error?.config?.url || "";
+    console.error(`API request failed [${method} ${url}]:`, error?.response?.data || error.message);
 
     if (error?.response?.status === 401) {
       sessionStorage.removeItem(TOKEN_KEY);

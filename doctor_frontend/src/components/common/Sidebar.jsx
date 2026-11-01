@@ -162,7 +162,7 @@ export default function Sidebar({ isOpen, onClose }) {
           className="logout-btn"
           onClick={() => {
             logout();
-            navigate("/login");
+            navigate("/", { replace: true });
             onClose?.();
           }}
           title="Log out"

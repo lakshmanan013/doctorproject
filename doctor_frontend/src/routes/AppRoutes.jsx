@@ -1,8 +1,11 @@
 import { Routes, Route } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import PrivateRoute from "./PrivateRoute";
 import PublicRoute from "./PublicRoute";
+import CrmRedirect from "./CrmRedirect";
+import InvalidRouteRedirect from "./InvalidRouteRedirect";
 
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
@@ -26,13 +29,26 @@ import VideoConsultation from "../pages/VideoConsultation/VideoConsultation";
 import PetParentRoom from "../pages/VideoConsultation/PetParentRoom";
 
 function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
-      {/* -------------------- PUBLIC TELEHEALTH ROOM (PET PARENT ACCESS) -------------------- */}
-      <Route path="/join-call/:roomCode" element={<PetParentRoom />} />
-      <Route path="/telehealth/:roomCode" element={<PetParentRoom />} />
-
-      {/* -------------------- PUBLIC (AUTH) ROUTES -------------------- */}
+      {/* -------------------- 1. DOMAIN ROOT: DOCTOR LOGIN PAGE -------------------- */}
+      {/* Entering the domain name directly opens Doctor Login (or Dashboard if already authenticated) */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <DashboardLayout>
+              <Dashboard />
+            </DashboardLayout>
+          ) : (
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          )
+        }
+      />
 
       <Route
         path="/login"
@@ -43,6 +59,14 @@ function AppRoutes() {
         }
       />
 
+      {/* -------------------- 2. DOMAIN /crm: ADMIN CRM LOGIN PAGE -------------------- */}
+      {/* Entering the domain name near slash crm (/crm) directly opens Admin CRM Login */}
+      <Route path="/crm" element={<CrmRedirect />} />
+      <Route path="/crm/*" element={<CrmRedirect />} />
+      <Route path="/admin" element={<CrmRedirect />} />
+      <Route path="/admin/*" element={<CrmRedirect />} />
+
+      {/* -------------------- AUTH REGISTRATION & RECOVERY -------------------- */}
       <Route
         path="/register"
         element={
@@ -88,8 +112,11 @@ function AppRoutes() {
         }
       />
 
-      {/* -------------------- PROTECTED DASHBOARD ROUTES -------------------- */}
+      {/* -------------------- PUBLIC TELEHEALTH ROOM (PET PARENT ACCESS) -------------------- */}
+      <Route path="/join-call/:roomCode" element={<PetParentRoom />} />
+      <Route path="/telehealth/:roomCode" element={<PetParentRoom />} />
 
+      {/* -------------------- PROTECTED DOCTOR DASHBOARD ROUTES -------------------- */}
       <Route
         element={
           <PrivateRoute>
@@ -97,7 +124,7 @@ function AppRoutes() {
           </PrivateRoute>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/appointments" element={<AppointmentPage />} />
         <Route path="/video-consultation" element={<VideoConsultation />} />
         <Route path="/video-consultant" element={<VideoConsultation />} />
@@ -110,8 +137,11 @@ function AppRoutes() {
         <Route path="/equips" element={<Equips />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/settings" element={<DoctorProfile />} />
-        <Route path="*" element={<Dashboard />} />
       </Route>
+
+      {/* -------------------- 3. OTHER THAN THAT: NO OTHER URL OR PATH CAN COME -------------------- */}
+      {/* Any arbitrary, unknown, or unauthorized URL strictly bounces to Doctor Login at "/" */}
+      <Route path="*" element={<InvalidRouteRedirect />} />
     </Routes>
   );
 }

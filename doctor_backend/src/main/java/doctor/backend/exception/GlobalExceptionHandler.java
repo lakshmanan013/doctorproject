@@ -45,8 +45,25 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
+    @ExceptionHandler({
+        org.apache.catalina.connector.ClientAbortException.class,
+        org.springframework.web.context.request.async.AsyncRequestNotUsableException.class
+    })
+    public void handleClientAbort(Exception ex) {
+        // Client closed or refreshed the browser before response finished writing - ignore
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneric(Exception ex) {
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        if (root instanceof java.io.IOException && (root.getMessage() != null &&
+                (root.getMessage().contains("aborted") || root.getMessage().contains("Broken pipe") || root.getMessage().contains("Connection reset")))) {
+            return null;
+        }
+
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage() != null ? ex.getMessage() : "Something went wrong");
     }
 

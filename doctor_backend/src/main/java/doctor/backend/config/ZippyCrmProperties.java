@@ -9,9 +9,24 @@ public class ZippyCrmProperties {
 
     private boolean enabled = true;
     private String baseUrl = "http://127.0.0.1:8000";
-    private String dbUrl = "jdbc:mysql://localhost:3306/pet_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true";
-    private String dbUser = "root";
-    private String dbPassword = "Vasanth@zenve";
+    private String dbUrl = "jdbc:mysql://127.0.0.1:3307/zippy_crm?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true&connectTimeout=3000&socketTimeout=5000";
+    private String dbUser = "zippy_crm_app";
+    private String dbPassword = "zippy-123";
+
+    public String getDatabaseName() {
+        if (dbUrl != null) {
+            try {
+                int q = dbUrl.indexOf('?');
+                String clean = q != -1 ? dbUrl.substring(0, q) : dbUrl;
+                int slash = clean.lastIndexOf('/');
+                if (slash != -1 && slash < clean.length() - 1) {
+                    return clean.substring(slash + 1);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return "zippy_crm";
+    }
 
     public boolean isEnabled() {
         return enabled;

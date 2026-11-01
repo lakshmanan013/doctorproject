@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Nginx Reverse Proxy serving Doctor Frontend at / and Admin CRM at /crm
+  web:
+    image: nginx:alpine
+    container_name: zenve_web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./doctor_frontend/dist:/var/www/zenve/doctor_frontend/dist:ro
+      - ./admin-frontend/dist:/var/www/zenve/admin-frontend/dist:ro
+    depends_on:
+      - doctor_backend
+      - admin_backend
+    restart: always
+
+  # Doctor Backend API (Spring Boot on port 8080)
+  doctor_backend:
+    build:
+      context: ./doctor_backend
+    container_name: zenve_doctor_backend
+    ports:
+      - "8080:8080"
+    restart: always
+
+  # Admin Backend API (Spring Boot on port 8081)
+  admin_backend:
+    build:
+      context: ./admin_backend
+    container_name: zenve_admin_backend
+    ports:
+      - "8081:8081"
+    restart: always
+

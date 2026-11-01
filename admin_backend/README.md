@@ -36,11 +36,10 @@ On first boot it seeds:
 
 Set `DB_DRIVER=mysql` (plus `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
 `DB_PASSWORD` as needed) and the backend will connect to a real MySQL server
-instead, creating/updating the `vetcare` schema automatically. See
+instead, creating/updating the `admin_crm` schema automatically. See
 `database/schema.sql` for the reference DDL if you'd rather provision it by
 hand. Every repository call goes through Spring Data JPA, so nothing else
-needs to change when you switch drivers — this mirrors the "same `vetcare`
-database" architecture the frontend's Database page describes.
+needs to change when you switch drivers.
 
 ## Environment variables
 
@@ -49,9 +48,9 @@ See `.env.example` for the full list with defaults. Highlights:
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `5000` | HTTP port |
-| `DB_DRIVER` | `h2` | `h2` (embedded file db) or `mysql` |
+| `DB_DRIVER` | `mysql` | `mysql` or `h2` (embedded file db) |
 | `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` | — | MySQL connection (when `DB_DRIVER=mysql`) |
-| `DB_FILE_PATH` | `./data/vetcare` | H2 file location (when `DB_DRIVER=h2`) |
+| `DB_FILE_PATH` | `./data/admin_crm` | H2 file location (when `DB_DRIVER=h2`) |
 | `JWT_SECRET` | dev default | **Change this in production.** Hashed to a 256-bit key internally. |
 | `JWT_EXPIRATION_MS` | `86400000` (24h) | Token lifetime |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated list of allowed frontend origins |

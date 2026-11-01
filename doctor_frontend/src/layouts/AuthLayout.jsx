@@ -5,21 +5,15 @@ import {
   FiShield,
 } from "react-icons/fi";
 
+import AuthBackgroundSlideshow from "../components/auth/AuthBackgroundSlideshow";
 import "../pages/Auth/Auth.css";
 
 export default function AuthLayout({ children, className = "" }) {
   return (
     <div className={`auth-shell ${className}`.trim()}>
 
-      {/* Full-Screen Hero Background Image (Dog & Cat with Stethoscope in Clinic) */}
-      <div className="auth-fullscreen-bg" aria-hidden="true">
-        <img
-          src="/images/doctor-login-hero.jpg"
-          alt="Veterinary practice care with dog and cat"
-          className="auth-fullscreen-img"
-        />
-        <div className="auth-fullscreen-overlay" />
-      </div>
+      {/* Looping 7-Second Crystal-Clear Background Slideshow */}
+      <AuthBackgroundSlideshow />
 
       {/* -------------------- BRAND HERO PANEL -------------------- */}
       <div className="auth-brand">
@@ -39,11 +33,10 @@ export default function AuthLayout({ children, className = "" }) {
           </div>
         </div>
 
-        {/* Hero Mid Content */}
+        {/* Hero Mid Content (Compact, non-overlapping) */}
         <div className="auth-brand-mid">
           <h1 className="auth-hero-title">
-            Run your clinic<br />
-            from one simple<br />
+            Run your clinic from one simple{" "}
             <span className="auth-hero-highlight">dashboard.</span>
           </h1>
         </div>
@@ -70,10 +63,11 @@ export default function AuthLayout({ children, className = "" }) {
             </div>
           </div>
 
-          {/* Brand Bottom Footer */}
+          {/* Brand Bottom Footer - Subtle System Tag */}
           <div className="auth-brand-bottom">
-            <span>&copy; Zenve Technologies Inc.</span>
-            <span>v2.4.1</span>
+            <span>Veterinary Practice OS</span>
+            <span className="auth-brand-bottom-divider">&bull;</span>
+            <span className="auth-brand-bottom-version">v2.4.1</span>
           </div>
         </div>
 
@@ -81,26 +75,22 @@ export default function AuthLayout({ children, className = "" }) {
 
       {/* -------------------- FORM PANEL -------------------- */}
       <div className="auth-form-panel">
-        <div className="auth-form-wrap">
-          {/* Mobile Brand Header (< 980px) */}
-          <div className="auth-mobile-brand">
-            <div className="auth-mobile-brand-logo">
-              <img
-                src="/zenve.png"
-                alt="Zenve Logo"
-                className="auth-mobile-zenve-logo"
-              />
+          <div className="auth-form-container">
+            <div className="auth-form-wrap">
+              {children}
             </div>
-            <div className="auth-mobile-brand-text">
-              <h3>Zenve Doctors</h3>
-              <span className="auth-mobile-brand-tag">Veterinary Practice OS</span>
+
+            {/* Form Bottom Copyright - Sleek Glassy Badge */}
+            <div className="auth-form-copyright">
+              <span>&copy; {new Date().getFullYear()} Zenve Technologies Inc.</span>
+              <span className="auth-form-copyright-divider">&bull;</span>
+              <span>All rights reserved</span>
+              <span className="auth-form-copyright-divider">&bull;</span>
+              <span className="auth-form-copyright-version">v2.4.1</span>
             </div>
           </div>
-
-          {children}
         </div>
-      </div>
 
-    </div>
-  );
+      </div>
+      );
 }

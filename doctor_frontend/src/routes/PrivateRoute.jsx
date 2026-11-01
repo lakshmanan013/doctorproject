@@ -1,14 +1,12 @@
-import { Navigate, useLocation } from "react-router-dom";
-
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { ROUTES } from "../constants/routes";
 
 function PrivateRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  const location = useLocation();
 
+  // If not authenticated, strictly redirect to "/" (Doctor Login)
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

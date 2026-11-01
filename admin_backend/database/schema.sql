@@ -1,12 +1,12 @@
--- Zenve `vetcare` schema — reference DDL.
+-- Zenve `admin_crm` schema — reference DDL.
 --
 -- Hibernate's `ddl-auto: update` will create/evolve these tables automatically
 -- when the backend starts against MySQL, so running this file by hand is
 -- optional. It's provided so you (or the separate doctor-facing backend) can
 -- provision the database manually, and so the schema is documented in one place.
 
-CREATE DATABASE IF NOT EXISTS vetcare CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE vetcare;
+CREATE DATABASE IF NOT EXISTS admin_crm CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE admin_crm;
 
 CREATE TABLE IF NOT EXISTS admins (
     id            VARCHAR(36)  NOT NULL PRIMARY KEY,

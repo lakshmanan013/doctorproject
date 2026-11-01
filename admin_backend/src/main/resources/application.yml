@@ -7,9 +7,9 @@ spring:
   application:
     name: zenve-admin-backend
   datasource:
-    url: jdbc:mysql://localhost:3306/vetcare?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
-    username: root
-    password: Vasanth@zenve
+    url: jdbc:mysql://${ADMIN_DB_HOST:${DB_HOST:127.0.0.1}}:${ADMIN_DB_PORT:${DB_PORT:3307}}/${ADMIN_DB_NAME:${DB_NAME:admin_crm}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+    username: ${ADMIN_DB_USER:${DB_USER:admin_crm_app}}
+    password: ${ADMIN_DB_PASSWORD:${DB_PASSWORD:admin-123}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -37,9 +37,9 @@ app:
     base-url: ${DOCTOR_APP_BASE_URL:http://localhost:8080/api}
     internal-secret: ${DOCTOR_APP_INTERNAL_SECRET:change-this-shared-secret}
   database:
-    driver: mysql
-    host: localhost:3306
-    name: vetcare
+    driver: ${DB_DRIVER:mysql}
+    host: ${ADMIN_DB_HOST:${DB_HOST:127.0.0.1}}:${ADMIN_DB_PORT:${DB_PORT:3307}}
+    name: ${ADMIN_DB_NAME:${DB_NAME:admin_crm}}
     file-path: ""
 
 ---
@@ -51,7 +51,7 @@ spring:
     activate:
       on-profile: h2
   datasource:
-    url: jdbc:h2:file:${DB_FILE_PATH:./data/vetcare};AUTO_SERVER=TRUE
+    url: jdbc:h2:file:${DB_FILE_PATH:./data/admin_crm};AUTO_SERVER=TRUE
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -61,6 +61,6 @@ spring:
 app:
   database:
     driver: h2
-    host: ${DB_FILE_PATH:./data/vetcare}
-    name: vetcare
-    file-path: ${DB_FILE_PATH:./data/vetcare}
+    host: ${DB_FILE_PATH:./data/admin_crm}
+    name: ${ADMIN_DB_NAME:${DB_NAME:admin_crm}}
+    file-path: ${DB_FILE_PATH:./data/admin_crm}
