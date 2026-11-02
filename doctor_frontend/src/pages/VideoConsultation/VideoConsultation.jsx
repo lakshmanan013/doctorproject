@@ -187,7 +187,7 @@ export default function VideoConsultation() {
           }));
         }
       } catch (syncErr) {
-        console.warn("Could not load appointments from /api/doctors/appointments/:", syncErr);
+        // Marketplace optional sync skipped if offline
       }
 
       try {

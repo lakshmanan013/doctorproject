@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import PrivateRoute from "./PrivateRoute";
@@ -29,38 +28,10 @@ import VideoConsultation from "../pages/VideoConsultation/VideoConsultation";
 import PetParentRoom from "../pages/VideoConsultation/PetParentRoom";
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <Routes>
-      {/* -------------------- 1. DOMAIN ROOT: DOCTOR LOGIN PAGE -------------------- */}
-      {/* Entering the domain name directly opens Doctor Login (or Dashboard if already authenticated) */}
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? (
-            <DashboardLayout>
-              <Dashboard />
-            </DashboardLayout>
-          ) : (
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          )
-        }
-      />
-
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-
-      {/* -------------------- 2. DOMAIN /crm: ADMIN CRM LOGIN PAGE -------------------- */}
-      {/* Entering the domain name near slash crm (/crm) directly opens Admin CRM Login */}
+      {/* -------------------- 1. ADMIN CRM LOGIN (/crm) -------------------- */}
+      {/* Entering near slash crm (/crm) directly opens Admin CRM Login */}
       <Route path="/crm" element={<CrmRedirect />} />
       <Route path="/crm/*" element={<CrmRedirect />} />
       <Route path="/admin" element={<CrmRedirect />} />
@@ -116,30 +87,44 @@ function AppRoutes() {
       <Route path="/join-call/:roomCode" element={<PetParentRoom />} />
       <Route path="/telehealth/:roomCode" element={<PetParentRoom />} />
 
-      {/* -------------------- PROTECTED DOCTOR DASHBOARD ROUTES -------------------- */}
+      {/* -------------------- 2. ROOT & PROTECTED DOCTOR DASHBOARD ROUTES -------------------- */}
+      {/* When unauthenticated: PrivateRoute renders Doctor Login directly at "/" */}
+      {/* When authenticated: PrivateRoute renders DashboardLayout, and Outlet renders Dashboard at "/" */}
       <Route
+        path="/"
         element={
           <PrivateRoute>
             <DashboardLayout />
           </PrivateRoute>
         }
       >
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/appointments" element={<AppointmentPage />} />
-        <Route path="/video-consultation" element={<VideoConsultation />} />
-        <Route path="/video-consultant" element={<VideoConsultation />} />
-        <Route path="/patients" element={<Patients />} />
-        <Route path="/patients/:id" element={<PatientProfile />} />
-        <Route path="/prescriptions" element={<Prescription />} />
-        <Route path="/followups" element={<Followup />} />
-        <Route path="/vaccinations" element={<Vaccination />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/equips" element={<Equips />} />
-        <Route path="/billing" element={<Billing />} />
-        <Route path="/settings" element={<DoctorProfile />} />
+        <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="appointments" element={<AppointmentPage />} />
+        <Route path="video-consultation" element={<VideoConsultation />} />
+        <Route path="video-consultant" element={<VideoConsultation />} />
+        <Route path="patients" element={<Patients />} />
+        <Route path="patients/:id" element={<PatientProfile />} />
+        <Route path="prescriptions" element={<Prescription />} />
+        <Route path="followups" element={<Followup />} />
+        <Route path="vaccinations" element={<Vaccination />} />
+        <Route path="inventory" element={<Inventory />} />
+        <Route path="equips" element={<Equips />} />
+        <Route path="billing" element={<Billing />} />
+        <Route path="settings" element={<DoctorProfile />} />
       </Route>
 
-      {/* -------------------- 3. OTHER THAN THAT: NO OTHER URL OR PATH CAN COME -------------------- */}
+      {/* Direct /login route for compatibility */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+
+      {/* -------------------- 3. STRICT SHIELD: OTHER THAN THAT NO URL OR PATH CAN COME -------------------- */}
       {/* Any arbitrary, unknown, or unauthorized URL strictly bounces to Doctor Login at "/" */}
       <Route path="*" element={<InvalidRouteRedirect />} />
     </Routes>

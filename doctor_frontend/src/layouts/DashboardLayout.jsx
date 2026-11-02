@@ -4,7 +4,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/common/Sidebar";
 import Navbar from "../components/common/Navbar";
 
-export default function DashboardLayout() {
+export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -43,7 +43,7 @@ export default function DashboardLayout() {
 
         <main className="app-content">
           <div className="app-content-inner">
-            <Outlet />
+            {children || <Outlet />}
           </div>
         </main>
       </div>
