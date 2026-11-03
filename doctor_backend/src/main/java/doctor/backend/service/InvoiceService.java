@@ -6,6 +6,7 @@ import doctor.backend.entity.Invoice;
 import doctor.backend.repository.InvoiceRepository;
 import doctor.backend.security.CurrentUserProvider;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,12 +21,15 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final ObjectProvider<ZippyCrmSyncService> zippySyncProvider;
 
     public InvoiceService(
             InvoiceRepository invoiceRepository,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ObjectProvider<ZippyCrmSyncService> zippySyncProvider) {
         this.invoiceRepository = invoiceRepository;
         this.currentUserProvider = currentUserProvider;
+        this.zippySyncProvider = zippySyncProvider;
     }
 
     // =====================================================
@@ -134,6 +138,8 @@ public class InvoiceService {
 
         Invoice saved =
                 invoiceRepository.save(invoice);
+
+        triggerSync(saved);
 
         return mapToResponse(saved);
     }
@@ -355,6 +361,8 @@ public class InvoiceService {
         Invoice updated =
                 invoiceRepository.save(invoice);
 
+        triggerSync(updated);
+
         return mapToResponse(updated);
     }
 
@@ -378,6 +386,8 @@ public class InvoiceService {
 
         Invoice updated =
                 invoiceRepository.save(invoice);
+
+        triggerSync(updated);
 
         return mapToResponse(updated);
     }
@@ -535,5 +545,15 @@ public class InvoiceService {
         );
 
         return response;
+    }
+    private void triggerSync(Invoice invoice) {
+        if (zippySyncProvider != null) {
+            try {
+                ZippyCrmSyncService sync = zippySyncProvider.getIfAvailable();
+                if (sync != null) {
+                    sync.syncInvoice(invoice);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 }

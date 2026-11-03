@@ -6,6 +6,8 @@ import doctor.backend.repository.*;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class ZippyCrmSyncService {
     private final FollowUpRepository followUpRepository;
     private final MedicineRepository medicineRepository;
     private final MedicineBatchRepository medicineBatchRepository;
+    private final ObjectProvider<InvoiceRepository> invoiceRepositoryProvider;
 
     public ZippyCrmSyncService(
             ZippyCrmProperties properties,
@@ -47,7 +50,8 @@ public class ZippyCrmSyncService {
             VaccinationRepository vaccinationRepository,
             FollowUpRepository followUpRepository,
             MedicineRepository medicineRepository,
-            MedicineBatchRepository medicineBatchRepository) {
+            MedicineBatchRepository medicineBatchRepository,
+            ObjectProvider<InvoiceRepository> invoiceRepositoryProvider) {
         this.properties = properties;
         this.userRepository = userRepository;
         this.doctorProfileRepository = doctorProfileRepository;
@@ -60,12 +64,13 @@ public class ZippyCrmSyncService {
         this.followUpRepository = followUpRepository;
         this.medicineRepository = medicineRepository;
         this.medicineBatchRepository = medicineBatchRepository;
+        this.invoiceRepositoryProvider = invoiceRepositoryProvider;
     }
 
     @PostConstruct
     public void init() {
-        if (!properties.isEnabled()) {
-            log.info("Zippy CRM sync is disabled.");
+        if (!properties.isEnabled() && !properties.isCentralDbEnabled()) {
+            log.info("Central Main DB and Zippy CRM sync are disabled.");
             return;
         }
 
@@ -76,9 +81,21 @@ public class ZippyCrmSyncService {
                 cleanupLegacyCommerceData();
                 syncAll();
             } catch (Exception e) {
-                log.warn("Could not perform initial background sync to Zippy CRM: {}", e.getMessage());
+                log.warn("Could not perform initial background sync to dual databases: {}", e.getMessage());
             }
         });
+    }
+
+    @Scheduled(fixedDelayString = "${app.zippy-crm.sync-interval-ms:10000}", initialDelay = 10000)
+    public void scheduledPeriodicSync() {
+        if (!properties.isEnabled() && !properties.isCentralDbEnabled()) {
+            return;
+        }
+        try {
+            syncAll();
+        } catch (Exception e) {
+            log.warn("Periodic 10s auto-sync between doctor_crm and zenve_main warning: {}", e.getMessage());
+        }
     }
 
     private void cleanupLegacyCommerceData() {
@@ -204,12 +221,26 @@ public class ZippyCrmSyncService {
             for (FollowUp f : followUps) {
                 syncFollowUp(f);
             }
-            log.info("Synced {} follow-up(s) to Zippy CRM.", followUps.size());
+            log.info("Synced {} follow-up(s) to dual databases.", followUps.size());
         } catch (Exception e) {
-            log.warn("Error syncing follow-ups to Zippy CRM: {}", e.getMessage());
+            log.warn("Error syncing follow-ups to dual databases: {}", e.getMessage());
         }
 
-        log.info("Complete Doctor Portal synchronization to Zippy CRM finished successfully.");
+        // 12. Sync Invoices
+        try {
+            InvoiceRepository invRepo = invoiceRepositoryProvider != null ? invoiceRepositoryProvider.getIfAvailable() : null;
+            if (invRepo != null) {
+                List<Invoice> invoices = invRepo.findAll();
+                for (Invoice inv : invoices) {
+                    syncInvoice(inv);
+                }
+                log.info("Synced {} invoice(s) to central/zippy databases.", invoices.size());
+            }
+        } catch (Exception e) {
+            log.warn("Error syncing invoices to central/zippy databases: {}", e.getMessage());
+        }
+
+        log.info("Complete Doctor Portal synchronization to dual databases finished successfully.");
     }
 
     // =========================================================================
@@ -229,7 +260,7 @@ public class ZippyCrmSyncService {
     }
 
     public void syncDoctor(User user) {
-        if (user == null || !properties.isEnabled()) {
+        if (user == null || (!properties.isEnabled() && !properties.isCentralDbEnabled())) {
             return;
         }
         DoctorProfile profile = doctorProfileRepository.findByUserId(user.getId()).orElse(null);
@@ -237,17 +268,15 @@ public class ZippyCrmSyncService {
     }
 
     public void syncDoctor(User user, DoctorProfile profile) {
-        if (user == null || !properties.isEnabled()) {
+        if (user == null || (!properties.isEnabled() && !properties.isCentralDbEnabled())) {
             return;
         }
         String approvalStatus = user.getApprovalStatus();
         String verificationStatus = mapStatusToZippy(approvalStatus);
 
-        try (Connection conn = getConnection()) {
+        forEachTarget((conn, targetName) -> {
             getOrCreateZippyDoctorId(conn, user, profile, verificationStatus);
-        } catch (SQLException e) {
-            log.warn("Direct DB sync to Zippy CRM doctors failed for {}: {}", user.getFullName(), e.getMessage());
-        }
+        });
     }
 
     private String mapStatusToZippy(String approvalStatus) {
@@ -937,14 +966,11 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncOwner(Owner owner) {
-        if (owner == null || !properties.isEnabled())
+        if (owner == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
-        try (Connection conn = getConnection()) {
+        forEachTarget((conn, targetName) -> {
             getOrCreateZippyParentId(conn, owner);
-        } catch (SQLException e) {
-            log.warn("Direct DB sync to Zippy CRM pet_parents failed for owner {}: {}", owner.getFullName(),
-                    e.getMessage());
-        }
+        });
     }
 
     public Integer getOrCreateZippyParentId(Connection conn, Owner owner) throws SQLException {
@@ -1001,13 +1027,11 @@ public class ZippyCrmSyncService {
     }
 
     public void syncPatient(Patient patient) {
-        if (patient == null || !properties.isEnabled())
+        if (patient == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
-        try (Connection conn = getConnection()) {
+        forEachTarget((conn, targetName) -> {
             getOrCreateZippyPetId(conn, patient);
-        } catch (SQLException e) {
-            log.warn("Direct DB sync to Zippy CRM pets failed for patient {}: {}", patient.getName(), e.getMessage());
-        }
+        });
     }
 
     public Integer getOrCreateZippyPetId(Connection conn, Patient patient) throws SQLException {
@@ -1094,10 +1118,15 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncAppointment(Appointment appointment) {
-        if (appointment == null || !properties.isEnabled())
+        if (appointment == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
+        forEachTarget((conn, targetName) -> {
+            syncAppointmentInternal(conn, appointment);
+        });
+    }
 
-        try (Connection conn = getConnection()) {
+    public void syncAppointmentInternal(Connection conn, Appointment appointment) throws SQLException {
+        try {
             Integer petId = getOrCreateZippyPetId(conn, appointment.getPatient());
             Integer doctorId = getZippyDoctorId(conn, appointment.getDoctorId());
 
@@ -1232,10 +1261,15 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncPrescription(Prescription rx) {
-        if (rx == null || !properties.isEnabled())
+        if (rx == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
+        forEachTarget((conn, targetName) -> {
+            syncPrescriptionInternal(conn, rx);
+        });
+    }
 
-        try (Connection conn = getConnection()) {
+    public void syncPrescriptionInternal(Connection conn, Prescription rx) throws SQLException {
+        try {
             Integer petId = getOrCreateZippyPetId(conn, rx.getPatient());
             Integer doctorId = getZippyDoctorId(conn, rx.getDoctorId());
 
@@ -1374,10 +1408,15 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncMedicalRecord(MedicalRecord record) {
-        if (record == null || !properties.isEnabled())
+        if (record == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
+        forEachTarget((conn, targetName) -> {
+            syncMedicalRecordInternal(conn, record);
+        });
+    }
 
-        try (Connection conn = getConnection()) {
+    public void syncMedicalRecordInternal(Connection conn, MedicalRecord record) throws SQLException {
+        try {
             Integer petId = getOrCreateZippyPetId(conn, record.getPatient());
             if (petId == null) {
                 return;
@@ -1433,10 +1472,15 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncVaccination(Vaccination v) {
-        if (v == null || !properties.isEnabled())
+        if (v == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
+        forEachTarget((conn, targetName) -> {
+            syncVaccinationInternal(conn, v);
+        });
+    }
 
-        try (Connection conn = getConnection()) {
+    public void syncVaccinationInternal(Connection conn, Vaccination v) throws SQLException {
+        try {
             Integer petId = getOrCreateZippyPetId(conn, v.getPatient());
             if (petId == null) {
                 return;
@@ -1489,22 +1533,61 @@ public class ZippyCrmSyncService {
     // =========================================================================
 
     public void syncFollowUp(FollowUp followUp) {
-        if (followUp == null || !properties.isEnabled())
+        if (followUp == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
             return;
+        forEachTarget((conn, targetName) -> {
+            syncFollowUpInternal(conn, followUp);
+        });
+    }
 
-        try (Connection conn = getConnection()) {
-            Integer petId = getOrCreateZippyPetId(conn, followUp.getPatient());
-            Integer doctorId = getZippyDoctorId(conn, followUp.getDoctorId());
+    public void syncFollowUpInternal(Connection conn, FollowUp followUp) throws SQLException {
+        Integer petId = getOrCreateZippyPetId(conn, followUp.getPatient());
+        Integer doctorId = getZippyDoctorId(conn, followUp.getDoctorId());
 
-            if (petId == null || doctorId == null) {
-                return;
+        LocalDate nextDate = followUp.getNextFollowUpDate() != null ? followUp.getNextFollowUpDate()
+                : (followUp.getFollowUpDate() != null ? followUp.getFollowUpDate() : LocalDate.now().plusDays(7));
+        String notes = followUp.getReason() != null ? followUp.getReason()
+                : (followUp.getNotes() != null ? followUp.getNotes() : "Routine Follow-up");
+
+        // 1. Update clinical_follow_ups in zenve_main if table exists
+        if (tableExists(conn, "clinical_follow_ups")) {
+            String code = "FU-" + String.format("%05d", followUp.getId() != null ? followUp.getId() : 1);
+            String petName = followUp.getPatient() != null && followUp.getPatient().getName() != null ? followUp.getPatient().getName() : "Pet";
+            String parentName = "Pet Parent";
+            if (followUp.getPatient() != null && followUp.getPatient().getOwner() != null && followUp.getPatient().getOwner().getFullName() != null) {
+                parentName = followUp.getPatient().getOwner().getFullName();
             }
+            String docName = followUp.getDoctorName() != null ? followUp.getDoctorName() : "Doctor";
+            String status = followUp.getStatus() != null ? followUp.getStatus() : "SCHEDULED";
+            java.sql.Date fuDate = followUp.getFollowUpDate() != null ? java.sql.Date.valueOf(followUp.getFollowUpDate()) : java.sql.Date.valueOf(LocalDate.now());
+            java.sql.Date nextFuDate = java.sql.Date.valueOf(nextDate);
 
-            LocalDate nextDate = followUp.getNextFollowUpDate() != null ? followUp.getNextFollowUpDate()
-                    : (followUp.getFollowUpDate() != null ? followUp.getFollowUpDate() : LocalDate.now().plusDays(7));
-            String notes = followUp.getReason() != null ? followUp.getReason()
-                    : (followUp.getNotes() != null ? followUp.getNotes() : "Routine Follow-up");
+            String sql = "INSERT INTO clinical_follow_ups "
+                    + "(id, followup_code, pet_name, parent_name, doctor_name, reason, followup_date, next_follow_up_date, status, reminder_sent, created_at) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW()) "
+                    + "ON DUPLICATE KEY UPDATE reason=?, status=?, followup_date=?, next_follow_up_date=?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setLong(1, followUp.getId() != null ? followUp.getId() : 1);
+                stmt.setString(2, code);
+                stmt.setString(3, petName);
+                stmt.setString(4, parentName);
+                stmt.setString(5, docName);
+                stmt.setString(6, notes);
+                stmt.setDate(7, fuDate);
+                stmt.setDate(8, nextFuDate);
+                stmt.setString(9, status);
+                stmt.setString(10, notes);
+                stmt.setString(11, status);
+                stmt.setDate(12, fuDate);
+                stmt.setDate(13, nextFuDate);
+                stmt.executeUpdate();
+            } catch (Exception ex) {
+                log.warn("Could not insert into clinical_follow_ups: {}", ex.getMessage());
+            }
+        }
 
+        // 2. Also insert into medical_records for general consultation tracking
+        if (petId != null && tableExists(conn, "medical_records")) {
             String insertRecord = "INSERT INTO medical_records (pet_id, record_type, title, diagnosis, record_date) "
                     + "VALUES (?, 'Follow-up', ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(insertRecord)) {
@@ -1513,9 +1596,7 @@ public class ZippyCrmSyncService {
                 ps.setString(3, followUp.getFindings() != null ? followUp.getFindings() : notes);
                 ps.setDate(4, java.sql.Date.valueOf(nextDate));
                 ps.executeUpdate();
-            }
-        } catch (SQLException e) {
-            log.warn("Direct DB sync to Zippy CRM follow-ups failed: {}", e.getMessage());
+            } catch (Exception ignored) {}
         }
     }
 
@@ -1828,11 +1909,142 @@ public class ZippyCrmSyncService {
         return null;
     }
 
-    private Connection getConnection() throws SQLException {
+    // =========================================================================
+    // 12. INVOICES DUAL SYNC (clinical_invoices & invoices)
+    // =========================================================================
+
+    public void syncInvoice(Invoice invoice) {
+        if (invoice == null || (!properties.isEnabled() && !properties.isCentralDbEnabled()))
+            return;
+        forEachTarget((conn, targetName) -> {
+            syncInvoiceInternal(conn, invoice);
+        });
+    }
+
+    public void syncInvoiceInternal(Connection conn, Invoice invoice) throws SQLException {
+        if (invoice == null)
+            return;
+
+        String petName = "Pet";
+        if (invoice.getPatientId() != null) {
+            Patient p = patientRepository.findById(invoice.getPatientId()).orElse(null);
+            if (p != null && p.getName() != null)
+                petName = p.getName();
+        }
+
+        String parentName = "Pet Parent";
+        if (invoice.getOwnerId() != null) {
+            Owner o = ownerRepository.findById(invoice.getOwnerId()).orElse(null);
+            if (o != null && o.getFullName() != null)
+                parentName = o.getFullName();
+        }
+
+        String doctorName = "Dr. Zenve";
+        if (invoice.getDoctorId() != null) {
+            User u = userRepository.findById(invoice.getDoctorId()).orElse(null);
+            if (u != null && u.getFullName() != null)
+                doctorName = u.getFullName();
+        }
+
+        String invNum = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : ("INV-" + invoice.getId());
+        double total = invoice.getTotalAmount() != null ? invoice.getTotalAmount().doubleValue() : 0.0;
+        double paid = invoice.getPaidAmount() != null ? invoice.getPaidAmount().doubleValue() : total;
+        String status = invoice.getPaymentStatus() != null ? invoice.getPaymentStatus() : "PAID";
+        String notes = invoice.getNotes() != null ? invoice.getNotes() : "";
+        java.sql.Date invDate = invoice.getInvoiceDate() != null ? java.sql.Date.valueOf(invoice.getInvoiceDate())
+                : new java.sql.Date(System.currentTimeMillis());
+
+        if (tableExists(conn, "clinical_invoices")) {
+            String sql = "INSERT INTO clinical_invoices "
+                    + "(id, invoice_number, pet_name, parent_name, doctor_name, consultation_fee, medicine_fee, total_amount, paid_amount, payment_status, payment_method, notes, invoice_date, created_at) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'Cash', ?, ?, NOW()) "
+                    + "ON DUPLICATE KEY UPDATE total_amount=?, paid_amount=?, payment_status=?, notes=?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setLong(1, invoice.getId() != null ? invoice.getId() : 1);
+                stmt.setString(2, invNum);
+                stmt.setString(3, petName);
+                stmt.setString(4, parentName);
+                stmt.setString(5, doctorName);
+                stmt.setDouble(6, total);
+                stmt.setDouble(7, total);
+                stmt.setDouble(8, paid);
+                stmt.setString(9, status);
+                stmt.setString(10, notes);
+                stmt.setDate(11, invDate);
+                stmt.setDouble(12, total);
+                stmt.setDouble(13, paid);
+                stmt.setString(14, status);
+                stmt.setString(15, notes);
+                stmt.executeUpdate();
+            }
+        }
+    }
+
+    // =========================================================================
+    // DUAL-DATABASE CONNECTION AND DISPATCH INFRASTRUCTURE
+    // =========================================================================
+
+    @FunctionalInterface
+    public interface TargetDbConsumer {
+        void accept(Connection conn, String targetName) throws Exception;
+    }
+
+    public void forEachTarget(TargetDbConsumer consumer) {
+        // Target 1: Central Consolidated Main Database (zenve_main)
+        if (properties.isCentralDbEnabled() && properties.getCentralDbUrl() != null && !properties.getCentralDbUrl().isBlank()) {
+            try (Connection conn = getCentralConnection()) {
+                consumer.accept(conn, "zenve_main");
+            } catch (Exception e) {
+                log.warn("Automatic dual-save to Central DB (zenve_main) had an issue: {}", e.getMessage());
+            }
+        }
+
+        // Target 2: Zippy CRM Database (zippy_crm)
+        if (properties.isEnabled() && properties.getDbUrl() != null && !properties.getDbUrl().isBlank()) {
+            try (Connection conn = getZippyConnection()) {
+                consumer.accept(conn, "zippy_crm");
+            } catch (Exception e) {
+                log.warn("Automatic dual-save to Zippy CRM had an issue: {}", e.getMessage());
+            }
+        }
+    }
+
+    public Connection getZippyConnection() throws SQLException {
         DriverManager.setLoginTimeout(3);
         return DriverManager.getConnection(
                 properties.getDbUrl(),
                 properties.getDbUser(),
                 properties.getDbPassword());
+    }
+
+    public Connection getCentralConnection() throws SQLException {
+        DriverManager.setLoginTimeout(3);
+        return DriverManager.getConnection(
+                properties.getCentralDbUrl(),
+                properties.getCentralDbUser(),
+                properties.getCentralDbPassword());
+    }
+
+    private Connection getConnection() throws SQLException {
+        if (properties.isCentralDbEnabled() && properties.getCentralDbUrl() != null && !properties.getCentralDbUrl().isBlank()) {
+            try {
+                return getCentralConnection();
+            } catch (Exception ignored) {
+            }
+        }
+        return getZippyConnection();
+    }
+
+    private boolean tableExists(Connection conn, String tableName) {
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            try (ResultSet rs = meta.getTables(null, null, tableName, null)) {
+                if (rs.next()) return true;
+            }
+            try (ResultSet rs = meta.getTables(null, null, tableName.toUpperCase(), null)) {
+                if (rs.next()) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 }

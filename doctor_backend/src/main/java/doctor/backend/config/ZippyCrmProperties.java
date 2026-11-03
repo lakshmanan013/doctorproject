@@ -13,6 +13,13 @@ public class ZippyCrmProperties {
     private String dbUser = "zippy_crm_app";
     private String dbPassword = "zippy-123";
 
+    // Central Consolidated Main Database (zenve_main)
+    private boolean centralDbEnabled = true;
+    private String centralDbUrl = "jdbc:mysql://127.0.0.1:3307/zenve_main?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true&connectTimeout=3000&socketTimeout=5000";
+    private String centralDbUser = "zenve_main_user";
+    private String centralDbPassword = "zenvemain-123";
+    private long syncIntervalMs = 10000;
+
     public String getDatabaseName() {
         if (dbUrl != null) {
             try {
@@ -66,5 +73,45 @@ public class ZippyCrmProperties {
 
     public void setDbPassword(String dbPassword) {
         this.dbPassword = dbPassword;
+    }
+
+    public boolean isCentralDbEnabled() {
+        return centralDbEnabled;
+    }
+
+    public void setCentralDbEnabled(boolean centralDbEnabled) {
+        this.centralDbEnabled = centralDbEnabled;
+    }
+
+    public String getCentralDbUrl() {
+        return centralDbUrl;
+    }
+
+    public void setCentralDbUrl(String centralDbUrl) {
+        this.centralDbUrl = centralDbUrl;
+    }
+
+    public String getCentralDbUser() {
+        return centralDbUser;
+    }
+
+    public void setCentralDbUser(String centralDbUser) {
+        this.centralDbUser = centralDbUser;
+    }
+
+    public String getCentralDbPassword() {
+        return centralDbPassword;
+    }
+
+    public void setCentralDbPassword(String centralDbPassword) {
+        this.centralDbPassword = centralDbPassword;
+    }
+
+    public long getSyncIntervalMs() {
+        return syncIntervalMs;
+    }
+
+    public void setSyncIntervalMs(long syncIntervalMs) {
+        this.syncIntervalMs = syncIntervalMs;
     }
 }

@@ -40,7 +40,14 @@ doctor frontend/
 # Environment Variables & Secrets
 .env
 .env.*
+*.env
+*.env.*
+central_db.env
 !.env.example
+!*.env.example
 **/.env
 **/.env.*
+**/*.env
+**/*.env.*
 !**/.env.example
+!**/*.env.example
